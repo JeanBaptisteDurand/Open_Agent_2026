@@ -85,12 +85,26 @@ export class SubgraphClient {
   }
 
   async getV3PositionsByOwner(owner: string): Promise<V3PositionRaw[]> {
-    if (!this.v3) return [];
-    const data = await this.v3.request<{ positions: V3PositionRaw[] }>(
-      POSITIONS_BY_OWNER_V3,
-      { owner: owner.toLowerCase() },
-    );
-    return data.positions;
+    if (!this.v3) {
+      logger.warn(
+        { owner },
+        "subgraph not configured — returning empty positions",
+      );
+      return [];
+    }
+    try {
+      const data = await this.v3.request<{ positions: V3PositionRaw[] }>(
+        POSITIONS_BY_OWNER_V3,
+        { owner: owner.toLowerCase() },
+      );
+      return data.positions;
+    } catch (err) {
+      logger.error(
+        { err, owner },
+        "subgraph v3 getV3PositionsByOwner failed",
+      );
+      throw err;
+    }
   }
 }
 
