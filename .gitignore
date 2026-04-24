@@ -37,3 +37,6 @@ artifacts/
 .firecrawl/
 
 AI_ATTRIBUTION.md
+
+# TS incremental build info
+*.tsbuildinfo
