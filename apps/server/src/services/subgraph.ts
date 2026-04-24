@@ -10,6 +10,65 @@ function buildV3Endpoint(): string | null {
   return `${V3_GATEWAY}/${config.THE_GRAPH_KEY}/subgraphs/id/${id}`;
 }
 
+const POSITIONS_BY_OWNER_V3 = /* GraphQL */ `
+  query PositionsByOwner($owner: Bytes!) {
+    positions(
+      where: { owner: $owner, liquidity_gt: "0" }
+      first: 100
+      orderBy: transaction__timestamp
+      orderDirection: desc
+    ) {
+      id
+      owner
+      liquidity
+      depositedToken0
+      depositedToken1
+      collectedFeesToken0
+      collectedFeesToken1
+      tickLower {
+        tickIdx
+      }
+      tickUpper {
+        tickIdx
+      }
+      pool {
+        id
+        feeTier
+        tickSpacing
+        token0 {
+          id
+          symbol
+          decimals
+        }
+        token1 {
+          id
+          symbol
+          decimals
+        }
+      }
+    }
+  }
+`;
+
+export interface V3PositionRaw {
+  id: string;
+  owner: string;
+  liquidity: string;
+  depositedToken0: string;
+  depositedToken1: string;
+  collectedFeesToken0: string;
+  collectedFeesToken1: string;
+  tickLower: { tickIdx: string };
+  tickUpper: { tickIdx: string };
+  pool: {
+    id: string;
+    feeTier: string;
+    tickSpacing: string;
+    token0: { id: string; symbol: string; decimals: string };
+    token1: { id: string; symbol: string; decimals: string };
+  };
+}
+
 export class SubgraphClient {
   private readonly v3: GraphQLClient | null;
 
@@ -23,6 +82,15 @@ export class SubgraphClient {
 
   isReady(): boolean {
     return this.v3 !== null;
+  }
+
+  async getV3PositionsByOwner(owner: string): Promise<V3PositionRaw[]> {
+    if (!this.v3) return [];
+    const data = await this.v3.request<{ positions: V3PositionRaw[] }>(
+      POSITIONS_BY_OWNER_V3,
+      { owner: owner.toLowerCase() },
+    );
+    return data.positions;
   }
 }
 
