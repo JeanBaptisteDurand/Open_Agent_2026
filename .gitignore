@@ -35,3 +35,5 @@ artifacts/
 
 # Research (not project code — kept out of this repo intentionally)
 .firecrawl/
+
+AI_ATTRIBUTION.md
