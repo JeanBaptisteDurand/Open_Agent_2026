@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
+import { LabelBadge } from "../components/LabelBadge.js";
 import { ToolCallBadge } from "../components/ToolCallBadge.js";
 import { TypewriterText } from "../components/TypewriterText.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
@@ -47,39 +48,52 @@ export function Diagnose() {
   return (
     <div className="min-h-screen p-8">
       <header className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-semibold tracking-tight">Diagnose</h1>
-        <p className="mt-2 text-slate-400 font-mono text-sm">
-          tokenId {tokenId ?? "(missing)"} — stream {status}
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Diagnose</h1>
+            <p className="mt-2 text-slate-400 font-mono text-sm">
+              tokenId {tokenId ?? "(missing)"} — stream {status}
+              {resolved && (
+                <span className="ml-3 text-slate-300">{resolved.pair}</span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            {resolved && <LabelBadge label="VERIFIED" />}
+            {ilBreakdown && <LabelBadge label="COMPUTED" />}
+          </div>
+        </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
       </header>
 
       <main className="max-w-6xl mx-auto mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 p-6 rounded-lg border border-slate-700 bg-slate-900/50 min-h-[400px]">
-          <h2 className="text-xs uppercase tracking-wider text-slate-500">
-            Phases
-          </h2>
-          <ul className="mt-4 space-y-2 text-sm font-mono">
-            {phaseEvents.map((p, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="text-cyan-300">phase {p.phase}</span>
-                <span className="text-slate-300">{p.label}</span>
-              </li>
-            ))}
-            {phaseEvents.length === 0 && (
-              <li className="text-slate-500">waiting for first phase…</li>
-            )}
-          </ul>
-          <p className="mt-8 text-slate-500 text-xs">
-            React Flow graph wires in a follow-up feature.
-          </p>
-        </section>
-
-        <aside className="space-y-6">
+        <section className="lg:col-span-2 space-y-6">
           {ilBreakdown && (
             <ILPanel breakdown={ilBreakdown} token1Symbol={token1Symbol} />
           )}
 
+          <section className="p-6 rounded-lg border border-slate-700 bg-slate-900/50 min-h-[200px]">
+            <h2 className="text-xs uppercase tracking-wider text-slate-500">
+              Phases
+            </h2>
+            <ul className="mt-4 space-y-2 text-sm font-mono">
+              {phaseEvents.map((p, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="text-cyan-300">phase {p.phase}</span>
+                  <span className="text-slate-300">{p.label}</span>
+                </li>
+              ))}
+              {phaseEvents.length === 0 && (
+                <li className="text-slate-500">waiting for first phase…</li>
+              )}
+            </ul>
+            <p className="mt-6 text-slate-500 text-xs">
+              React Flow graph wires in a follow-up feature.
+            </p>
+          </section>
+        </section>
+
+        <aside className="space-y-6">
           <section className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
             <h2 className="text-xs uppercase tracking-wider text-slate-500">
               Tool calls
