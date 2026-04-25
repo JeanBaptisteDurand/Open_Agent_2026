@@ -87,8 +87,7 @@ export class SubgraphClient {
   async getV3PositionsByOwner(owner: string): Promise<V3PositionRaw[]> {
     if (!this.v3) {
       logger.warn(
-        { owner },
-        "subgraph not configured — returning empty positions",
+        `subgraph not configured — returning empty positions for ${owner}`,
       );
       return [];
     }
@@ -100,8 +99,9 @@ export class SubgraphClient {
       return data.positions;
     } catch (err) {
       logger.error(
-        { err, owner },
-        "subgraph v3 getV3PositionsByOwner failed",
+        `subgraph v3 getV3PositionsByOwner failed for ${owner}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
       throw err;
     }
