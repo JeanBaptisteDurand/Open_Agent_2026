@@ -2,6 +2,7 @@ import cors from "cors";
 import express, { type Request, type Response } from "express";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
+import { diagnoseHandler } from "./routes/diagnose.js";
 import { subgraph } from "./services/subgraph.js";
 
 const app = express();
@@ -35,6 +36,8 @@ app.get<{ address: string }>(
     }
   },
 );
+
+app.get<{ tokenId: string }>("/api/diagnose/:tokenId", diagnoseHandler);
 
 app.listen(config.PORT, () => {
   logger.info(`lplens-server listening on :${config.PORT}`);
