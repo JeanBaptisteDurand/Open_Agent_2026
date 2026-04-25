@@ -1,6 +1,7 @@
 import { GraphQLClient } from "graphql-request";
 import { config } from "../config.js";
 import { logger } from "../logger.js";
+import type { V3SubgraphPosition } from "@lplens/agent";
 
 const V3_GATEWAY = "https://gateway.thegraph.com/api";
 
@@ -18,6 +19,41 @@ const POSITIONS_BY_OWNER_V3 = /* GraphQL */ `
       orderBy: transaction__timestamp
       orderDirection: desc
     ) {
+      id
+      owner
+      liquidity
+      depositedToken0
+      depositedToken1
+      collectedFeesToken0
+      collectedFeesToken1
+      tickLower {
+        tickIdx
+      }
+      tickUpper {
+        tickIdx
+      }
+      pool {
+        id
+        feeTier
+        tickSpacing
+        token0 {
+          id
+          symbol
+          decimals
+        }
+        token1 {
+          id
+          symbol
+          decimals
+        }
+      }
+    }
+  }
+`;
+
+const POSITION_BY_ID_V3 = /* GraphQL */ `
+  query PositionById($id: ID!) {
+    position(id: $id) {
       id
       owner
       liquidity
@@ -100,6 +136,31 @@ export class SubgraphClient {
     } catch (err) {
       logger.error(
         `subgraph v3 getV3PositionsByOwner failed for ${owner}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      throw err;
+    }
+  }
+
+  async getV3PositionById(
+    tokenId: string,
+  ): Promise<V3SubgraphPosition | null> {
+    if (!this.v3) {
+      logger.warn(
+        `subgraph not configured — cannot resolve v3 position ${tokenId}`,
+      );
+      return null;
+    }
+    try {
+      const data = await this.v3.request<{ position: V3SubgraphPosition | null }>(
+        POSITION_BY_ID_V3,
+        { id: tokenId },
+      );
+      return data.position;
+    } catch (err) {
+      logger.error(
+        `subgraph v3 getV3PositionById failed for ${tokenId}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
