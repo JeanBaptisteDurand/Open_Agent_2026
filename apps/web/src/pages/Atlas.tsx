@@ -1,12 +1,17 @@
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { PositionCard } from "../components/PositionCard.js";
-import type { V3PositionRaw } from "../lib/api.js";
-
-const SAMPLE: V3PositionRaw[] = [];
+import { fetchPositions } from "../lib/api.js";
 
 export function Atlas() {
   const [address, setAddress] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["positions", submitted],
+    queryFn: () => fetchPositions(submitted!),
+    enabled: !!submitted,
+  });
 
   return (
     <div className="min-h-screen p-8">
@@ -41,21 +46,25 @@ export function Atlas() {
           </button>
         </form>
 
-        {submitted ? (
-          SAMPLE.length === 0 ? (
-            <p className="mt-6 text-slate-500 text-sm font-mono">
-              no positions yet — fetch wiring lands in next commit
-            </p>
-          ) : (
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {SAMPLE.map((p) => (
-                <PositionCard key={p.id} position={p} />
-              ))}
-            </div>
-          )
-        ) : (
+        {!submitted ? (
           <p className="mt-6 text-slate-500 text-sm">
             Paste a wallet address above to list LP positions.
+          </p>
+        ) : isLoading ? (
+          <p className="mt-6 text-slate-500 text-sm">loading...</p>
+        ) : error ? (
+          <p className="mt-6 text-rose-400 text-sm font-mono">
+            error: {(error as Error).message}
+          </p>
+        ) : data && data.positions.length > 0 ? (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.positions.map((p) => (
+              <PositionCard key={p.id} position={p} />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-6 text-slate-500 text-sm font-mono">
+            no positions found for {submitted}
           </p>
         )}
       </section>
