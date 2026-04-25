@@ -92,6 +92,42 @@ const POSITION_BY_ID_V3 = /* GraphQL */ `
   }
 `;
 
+const MODIFY_LIQUIDITIES_BY_ORIGIN_V4 = /* GraphQL */ `
+  query ModifyLiquiditiesByOrigin($origin: Bytes!) {
+    modifyLiquidities(
+      where: { origin: $origin }
+      first: 1000
+      orderBy: timestamp
+      orderDirection: asc
+    ) {
+      id
+      timestamp
+      amount
+      amount0
+      amount1
+      tickLower
+      tickUpper
+      logIndex
+      pool {
+        id
+        hooks
+        feeTier
+        tickSpacing
+        token0 {
+          id
+          symbol
+          decimals
+        }
+        token1 {
+          id
+          symbol
+          decimals
+        }
+      }
+    }
+  }
+`;
+
 export interface V3PositionRaw {
   id: string;
   owner: string;
@@ -104,6 +140,25 @@ export interface V3PositionRaw {
   tickUpper: { tickIdx: string };
   pool: {
     id: string;
+    feeTier: string;
+    tickSpacing: string;
+    token0: { id: string; symbol: string; decimals: string };
+    token1: { id: string; symbol: string; decimals: string };
+  };
+}
+
+export interface V4ModifyLiquidityRaw {
+  id: string;
+  timestamp: string;
+  amount: string;
+  amount0: string;
+  amount1: string;
+  tickLower: string;
+  tickUpper: string;
+  logIndex: string | null;
+  pool: {
+    id: string;
+    hooks: string;
     feeTier: string;
     tickSpacing: string;
     token0: { id: string; symbol: string; decimals: string };
@@ -181,6 +236,30 @@ export class SubgraphClient {
     } catch (err) {
       logger.error(
         `subgraph v3 getV3PositionById failed for ${tokenId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      throw err;
+    }
+  }
+
+  async getV4ModifyLiquiditiesByOrigin(
+    origin: string,
+  ): Promise<V4ModifyLiquidityRaw[]> {
+    if (!this.v4) {
+      logger.warn(
+        `subgraph not configured — returning empty v4 events for ${origin}`,
+      );
+      return [];
+    }
+    try {
+      const data = await this.v4.request<{
+        modifyLiquidities: V4ModifyLiquidityRaw[];
+      }>(MODIFY_LIQUIDITIES_BY_ORIGIN_V4, { origin: origin.toLowerCase() });
+      return data.modifyLiquidities;
+    } catch (err) {
+      logger.error(
+        `subgraph v4 getV4ModifyLiquiditiesByOrigin failed for ${origin}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
