@@ -3,12 +3,18 @@ import { config } from "../config.js";
 import { logger } from "../logger.js";
 import type { V3SubgraphPosition } from "@lplens/agent";
 
-const V3_GATEWAY = "https://gateway.thegraph.com/api";
+const GATEWAY = "https://gateway.thegraph.com/api";
 
 function buildV3Endpoint(): string | null {
   if (!config.THE_GRAPH_KEY) return null;
   const id = "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV";
-  return `${V3_GATEWAY}/${config.THE_GRAPH_KEY}/subgraphs/id/${id}`;
+  return `${GATEWAY}/${config.THE_GRAPH_KEY}/subgraphs/id/${id}`;
+}
+
+function buildV4Endpoint(): string | null {
+  if (!config.THE_GRAPH_KEY) return null;
+  const id = "DiYPVdygkfjDWhbxGSqAQxwBKmfKnkWQojqeM2rkLb3G";
+  return `${GATEWAY}/${config.THE_GRAPH_KEY}/subgraphs/id/${id}`;
 }
 
 const POSITIONS_BY_OWNER_V3 = /* GraphQL */ `
@@ -107,17 +113,31 @@ export interface V3PositionRaw {
 
 export class SubgraphClient {
   private readonly v3: GraphQLClient | null;
+  private readonly v4: GraphQLClient | null;
 
   constructor() {
     const v3Endpoint = buildV3Endpoint();
+    const v4Endpoint = buildV4Endpoint();
     this.v3 = v3Endpoint ? new GraphQLClient(v3Endpoint) : null;
+    this.v4 = v4Endpoint ? new GraphQLClient(v4Endpoint) : null;
     if (!this.v3) {
-      logger.warn("THE_GRAPH_KEY not set — subgraph queries will return empty");
+      logger.warn(
+        "THE_GRAPH_KEY not set — v3 subgraph queries will return empty",
+      );
+    }
+    if (!this.v4) {
+      logger.warn(
+        "THE_GRAPH_KEY not set — v4 subgraph queries will return empty",
+      );
     }
   }
 
   isReady(): boolean {
     return this.v3 !== null;
+  }
+
+  isReadyV4(): boolean {
+    return this.v4 !== null;
   }
 
   async getV3PositionsByOwner(owner: string): Promise<V3PositionRaw[]> {
