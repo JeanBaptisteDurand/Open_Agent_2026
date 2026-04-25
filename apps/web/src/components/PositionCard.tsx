@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { V3PositionRaw } from "../lib/api.js";
 import { classifyHealth, HEALTH_COLORS } from "../lib/health.js";
 
@@ -8,8 +9,12 @@ interface Props {
 export function PositionCard({ position }: Props) {
   const { pool, tickLower, tickUpper, liquidity } = position;
   const health = classifyHealth(position);
+
   return (
-    <div className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
+    <Link
+      to={`/diagnose/${position.id}`}
+      className="block p-4 rounded-lg border border-slate-700 bg-slate-900/50 hover:border-cyan-500/40 transition-colors"
+    >
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">
           {pool.token0.symbol} / {pool.token1.symbol}
@@ -30,6 +35,6 @@ export function PositionCard({ position }: Props) {
         <dt className="text-slate-500">liquidity</dt>
         <dd>{BigInt(liquidity).toLocaleString()}</dd>
       </dl>
-    </div>
+    </Link>
   );
 }
