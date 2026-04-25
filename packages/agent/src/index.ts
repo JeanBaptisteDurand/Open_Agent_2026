@@ -1,5 +1,4 @@
 // @lplens/agent — orchestrates the 9-phase diagnostic pipeline.
-// Today exposes Phase 1 only; remaining phases get implemented one PR at a time.
 
 export type { DiagnosticEvent } from "@lplens/core";
 export {
@@ -12,3 +11,4 @@ export type {
   Phase1Pool,
   Phase1Token,
 } from "./phases/01-resolution/types.js";
+export { runPhase1, type AgentDeps, type Emit } from "./orchestrator.js";
