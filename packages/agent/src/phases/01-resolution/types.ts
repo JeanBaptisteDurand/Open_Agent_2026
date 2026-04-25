@@ -18,6 +18,11 @@ export interface Phase1Pool {
   hooks?: string;
   token0: Phase1Token;
   token1: Phase1Token;
+  // Live pool state needed for downstream phases (e.g. IL reconstruction).
+  sqrtPriceX96: string;
+  tick: number;
+  token0Price: string;
+  token1Price: string;
 }
 
 export interface Phase1Output {
@@ -30,4 +35,6 @@ export interface Phase1Output {
   liquidity: Labeled<string>;
   depositedToken0: Labeled<string>;
   depositedToken1: Labeled<string>;
+  collectedFeesToken0: Labeled<string>;
+  collectedFeesToken1: Labeled<string>;
 }
