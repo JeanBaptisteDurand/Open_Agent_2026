@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { fakePhaseSequence } from "../services/diagnoseFake.js";
 import { SSEStream } from "../lib/sse.js";
 import { logger } from "../logger.js";
+import { subgraph } from "../services/subgraph.js";
 
 export async function diagnoseHandler(
   req: Request<{ tokenId: string }>,
@@ -13,6 +14,15 @@ export async function diagnoseHandler(
   req.on("close", () => {
     logger.info(`diagnose stream closed by client (tokenId=${tokenId})`);
   });
+
+  // Preflight phase 0 — subgraph readiness banner. Lets the client display a
+  // useful banner before any real work starts.
+  sse.emit({
+    type: "phase.start",
+    phase: 0,
+    label: subgraph.isReady() ? "subgraph ready" : "subgraph degraded",
+  });
+  sse.emit({ type: "phase.end", phase: 0, durationMs: 0 });
 
   try {
     for await (const event of fakePhaseSequence(tokenId)) {
