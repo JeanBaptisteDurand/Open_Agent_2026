@@ -11,4 +11,16 @@ export type {
   Phase1Pool,
   Phase1Token,
 } from "./phases/01-resolution/types.js";
-export { runPhase1, type AgentDeps, type Emit } from "./orchestrator.js";
+export {
+  computeCurrentAmounts,
+  computeIL,
+  type CurrentAmounts,
+  type ILBreakdown,
+} from "./phases/03-il/math.js";
+export {
+  runPhase1,
+  runPhase3,
+  type AgentDeps,
+  type Emit,
+  type Phase3Output,
+} from "./orchestrator.js";
