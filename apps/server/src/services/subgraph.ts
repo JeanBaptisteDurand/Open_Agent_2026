@@ -77,6 +77,10 @@ const POSITION_BY_ID_V3 = /* GraphQL */ `
         id
         feeTier
         tickSpacing
+        sqrtPrice
+        tick
+        token0Price
+        token1Price
         token0 {
           id
           symbol
