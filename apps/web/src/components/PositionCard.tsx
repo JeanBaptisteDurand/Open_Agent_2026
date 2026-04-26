@@ -13,7 +13,7 @@ export function PositionCard({ position }: Props) {
   return (
     <Link
       to={`/diagnose/${position.id}`}
-      className="block p-4 rounded-lg border border-slate-700 bg-slate-900/50 hover:border-cyan-500/40 transition-colors"
+      className="block p-4 rounded-lg border border-slate-700 bg-slate-900/50 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-colors"
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-lg font-semibold">
@@ -34,7 +34,12 @@ export function PositionCard({ position }: Props) {
         </dd>
         <dt className="text-slate-500">liquidity</dt>
         <dd>{BigInt(liquidity).toLocaleString()}</dd>
+        <dt className="text-slate-500">tokenId</dt>
+        <dd className="text-cyan-300">#{position.id}</dd>
       </dl>
+      <p className="mt-3 text-[10px] text-slate-500 group-hover:text-cyan-400">
+        click to diagnose →
+      </p>
     </Link>
   );
 }
