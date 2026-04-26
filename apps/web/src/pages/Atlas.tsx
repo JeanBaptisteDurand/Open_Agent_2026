@@ -3,6 +3,8 @@ import { useState } from "react";
 import { PositionCard } from "../components/PositionCard.js";
 import { fetchPositions } from "../lib/api.js";
 
+const SAMPLE_ADDRESS = "0x50ec05ade8280758e2077fcbc08d878d4aef79c3";
+
 export function Atlas() {
   const [address, setAddress] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export function Atlas() {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="0x... wallet address"
-            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded font-mono text-sm"
+            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded font-mono text-sm focus:border-cyan-500/40 outline-none"
           />
           <button
             type="submit"
@@ -46,12 +48,23 @@ export function Atlas() {
           </button>
         </form>
 
+        <button
+          type="button"
+          onClick={() => {
+            setAddress(SAMPLE_ADDRESS);
+            setSubmitted(SAMPLE_ADDRESS);
+          }}
+          className="mt-3 text-[11px] font-mono text-slate-500 hover:text-cyan-400 transition-colors"
+        >
+          → try a sample address
+        </button>
+
         {!submitted ? (
           <p className="mt-6 text-slate-500 text-sm">
             Paste a wallet address above to list LP positions.
           </p>
         ) : isLoading ? (
-          <p className="mt-6 text-slate-500 text-sm">loading...</p>
+          <p className="mt-6 text-slate-500 text-sm">loading…</p>
         ) : error ? (
           <p className="mt-6 text-rose-400 text-sm font-mono">
             error: {(error as Error).message}

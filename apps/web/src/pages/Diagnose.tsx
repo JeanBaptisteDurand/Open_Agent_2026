@@ -1,6 +1,10 @@
 import { useParams } from "react-router-dom";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
 import { LabelBadge } from "../components/LabelBadge.js";
+import {
+  RegimePanel,
+  type RegimeClassification,
+} from "../components/RegimePanel.js";
 import { ToolCallBadge } from "../components/ToolCallBadge.js";
 import { TypewriterText } from "../components/TypewriterText.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
@@ -43,6 +47,7 @@ export function Diagnose() {
 
   const resolved = pickToolResult<ResolvedPositionOutput>(events, "getV3Position");
   const ilBreakdown = pickToolResult<ILBreakdown>(events, "computeIL");
+  const regime = pickToolResult<RegimeClassification>(events, "classifyRegime");
   const token1Symbol = resolved?.pair?.split("/")?.[1] ?? "T1";
 
   return (
@@ -61,6 +66,7 @@ export function Diagnose() {
           <div className="flex items-center gap-1">
             {resolved && <LabelBadge label="VERIFIED" />}
             {ilBreakdown && <LabelBadge label="COMPUTED" />}
+            {regime && <LabelBadge label="ESTIMATED" />}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -71,6 +77,7 @@ export function Diagnose() {
           {ilBreakdown && (
             <ILPanel breakdown={ilBreakdown} token1Symbol={token1Symbol} />
           )}
+          {regime && <RegimePanel classification={regime} />}
 
           <section className="p-6 rounded-lg border border-slate-700 bg-slate-900/50 min-h-[200px]">
             <h2 className="text-xs uppercase tracking-wider text-slate-500">
