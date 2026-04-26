@@ -152,6 +152,40 @@ const MODIFY_LIQUIDITIES_BY_ORIGIN_V4 = /* GraphQL */ `
   }
 `;
 
+const HOOKED_POOLS_BY_PAIR_V4 = /* GraphQL */ `
+  query HookedPoolsByPair($token0: String!, $token1: String!) {
+    pools(
+      where: {
+        token0: $token0
+        token1: $token1
+        hooks_not: "0x0000000000000000000000000000000000000000"
+        liquidity_gt: "0"
+      }
+      first: 50
+      orderBy: totalValueLockedUSD
+      orderDirection: desc
+    ) {
+      id
+      hooks
+      feeTier
+      tickSpacing
+      liquidity
+      totalValueLockedUSD
+      volumeUSD
+      token0 {
+        id
+        symbol
+        decimals
+      }
+      token1 {
+        id
+        symbol
+        decimals
+      }
+    }
+  }
+`;
+
 export interface V3PositionRaw {
   id: string;
   owner: string;
@@ -188,6 +222,18 @@ export interface V4ModifyLiquidityRaw {
     token0: { id: string; symbol: string; decimals: string };
     token1: { id: string; symbol: string; decimals: string };
   };
+}
+
+export interface V4HookedPoolRaw {
+  id: string;
+  hooks: string;
+  feeTier: string;
+  tickSpacing: string;
+  liquidity: string;
+  totalValueLockedUSD: string;
+  volumeUSD: string;
+  token0: { id: string; symbol: string; decimals: string };
+  token1: { id: string; symbol: string; decimals: string };
 }
 
 export interface PoolHourPoint {
@@ -341,6 +387,38 @@ export class SubgraphClient {
     } catch (err) {
       logger.error(
         `subgraph v4 getV4ModifyLiquiditiesByOrigin failed for ${origin}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      throw err;
+    }
+  }
+
+  async getV4HookedPoolsByPair(
+    token0: string,
+    token1: string,
+  ): Promise<V4HookedPoolRaw[]> {
+    if (!this.v4) {
+      logger.warn(
+        `subgraph not configured — returning empty v4 hooked pools for ${token0}/${token1}`,
+      );
+      return [];
+    }
+    // Token addresses on the subgraph are lower-cased and ordered token0 < token1
+    // by Uniswap convention. We try the natural order first; callers can flip
+    // if needed.
+    try {
+      const data = await this.v4.request<{ pools: V4HookedPoolRaw[] }>(
+        HOOKED_POOLS_BY_PAIR_V4,
+        {
+          token0: token0.toLowerCase(),
+          token1: token1.toLowerCase(),
+        },
+      );
+      return data.pools;
+    } catch (err) {
+      logger.error(
+        `subgraph v4 getV4HookedPoolsByPair failed for ${token0}/${token1}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
