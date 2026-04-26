@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { DiagnosticGraph } from "../components/DiagnosticGraph.js";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
 import {
   HooksPanel,
@@ -44,10 +45,6 @@ export function Diagnose() {
     (e): e is Extract<DiagnosticEvent, { type: "narrative" }> =>
       e.type === "narrative",
   );
-  const phaseEvents = events.filter(
-    (e): e is Extract<DiagnosticEvent, { type: "phase.start" }> =>
-      e.type === "phase.start",
-  );
 
   const resolved = pickToolResult<ResolvedPositionOutput>(events, "getV3Position");
   const ilBreakdown = pickToolResult<ILBreakdown>(events, "computeIL");
@@ -80,31 +77,12 @@ export function Diagnose() {
 
       <main className="max-w-6xl mx-auto mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 space-y-6">
+          <DiagnosticGraph />
           {ilBreakdown && (
             <ILPanel breakdown={ilBreakdown} token1Symbol={token1Symbol} />
           )}
           {regime && <RegimePanel classification={regime} />}
           {hooks && <HooksPanel result={hooks} />}
-
-          <section className="p-6 rounded-lg border border-slate-700 bg-slate-900/50 min-h-[200px]">
-            <h2 className="text-xs uppercase tracking-wider text-slate-500">
-              Phases
-            </h2>
-            <ul className="mt-4 space-y-2 text-sm font-mono">
-              {phaseEvents.map((p, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="text-cyan-300">phase {p.phase}</span>
-                  <span className="text-slate-300">{p.label}</span>
-                </li>
-              ))}
-              {phaseEvents.length === 0 && (
-                <li className="text-slate-500">waiting for first phase…</li>
-              )}
-            </ul>
-            <p className="mt-6 text-slate-500 text-xs">
-              React Flow graph wires in a follow-up feature.
-            </p>
-          </section>
         </section>
 
         <aside className="space-y-6">
