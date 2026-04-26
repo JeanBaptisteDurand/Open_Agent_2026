@@ -17,10 +17,21 @@ export {
   type CurrentAmounts,
   type ILBreakdown,
 } from "./phases/03-il/math.js";
+export { computeFeatures } from "./phases/04-regime/features.js";
+export { classify, describeRegime } from "./phases/04-regime/classify.js";
+export type {
+  Phase4Output,
+  PoolHourPoint,
+  RegimeFeatures,
+  RegimeLabel,
+  RegimeScores,
+} from "./phases/04-regime/types.js";
 export {
   runPhase1,
   runPhase3,
+  runPhase4,
   type AgentDeps,
   type Emit,
   type Phase3Output,
+  type PoolHourFetcher,
 } from "./orchestrator.js";

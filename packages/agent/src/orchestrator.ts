@@ -1,4 +1,4 @@
-import { computed } from "@lplens/core";
+import { computed, estimated } from "@lplens/core";
 import type { DiagnosticEvent, Labeled } from "@lplens/core";
 import {
   resolveV3Position,
@@ -10,11 +10,26 @@ import {
   computeIL,
   type ILBreakdown,
 } from "./phases/03-il/math.js";
+import { computeFeatures } from "./phases/04-regime/features.js";
+import {
+  classify,
+  describeRegime,
+} from "./phases/04-regime/classify.js";
+import type {
+  Phase4Output,
+  PoolHourPoint,
+} from "./phases/04-regime/types.js";
 
 export type Emit = (event: DiagnosticEvent) => void;
 
+export type PoolHourFetcher = (
+  poolId: string,
+  fromUnix: number,
+) => Promise<PoolHourPoint[]>;
+
 export interface AgentDeps {
   fetchV3Position: V3PositionFetcher;
+  fetchPoolHourDatas?: PoolHourFetcher;
 }
 
 export interface Phase3Output {
@@ -103,5 +118,64 @@ export async function runPhase3(
     feesValueT1: computed(il.feesValueT1, "uniswap-v3-subgraph-collected-fees"),
     ilT1: computed(il.ilT1, "uniswap-v3-whitepaper-eq-6.29-6.30"),
     ilPct: computed(il.ilPct, "uniswap-v3-whitepaper-eq-6.29-6.30"),
+  };
+}
+
+const DEFAULT_LOOKBACK_HOURS = 30 * 24;
+
+export async function runPhase4(
+  position: Phase1Output,
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase4Output | null> {
+  if (!deps.fetchPoolHourDatas) {
+    emit({
+      type: "narrative",
+      text: "Skipping regime classification — no pool history fetcher configured.",
+    });
+    return null;
+  }
+
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 4, label: "regime classification" });
+  const fromUnix =
+    Math.floor(Date.now() / 1000) - DEFAULT_LOOKBACK_HOURS * 3600;
+  emit({
+    type: "tool.call",
+    tool: "fetchPoolHourDatas",
+    input: { pool: position.pool.value.address, fromUnix },
+  });
+
+  const points = await deps.fetchPoolHourDatas(
+    position.pool.value.address,
+    fromUnix,
+  );
+
+  emit({
+    type: "tool.result",
+    tool: "fetchPoolHourDatas",
+    output: { hours: points.length },
+    latencyMs: Date.now() - t0,
+  });
+
+  const features = computeFeatures(points);
+  const { scores, topLabel, confidence } = classify(features);
+  const narrative = describeRegime({ topLabel, confidence, features });
+
+  emit({
+    type: "tool.result",
+    tool: "classifyRegime",
+    output: { topLabel, confidence, scores, features },
+    latencyMs: Date.now() - t0,
+  });
+  emit({ type: "narrative", text: narrative });
+  emit({ type: "phase.end", phase: 4, durationMs: Date.now() - t0 });
+
+  return {
+    features: estimated(features, confidence, "regime-heuristic-v0"),
+    scores: estimated(scores, confidence, "regime-heuristic-v0"),
+    topLabel: estimated(topLabel, confidence, "regime-heuristic-v0"),
+    confidence: estimated(confidence, confidence, "regime-heuristic-v0"),
+    narrative,
   };
 }
