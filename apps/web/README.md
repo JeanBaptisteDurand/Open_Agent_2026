@@ -16,15 +16,15 @@ can tell at a glance how trusted the value is.
 | `LABELED` | 🏷️ | violet | manual curation by us |
 
 The `<LabelBadge label="..." />` component renders these consistently. The
-diagnose page surfaces VERIFIED + COMPUTED + ESTIMATED in the header today;
-EMULATED / LABELED badges land as the corresponding agent phases ship.
+diagnose page surfaces VERIFIED + COMPUTED + ESTIMATED + LABELED in the
+header today; EMULATED lands when phase 6 hook replay ships.
 
 ## Routes
 
 | Path | Purpose |
 | --- | --- |
 | `/` | Atlas — wallet input, list of LP positions, sample-address shortcut |
-| `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL panel, regime panel, tool calls, narrative |
+| `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL panel, regime panel, hooks panel, narrative |
 
 ## Components
 
@@ -33,6 +33,8 @@ EMULATED / LABELED badges land as the corresponding agent phases ship.
 | `LabelBadge` | header, panels | renders the 5 honesty labels |
 | `ILPanel` | diagnose page | HODL / LP / fees / vs HODL with COMPUTED label |
 | `RegimePanel` | diagnose page | mean-reverting / trending / toxic / JIT scores with ESTIMATED label |
+| `HooksPanel` | diagnose page | candidate V4 hooks for the pair, family-coloured, with LABELED tag |
+| `FlagBitChips` | hooks panel detail | 14-bit permission flag visualisation |
 | `PositionCard` | atlas | green/amber/red traffic light + click-to-diagnose link |
 | `ToolCallBadge` | diagnose page | tool.call / tool.result events badge |
 | `TypewriterText` | diagnose page | typewriter animation for live narrative |
