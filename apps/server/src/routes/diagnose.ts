@@ -1,5 +1,10 @@
 import type { Request, Response } from "express";
-import { runPhase1, runPhase3, runPhase4 } from "@lplens/agent";
+import {
+  runPhase1,
+  runPhase3,
+  runPhase4,
+  runPhase5,
+} from "@lplens/agent";
 import { fakePhaseSequence } from "../services/diagnoseFake.js";
 import { SSEStream } from "../lib/sse.js";
 import { logger } from "../logger.js";
@@ -25,29 +30,27 @@ export async function diagnoseHandler(
   sse.emit({ type: "phase.end", phase: 0, durationMs: 0 });
 
   try {
-    const position = await runPhase1(
-      tokenId,
-      { fetchV3Position: (id) => subgraph.getV3PositionById(id) },
-      (event) => sse.emit(event),
-    );
+    const deps = {
+      fetchV3Position: (id: string) => subgraph.getV3PositionById(id),
+      fetchPoolHourDatas: (poolId: string, from: number) =>
+        subgraph.getV3PoolHourDatas(poolId, from),
+      fetchV4HookedPools: (token0: string, token1: string) =>
+        subgraph.getV4HookedPoolsByPair(token0, token1),
+    };
 
+    const position = await runPhase1(tokenId, deps, (event) => sse.emit(event));
     await runPhase3(position, (event) => sse.emit(event));
+    await runPhase4(position, deps, (event) => sse.emit(event));
+    await runPhase5(position, deps, (event) => sse.emit(event));
 
-    await runPhase4(
-      position,
-      {
-        fetchV3Position: (id) => subgraph.getV3PositionById(id),
-        fetchPoolHourDatas: (poolId, from) =>
-          subgraph.getV3PoolHourDatas(poolId, from),
-      },
-      (event) => sse.emit(event),
-    );
-
-    // Phases 2, 5-9 — placeholder fake script until each phase is real.
+    // Phases 2, 6-9 — placeholder fake script until each phase is real.
     for await (const event of fakePhaseSequence(tokenId)) {
       if (
         (event.type === "phase.start" || event.type === "phase.end") &&
-        (event.phase === 1 || event.phase === 3 || event.phase === 4)
+        (event.phase === 1 ||
+          event.phase === 3 ||
+          event.phase === 4 ||
+          event.phase === 5)
       )
         continue;
       if (
