@@ -1,5 +1,9 @@
 import { useParams } from "react-router-dom";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
+import {
+  HooksPanel,
+  type HookDiscoveryResult,
+} from "../components/HooksPanel.js";
 import { LabelBadge } from "../components/LabelBadge.js";
 import {
   RegimePanel,
@@ -48,6 +52,7 @@ export function Diagnose() {
   const resolved = pickToolResult<ResolvedPositionOutput>(events, "getV3Position");
   const ilBreakdown = pickToolResult<ILBreakdown>(events, "computeIL");
   const regime = pickToolResult<RegimeClassification>(events, "classifyRegime");
+  const hooks = pickToolResult<HookDiscoveryResult>(events, "discoverV4Hooks");
   const token1Symbol = resolved?.pair?.split("/")?.[1] ?? "T1";
 
   return (
@@ -63,10 +68,11 @@ export function Diagnose() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap justify-end">
             {resolved && <LabelBadge label="VERIFIED" />}
             {ilBreakdown && <LabelBadge label="COMPUTED" />}
             {regime && <LabelBadge label="ESTIMATED" />}
+            {hooks && <LabelBadge label="LABELED" />}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -78,6 +84,7 @@ export function Diagnose() {
             <ILPanel breakdown={ilBreakdown} token1Symbol={token1Symbol} />
           )}
           {regime && <RegimePanel classification={regime} />}
+          {hooks && <HooksPanel result={hooks} />}
 
           <section className="p-6 rounded-lg border border-slate-700 bg-slate-900/50 min-h-[200px]">
             <h2 className="text-xs uppercase tracking-wider text-slate-500">
