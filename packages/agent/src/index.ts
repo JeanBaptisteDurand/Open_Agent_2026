@@ -27,11 +27,25 @@ export type {
   RegimeScores,
 } from "./phases/04-regime/types.js";
 export {
+  decodeFlags,
+  HOOK_FLAGS,
+  type FlagName,
+} from "./phases/05-hooks/flags.js";
+export { classifyFamily } from "./phases/05-hooks/classify.js";
+export type {
+  HookCandidate,
+  HookFamily,
+  Phase5Output,
+} from "./phases/05-hooks/types.js";
+export {
   runPhase1,
   runPhase3,
   runPhase4,
+  runPhase5,
   type AgentDeps,
   type Emit,
   type Phase3Output,
   type PoolHourFetcher,
+  type V4HookedPoolRow,
+  type V4HookedPoolsFetcher,
 } from "./orchestrator.js";
