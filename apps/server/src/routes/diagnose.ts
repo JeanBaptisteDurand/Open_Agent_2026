@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { runPhase1, runPhase3 } from "@lplens/agent";
+import { runPhase1, runPhase3, runPhase4 } from "@lplens/agent";
 import { fakePhaseSequence } from "../services/diagnoseFake.js";
 import { SSEStream } from "../lib/sse.js";
 import { logger } from "../logger.js";
@@ -25,22 +25,29 @@ export async function diagnoseHandler(
   sse.emit({ type: "phase.end", phase: 0, durationMs: 0 });
 
   try {
-    // Phase 1 — real position resolution.
     const position = await runPhase1(
       tokenId,
       { fetchV3Position: (id) => subgraph.getV3PositionById(id) },
       (event) => sse.emit(event),
     );
 
-    // Phase 3 — real IL reconstruction.
     await runPhase3(position, (event) => sse.emit(event));
 
-    // Phases 2, 4-9 — placeholder fake script until each phase is real.
+    await runPhase4(
+      position,
+      {
+        fetchV3Position: (id) => subgraph.getV3PositionById(id),
+        fetchPoolHourDatas: (poolId, from) =>
+          subgraph.getV3PoolHourDatas(poolId, from),
+      },
+      (event) => sse.emit(event),
+    );
+
+    // Phases 2, 5-9 — placeholder fake script until each phase is real.
     for await (const event of fakePhaseSequence(tokenId)) {
-      // Skip the fake phases we now serve from the real agent.
       if (
         (event.type === "phase.start" || event.type === "phase.end") &&
-        (event.phase === 1 || event.phase === 3)
+        (event.phase === 1 || event.phase === 3 || event.phase === 4)
       )
         continue;
       if (

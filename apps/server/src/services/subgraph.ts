@@ -96,6 +96,26 @@ const POSITION_BY_ID_V3 = /* GraphQL */ `
   }
 `;
 
+const POOL_HOUR_DATAS_V3 = /* GraphQL */ `
+  query PoolHourDatas($pool: ID!, $from: Int!) {
+    poolHourDatas(
+      where: { pool: $pool, periodStartUnix_gte: $from }
+      first: 720
+      orderBy: periodStartUnix
+      orderDirection: asc
+    ) {
+      periodStartUnix
+      open
+      high
+      low
+      close
+      volumeUSD
+      tick
+      liquidity
+    }
+  }
+`;
+
 const MODIFY_LIQUIDITIES_BY_ORIGIN_V4 = /* GraphQL */ `
   query ModifyLiquiditiesByOrigin($origin: Bytes!) {
     modifyLiquidities(
@@ -170,6 +190,28 @@ export interface V4ModifyLiquidityRaw {
   };
 }
 
+export interface PoolHourPoint {
+  periodStartUnix: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volumeUSD: number;
+  tick: number;
+  liquidity: string;
+}
+
+interface PoolHourDataRaw {
+  periodStartUnix: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volumeUSD: string;
+  tick: string | null;
+  liquidity: string;
+}
+
 export class SubgraphClient {
   private readonly v3: GraphQLClient | null;
   private readonly v4: GraphQLClient | null;
@@ -240,6 +282,41 @@ export class SubgraphClient {
     } catch (err) {
       logger.error(
         `subgraph v3 getV3PositionById failed for ${tokenId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      throw err;
+    }
+  }
+
+  async getV3PoolHourDatas(
+    poolId: string,
+    fromUnix: number,
+  ): Promise<PoolHourPoint[]> {
+    if (!this.v3) {
+      logger.warn(
+        `subgraph not configured — cannot fetch hour datas for ${poolId}`,
+      );
+      return [];
+    }
+    try {
+      const data = await this.v3.request<{ poolHourDatas: PoolHourDataRaw[] }>(
+        POOL_HOUR_DATAS_V3,
+        { pool: poolId, from: fromUnix },
+      );
+      return data.poolHourDatas.map((p) => ({
+        periodStartUnix: parseInt(p.periodStartUnix, 10),
+        open: parseFloat(p.open),
+        high: parseFloat(p.high),
+        low: parseFloat(p.low),
+        close: parseFloat(p.close),
+        volumeUSD: parseFloat(p.volumeUSD),
+        tick: p.tick ? parseInt(p.tick, 10) : 0,
+        liquidity: p.liquidity,
+      }));
+    } catch (err) {
+      logger.error(
+        `subgraph v3 getV3PoolHourDatas failed for ${poolId}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
