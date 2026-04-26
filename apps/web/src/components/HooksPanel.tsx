@@ -1,7 +1,7 @@
+import { useState } from "react";
+import { FlagBitChips } from "./FlagBitChips.js";
 import { LabelBadge } from "./LabelBadge.js";
 
-// Wire-format shape emitted by the server's `tool.result` for `discoverV4Hooks`.
-// Must stay in sync with @lplens/agent's HookCandidate / Phase5Output.
 export type HookFamily =
   | "DYNAMIC_FEE_ADVANCED"
   | "SWAP_DELTA_CUT"
@@ -69,6 +69,7 @@ interface Props {
 
 export function HooksPanel({ result }: Props) {
   const { candidates, topFamily, count } = result;
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
     <section className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
@@ -91,29 +92,44 @@ export function HooksPanel({ result }: Props) {
               {FAMILY_TEXT[topFamily]}
             </span>
           </p>
-          <ul className="mt-3 space-y-2">
-            {candidates.slice(0, 8).map((c) => (
-              <li
-                key={c.poolId}
-                className="flex items-center justify-between gap-3 text-xs font-mono py-1 border-b border-slate-800 last:border-b-0"
-              >
-                <div className="min-w-0">
-                  <div className={`font-semibold ${FAMILY_CLS[c.family]}`}>
-                    {FAMILY_TEXT[c.family]}
-                  </div>
-                  <div className="text-slate-500 text-[10px] mt-0.5">
-                    {shortAddr(c.hookAddress)} · fee{" "}
-                    {c.feeTier === 8388608
-                      ? "dynamic"
-                      : `${(c.feeTier / 10_000).toFixed(2)}%`}
-                  </div>
-                </div>
-                <div className="text-right text-slate-400">
-                  <div>{formatUsd(c.tvlUsd)}</div>
-                  <div className="text-[10px] text-slate-500">tvl</div>
-                </div>
-              </li>
-            ))}
+
+          <ul className="mt-3 space-y-1">
+            {candidates.slice(0, 8).map((c) => {
+              const isOpen = expanded === c.poolId;
+              return (
+                <li
+                  key={c.poolId}
+                  className="border-b border-slate-800 last:border-b-0"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(isOpen ? null : c.poolId)}
+                    className="w-full flex items-center justify-between gap-3 text-xs font-mono py-2 hover:bg-slate-800/40 transition-colors"
+                  >
+                    <div className="min-w-0 text-left">
+                      <div className={`font-semibold ${FAMILY_CLS[c.family]}`}>
+                        {FAMILY_TEXT[c.family]}
+                      </div>
+                      <div className="text-slate-500 text-[10px] mt-0.5">
+                        {shortAddr(c.hookAddress)} · fee{" "}
+                        {c.feeTier === 8388608
+                          ? "dynamic"
+                          : `${(c.feeTier / 10_000).toFixed(2)}%`}
+                      </div>
+                    </div>
+                    <div className="text-right text-slate-400">
+                      <div>{formatUsd(c.tvlUsd)}</div>
+                      <div className="text-[10px] text-slate-500">tvl</div>
+                    </div>
+                  </button>
+                  {isOpen && (
+                    <div className="pb-3 pl-1">
+                      <FlagBitChips bitmap={c.flagsBitmap} />
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {candidates.length > 8 && (
             <p className="mt-2 text-[10px] text-slate-500 text-right">
@@ -125,7 +141,8 @@ export function HooksPanel({ result }: Props) {
 
       <p className="mt-3 text-[10px] text-slate-500">
         Family inferred from the 14-bit permission flag pattern in each hook
-        address — pattern matched against research notes.
+        address — pattern matched against research notes. Click a row to expand
+        the flag bitmap.
       </p>
     </section>
   );
