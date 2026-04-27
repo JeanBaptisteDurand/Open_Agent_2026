@@ -3,6 +3,7 @@ import express, { type Request, type Response } from "express";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
 import { diagnoseHandler } from "./routes/diagnose.js";
+import { reportCache } from "./services/reportCache.js";
 import { subgraph } from "./services/subgraph.js";
 import { deriveV4Positions } from "./services/v4Aggregator.js";
 
@@ -62,6 +63,15 @@ app.get<{ address: string }>(
 );
 
 app.get<{ tokenId: string }>("/api/diagnose/:tokenId", diagnoseHandler);
+
+app.get<{ rootHash: string }>("/api/report/:rootHash", (req, res) => {
+  const cached = reportCache.get(req.params.rootHash);
+  if (!cached) {
+    res.status(404).json({ error: "report not found" });
+    return;
+  }
+  res.json(cached);
+});
 
 app.listen(config.PORT, () => {
   logger.info(`lplens-server listening on :${config.PORT}`);
