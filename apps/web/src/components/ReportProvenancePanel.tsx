@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { LabelBadge } from "./LabelBadge.js";
 
 export interface ReportProvenance {
@@ -34,7 +35,8 @@ export function ReportProvenancePanel({ provenance, anchor }: Props) {
   const anchorIsStub = anchor
     ? anchor.txHash.startsWith("0xstub")
     : false;
-  const fullyVerified = !storageIsStub && anchor !== null && anchor !== undefined && !anchorIsStub;
+  const fullyVerified =
+    !storageIsStub && anchor !== null && anchor !== undefined && !anchorIsStub;
   const [copied, setCopied] = useState(false);
 
   const onCopy = async () => {
@@ -92,41 +94,47 @@ export function ReportProvenancePanel({ provenance, anchor }: Props) {
         </div>
 
         {anchor && (
-          <>
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <span className="text-slate-500 w-20 shrink-0">anchor tx</span>
-              {anchorLink && !anchorIsStub ? (
-                <a
-                  href={anchorLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-emerald-300 hover:text-emerald-200 truncate"
-                  title={anchor.txHash}
-                >
-                  {shortHash(anchor.txHash)}
-                </a>
-              ) : (
-                <span className="text-slate-400 truncate" title={anchor.txHash}>
-                  {shortHash(anchor.txHash)}
-                </span>
-              )}
-              <span className="ml-auto text-[10px] text-slate-500">
-                chain {anchor.chainId}
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="text-slate-500 w-20 shrink-0">anchor tx</span>
+            {anchorLink && !anchorIsStub ? (
+              <a
+                href={anchorLink}
+                target="_blank"
+                rel="noreferrer"
+                className="text-emerald-300 hover:text-emerald-200 truncate"
+                title={anchor.txHash}
+              >
+                {shortHash(anchor.txHash)}
+              </a>
+            ) : (
+              <span className="text-slate-400 truncate" title={anchor.txHash}>
+                {shortHash(anchor.txHash)}
               </span>
-            </div>
-          </>
+            )}
+            <span className="ml-auto text-[10px] text-slate-500">
+              chain {anchor.chainId}
+            </span>
+          </div>
         )}
       </div>
 
-      <p className="mt-3 text-[10px] text-slate-500">
-        {fullyVerified
-          ? "Report uploaded to 0G Storage and anchored on 0G Chain. Anyone can re-download the report from Storage and verify both the rootHash and the on-chain commitment."
-          : storageIsStub
-            ? "Stub provenance — the agent emitted a deterministic fingerprint. Configure OG_STORAGE_PRIVATE_KEY and OG_ANCHOR_PRIVATE_KEY on the server to publish to 0G Storage and 0G Chain."
-            : anchor
-              ? "Report uploaded to 0G Storage but anchor is a stub — configure OG_ANCHOR_PRIVATE_KEY to write the rootHash to 0G Chain."
-              : "Report uploaded to 0G Storage. The merkle rootHash is content-addressed — anchor will follow once phase 9 runs."}
-      </p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-[10px] text-slate-500 flex-1">
+          {fullyVerified
+            ? "Report uploaded to 0G Storage and anchored on 0G Chain. Anyone can re-download the report from Storage and verify both the rootHash and the on-chain commitment."
+            : storageIsStub
+              ? "Stub provenance — the agent emitted a deterministic fingerprint. Configure OG_STORAGE_PRIVATE_KEY and OG_ANCHOR_PRIVATE_KEY on the server to publish to 0G Storage and 0G Chain."
+              : anchor
+                ? "Report uploaded to 0G Storage but anchor is a stub — configure OG_ANCHOR_PRIVATE_KEY to write the rootHash to 0G Chain."
+                : "Report uploaded to 0G Storage. The merkle rootHash is content-addressed — anchor will follow once phase 9 runs."}
+        </p>
+        <Link
+          to={`/report/${rootHash}`}
+          className="text-[10px] text-violet-300 hover:text-violet-200 px-2 py-1 rounded border border-violet-500/40 hover:border-violet-400/60 transition-colors whitespace-nowrap"
+        >
+          view report →
+        </Link>
+      </div>
     </section>
   );
 }

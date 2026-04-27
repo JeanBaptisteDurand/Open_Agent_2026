@@ -15,9 +15,7 @@ can tell at a glance how trusted the value is.
 | `EMULATED` | 🟠 | orange | simulation result — comes with a `warnings[]` array |
 | `LABELED` | 🏷️ | violet | manual curation by us |
 
-The `<LabelBadge label="..." />` component renders these consistently. The
-diagnose page surfaces all five labels in the header as the corresponding
-agent phases ship.
+The `<LabelBadge label="..." />` component renders these consistently.
 
 ## Routes
 
@@ -25,18 +23,19 @@ agent phases ship.
 | --- | --- |
 | `/` | Atlas — wallet input, list of LP positions, sample-address shortcut |
 | `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL, regime, hooks, migration preview, report provenance + anchor, narrative |
+| `/report/:rootHash` | Permanent read-only report — every section that the agent emitted, served from the server-side cache keyed by the report's 0G Storage rootHash |
 
 ## Components
 
 | Component | Used by | Notes |
 | --- | --- | --- |
-| `LabelBadge` | header, panels | renders the 5 honesty labels |
+| `LabelBadge` | header, panels, report sections | renders the 5 honesty labels |
 | `ILPanel` | diagnose page | HODL / LP / fees / vs HODL with COMPUTED label |
 | `RegimePanel` | diagnose page | mean-reverting / trending / toxic / JIT scores with ESTIMATED label |
 | `HooksPanel` | diagnose page | candidate V4 hooks for the pair, family-coloured, with LABELED tag |
 | `FlagBitChips` | hooks panel detail | 14-bit permission flag visualisation |
 | `MigrationPanel` | diagnose page | close → swap → mint preview with EMULATED tag, sourced from Uniswap Trading API |
-| `ReportProvenancePanel` | diagnose page | rootHash + 0G Storage URL + 0G Chain anchor tx, VERIFIED only when both legs hit the network |
+| `ReportProvenancePanel` | diagnose page | rootHash + 0G Storage URL + 0G Chain anchor tx + view-report link |
 | `PositionCard` | atlas | green/amber/red traffic light + click-to-diagnose link |
 | `ToolCallBadge` | diagnose page | tool.call / tool.result events badge |
 | `TypewriterText` | diagnose page | typewriter animation for live narrative |
@@ -49,7 +48,7 @@ preview is fast and deterministic; the user signs at migration time with
 their own slippage budget. The agent never executes the swap — the result
 is rendered as `EMULATED` with the `warnings[]` array exposed to the user.
 
-## Report provenance — 0G Storage + 0G Chain
+## Report provenance — 0G Storage + 0G Chain + permanent viewer
 
 Phase 8 assembles the agent's verdict (position, IL, regime, hooks,
 migration plan) into a single JSON report and uploads it to 0G Storage.
@@ -59,12 +58,13 @@ matches the hash.
 
 Phase 9 anchors that rootHash on 0G Chain by submitting a transaction
 whose calldata is the rootHash. The transaction hash becomes a permanent,
-tamper-evident commitment: any future re-derivation of the rootHash from
-the storage blob can be cross-referenced against the on-chain commitment
-to detect tampering.
+tamper-evident commitment.
 
-The `ReportProvenancePanel` only labels the section `VERIFIED` when both
-the storage upload and the chain anchor succeeded; if either short-
-circuits to a stub (no `OG_STORAGE_PRIVATE_KEY` or `OG_ANCHOR_PRIVATE_KEY`
-configured) the panel labels itself `EMULATED` so the demo never silently
-lies about provenance.
+The server keeps a local mirror of every report it generates, keyed by
+the rootHash, so the `/report/:rootHash` page can serve a permanent
+read-only view without re-downloading from 0G. The `view report →` link
+in the provenance panel of the diagnose page navigates straight to it.
+The page renders the same six sections (provenance, position, IL, regime,
+hooks, migration) the agent emitted, with the same honesty labels, so a
+judge can share the URL and reviewers see exactly what the agent
+committed.
