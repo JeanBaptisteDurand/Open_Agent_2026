@@ -6,8 +6,10 @@ import {
   runPhase5,
   runPhase7,
   runPhase8,
+  runPhase9,
   type Quoter,
   type QuoteSummary,
+  type ReportAnchorer,
   type ReportUploader,
 } from "@lplens/agent";
 import { fakePhaseSequence } from "../services/diagnoseFake.js";
@@ -16,6 +18,7 @@ import { logger } from "../logger.js";
 import { subgraph } from "../services/subgraph.js";
 import { tradingApi } from "../services/tradingApi.js";
 import { ogStorage } from "../services/ogStorage.js";
+import { ogChain } from "../services/ogChain.js";
 
 export async function diagnoseHandler(
   req: Request<{ tokenId: string }>,
@@ -81,6 +84,17 @@ export async function diagnoseHandler(
       };
     };
 
+    const anchorReport: ReportAnchorer = async (rootHash) => {
+      const result = await ogChain.anchor(rootHash);
+      return {
+        txHash: result.txHash,
+        blockNumber: result.blockNumber,
+        chainId: result.chainId,
+        explorerUrl: result.explorerUrl,
+        stub: result.stub,
+      };
+    };
+
     const deps = {
       fetchV3Position: (id: string) => subgraph.getV3PositionById(id),
       fetchPoolHourDatas: (poolId: string, from: number) =>
@@ -89,18 +103,25 @@ export async function diagnoseHandler(
         subgraph.getV4HookedPoolsByPair(token0, token1),
       quoteSwap,
       uploadReport,
+      anchorReport,
     };
 
     const position = await runPhase1(tokenId, deps, (event) => sse.emit(event));
     const il = await runPhase3(position, (event) => sse.emit(event));
     const regime = await runPhase4(position, deps, (event) => sse.emit(event));
     const hooks = await runPhase5(position, deps, (event) => sse.emit(event));
-    const migration = await runPhase7(position, hooks, deps, (event) => sse.emit(event));
-    await runPhase8(position, { il, regime, hooks, migration }, deps, (event) =>
+    const migration = await runPhase7(position, hooks, deps, (event) =>
       sse.emit(event),
     );
+    const storage = await runPhase8(
+      position,
+      { il, regime, hooks, migration },
+      deps,
+      (event) => sse.emit(event),
+    );
+    await runPhase9(storage, deps, (event) => sse.emit(event));
 
-    // Phases 2, 6, 9 — placeholder fake script until each phase is real.
+    // Phases 2, 6 — placeholder fake script until each phase is real.
     for await (const event of fakePhaseSequence(tokenId)) {
       if (
         (event.type === "phase.start" || event.type === "phase.end") &&
@@ -109,7 +130,8 @@ export async function diagnoseHandler(
           event.phase === 4 ||
           event.phase === 5 ||
           event.phase === 7 ||
-          event.phase === 8)
+          event.phase === 8 ||
+          event.phase === 9)
       )
         continue;
       if (
@@ -117,9 +139,10 @@ export async function diagnoseHandler(
         (event.tool === "getPosition" || event.tool === "computeIL")
       )
         continue;
-      // runPhase8 already emitted the real report.uploaded event — drop
-      // the stubbed one from the fake sequence to avoid duplicates.
-      if (event.type === "report.uploaded") continue;
+      // runPhase8/9 already emit the real provenance events — drop any
+      // stubs from the fake sequence.
+      if (event.type === "report.uploaded" || event.type === "report.anchored")
+        continue;
       sse.emit(event);
     }
   } catch (err) {
