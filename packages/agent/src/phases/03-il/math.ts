@@ -5,8 +5,20 @@
 // All values are returned in token1-denominated human units. Real USD
 // pricing requires an oracle and lands in a follow-up phase.
 
+import { createRequire } from "node:module";
 import JSBI from "jsbi";
-import { SqrtPriceMath, TickMath } from "@uniswap/v3-sdk";
+import type { SqrtPriceMath as SqrtPriceMathT, TickMath as TickMathT } from "@uniswap/v3-sdk";
+
+// @uniswap/v3-sdk ships a broken ESM build (extensionless directory imports
+// that strict Node ESM rejects with ERR_UNSUPPORTED_DIR_IMPORT). Bridge to
+// the working CJS build via createRequire — a standard, well-known
+// workaround that preserves the package's TypeScript types.
+const require = createRequire(import.meta.url);
+const sdk = require("@uniswap/v3-sdk") as {
+  SqrtPriceMath: typeof SqrtPriceMathT;
+  TickMath: typeof TickMathT;
+};
+const { SqrtPriceMath, TickMath } = sdk;
 
 export interface CurrentAmounts {
   amount0: bigint; // raw wei
