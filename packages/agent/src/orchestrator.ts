@@ -1,4 +1,4 @@
-import { computed, emulated, estimated, labeled } from "@lplens/core";
+import { computed, emulated, estimated, labeled, verified } from "@lplens/core";
 import type { DiagnosticEvent, Labeled } from "@lplens/core";
 import {
   resolveV3Position,
@@ -30,6 +30,12 @@ import {
   type Quoter,
 } from "./phases/07-migration/buildPreview.js";
 import type { Phase7Output } from "./phases/07-migration/types.js";
+import { assembleReport } from "./phases/08-report/assembleReport.js";
+import type {
+  AssembledReport,
+  Phase8Output,
+  ReportProvenance,
+} from "./phases/08-report/types.js";
 
 export type Emit = (event: DiagnosticEvent) => void;
 
@@ -55,11 +61,16 @@ export type V4HookedPoolsFetcher = (
   token1: string,
 ) => Promise<V4HookedPoolRow[]>;
 
+export type ReportUploader = (
+  report: AssembledReport,
+) => Promise<Omit<ReportProvenance, "uploadedAt">>;
+
 export interface AgentDeps {
   fetchV3Position: V3PositionFetcher;
   fetchPoolHourDatas?: PoolHourFetcher;
   fetchV4HookedPools?: V4HookedPoolsFetcher;
   quoteSwap?: Quoter;
+  uploadReport?: ReportUploader;
 }
 
 export interface Phase3Output {
@@ -345,5 +356,91 @@ export async function runPhase7(
 
   return {
     preview: emulated(preview, preview.warnings),
+  };
+}
+
+export async function runPhase8(
+  position: Phase1Output,
+  outputs: {
+    il: Phase3Output | null;
+    regime: Phase4Output | null;
+    hooks: Phase5Output | null;
+    migration: Phase7Output | null;
+  },
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase8Output | null> {
+  if (!deps.uploadReport) {
+    emit({
+      type: "narrative",
+      text: "Skipping report upload — no storage uploader configured.",
+    });
+    return null;
+  }
+
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 8, label: "report assembly + storage" });
+  emit({
+    type: "tool.call",
+    tool: "assembleReport",
+    input: { tokenId: position.tokenId },
+  });
+
+  const report = assembleReport({
+    position,
+    il: outputs.il,
+    regime: outputs.regime,
+    hooks: outputs.hooks,
+    migration: outputs.migration,
+  });
+
+  emit({
+    type: "tool.result",
+    tool: "assembleReport",
+    output: { schemaVersion: report.schemaVersion, sections: Object.keys(report) },
+    latencyMs: Date.now() - t0,
+  });
+
+  emit({
+    type: "tool.call",
+    tool: "uploadReportToOgStorage",
+    input: { rootCandidate: "pending" },
+  });
+
+  const t1 = Date.now();
+  const partial = await deps.uploadReport(report);
+  const provenance: ReportProvenance = {
+    ...partial,
+    uploadedAt: new Date().toISOString(),
+  };
+
+  emit({
+    type: "tool.result",
+    tool: "uploadReportToOgStorage",
+    output: provenance,
+    latencyMs: Date.now() - t1,
+  });
+
+  emit({
+    type: "report.uploaded",
+    rootHash: provenance.rootHash,
+    storageUrl: provenance.storageUrl,
+  });
+
+  emit({
+    type: "narrative",
+    text: provenance.stub
+      ? `Report assembled (${provenance.size} bytes). 0G Storage upload skipped — emitting deterministic stub hash ${provenance.rootHash.slice(0, 14)}…`
+      : `Report uploaded to 0G Storage. rootHash ${provenance.rootHash.slice(0, 14)}…`,
+  });
+  emit({ type: "phase.end", phase: 8, durationMs: Date.now() - t0 });
+
+  return {
+    report: provenance.stub
+      ? emulated(report, ["report uploaded as deterministic stub — 0G storage signing key not configured"])
+      : verified(report, "0g-storage-merkle-root"),
+    provenance: provenance.stub
+      ? emulated(provenance, ["stub hash — not anchored on 0G Storage"])
+      : verified(provenance, "0g-storage-merkle-root"),
   };
 }

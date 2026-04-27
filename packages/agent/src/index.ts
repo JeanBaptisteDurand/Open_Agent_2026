@@ -48,16 +48,24 @@ export type {
   MigrationStep,
   Phase7Output,
 } from "./phases/07-migration/types.js";
+export { assembleReport } from "./phases/08-report/assembleReport.js";
+export type {
+  AssembledReport,
+  Phase8Output,
+  ReportProvenance,
+} from "./phases/08-report/types.js";
 export {
   runPhase1,
   runPhase3,
   runPhase4,
   runPhase5,
   runPhase7,
+  runPhase8,
   type AgentDeps,
   type Emit,
   type Phase3Output,
   type PoolHourFetcher,
+  type ReportUploader,
   type V4HookedPoolRow,
   type V4HookedPoolsFetcher,
 } from "./orchestrator.js";
