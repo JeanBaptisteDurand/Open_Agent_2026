@@ -16,6 +16,8 @@ const schema = z.object({
   OG_INDEXER_RPC: z.string().url().default("https://indexer-storage-testnet-turbo.0g.ai"),
   OG_STORAGE_PRIVATE_KEY: z.string().optional(),
   OG_ANCHOR_PRIVATE_KEY: z.string().optional(),
+  OG_COMPUTE_PRIVATE_KEY: z.string().optional(),
+  OG_COMPUTE_MODEL: z.string().default("qwen-2.5-7b-instruct"),
   OG_CHAIN_ID: z.coerce.number().int().positive().default(16602),
 
   MAINNET_RPC: z.string().url().default("https://eth.llamarpc.com"),
