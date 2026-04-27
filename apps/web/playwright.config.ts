@@ -9,7 +9,7 @@ export default defineConfig({
   workers: 1,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3100",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -26,8 +26,8 @@ export default defineConfig({
     },
     {
       command: "pnpm --filter @lplens/web run dev",
-      url: "http://localhost:3000",
-      reuseExistingServer: true,
+      url: "http://localhost:3100",
+      reuseExistingServer: false,
       timeout: 60_000,
       cwd: "../..",
     },

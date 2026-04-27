@@ -144,7 +144,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Frontend at `http://localhost:3000`, backend at `http://localhost:3001`, MCP server runs standalone.
+Frontend at `http://localhost:3100`, backend at `http://localhost:3001`, MCP server runs standalone.
 
 ---
 
