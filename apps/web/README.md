@@ -15,43 +15,35 @@ can tell at a glance how trusted the value is.
 | `EMULATED` | 🟠 | orange | simulation result — comes with a `warnings[]` array |
 | `LABELED` | 🏷️ | violet | manual curation by us |
 
+The `<LabelBadge label="..." />` component renders these consistently. The
+diagnose page surfaces all five labels in the header as the corresponding
+agent phases ship.
+
 ## Routes
 
 | Path | Purpose |
 | --- | --- |
 | `/` | Atlas — wallet input, list of LP positions, sample-address shortcut |
-| `/diagnose/:tokenId` | Live SSE diagnostic — graph, panels, tool calls, narrative |
+| `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL panel, regime panel, hooks panel, migration preview, narrative |
 
 ## Components
 
 | Component | Used by | Notes |
 | --- | --- | --- |
 | `LabelBadge` | header, panels | renders the 5 honesty labels |
-| `DiagnosticGraph` | diagnose page | React Flow graph fed by SSE phase events |
 | `ILPanel` | diagnose page | HODL / LP / fees / vs HODL with COMPUTED label |
 | `RegimePanel` | diagnose page | mean-reverting / trending / toxic / JIT scores with ESTIMATED label |
-| `HooksPanel` | diagnose page | candidate V4 hooks, family-coloured, with LABELED tag |
+| `HooksPanel` | diagnose page | candidate V4 hooks for the pair, family-coloured, with LABELED tag |
 | `FlagBitChips` | hooks panel detail | 14-bit permission flag visualisation |
+| `MigrationPanel` | diagnose page | close → swap → mint preview with EMULATED tag, sourced from Uniswap Trading API |
 | `PositionCard` | atlas | green/amber/red traffic light + click-to-diagnose link |
 | `ToolCallBadge` | diagnose page | tool.call / tool.result events badge |
 | `TypewriterText` | diagnose page | typewriter animation for live narrative |
 
-## End-to-end tests
+## Migration preview & the Trading API
 
-Smoke-level Playwright tests live in `tests/e2e/`. They cover :
-
-- atlas page renders the LPLens header + form
-- diagnose page renders for a synthetic tokenId
-- the React Flow graph container mounts
-- the server `/health` endpoint responds with `status: ok`
-
-The Playwright `webServer` config boots `@lplens/server` and `@lplens/web`
-on demand. Run :
-
-```bash
-pnpm --filter @lplens/web run test:e2e:install   # one-off browser install
-pnpm --filter @lplens/web run test:e2e
-```
-
-Tests are intentionally structural so they stay green even when the live
-subgraph rate-limits — they validate that the app boots and routes render.
+The migration panel is wired to the Uniswap Trading API via the agent's
+phase 7. The agent quotes a small sample notional (1 unit of token0) so the
+preview is fast and deterministic; the user signs at migration time with
+their own slippage budget. The agent never executes the swap — the result
+is rendered as `EMULATED` with the `warnings[]` array exposed to the user.
