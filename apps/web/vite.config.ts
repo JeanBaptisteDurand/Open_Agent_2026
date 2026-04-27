@@ -4,7 +4,8 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 3100,
+    strictPort: true,
     proxy: {
       "/api": "http://localhost:3001",
       "/health": "http://localhost:3001",

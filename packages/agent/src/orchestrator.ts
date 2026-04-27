@@ -1,4 +1,4 @@
-import { computed, estimated } from "@lplens/core";
+import { computed, estimated, labeled } from "@lplens/core";
 import type { DiagnosticEvent, Labeled } from "@lplens/core";
 import {
   resolveV3Position,
@@ -19,6 +19,12 @@ import type {
   Phase4Output,
   PoolHourPoint,
 } from "./phases/04-regime/types.js";
+import { classifyFamily } from "./phases/05-hooks/classify.js";
+import type {
+  HookCandidate,
+  HookFamily,
+  Phase5Output,
+} from "./phases/05-hooks/types.js";
 
 export type Emit = (event: DiagnosticEvent) => void;
 
@@ -27,9 +33,27 @@ export type PoolHourFetcher = (
   fromUnix: number,
 ) => Promise<PoolHourPoint[]>;
 
+export interface V4HookedPoolRow {
+  id: string;
+  hooks: string;
+  feeTier: string;
+  tickSpacing: string;
+  liquidity: string;
+  totalValueLockedUSD: string;
+  volumeUSD: string;
+  token0: { id: string; symbol: string; decimals: string };
+  token1: { id: string; symbol: string; decimals: string };
+}
+
+export type V4HookedPoolsFetcher = (
+  token0: string,
+  token1: string,
+) => Promise<V4HookedPoolRow[]>;
+
 export interface AgentDeps {
   fetchV3Position: V3PositionFetcher;
   fetchPoolHourDatas?: PoolHourFetcher;
+  fetchV4HookedPools?: V4HookedPoolsFetcher;
 }
 
 export interface Phase3Output {
@@ -177,5 +201,90 @@ export async function runPhase4(
     topLabel: estimated(topLabel, confidence, "regime-heuristic-v0"),
     confidence: estimated(confidence, confidence, "regime-heuristic-v0"),
     narrative,
+  };
+}
+
+export async function runPhase5(
+  position: Phase1Output,
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase5Output | null> {
+  if (!deps.fetchV4HookedPools) {
+    emit({
+      type: "narrative",
+      text: "Skipping hook discovery — no v4 hooks fetcher configured.",
+    });
+    return null;
+  }
+
+  const pool = position.pool.value;
+  const pair = `${pool.token0.symbol}/${pool.token1.symbol}`;
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 5, label: "v4 hook discovery" });
+  emit({
+    type: "tool.call",
+    tool: "discoverV4Hooks",
+    input: { token0: pool.token0.address, token1: pool.token1.address },
+  });
+
+  const rows = await deps.fetchV4HookedPools(
+    pool.token0.address,
+    pool.token1.address,
+  );
+
+  const candidates: HookCandidate[] = rows.map((r) => {
+    const { family, bitmap, active } = classifyFamily(r.hooks);
+    return {
+      poolId: r.id,
+      hookAddress: r.hooks,
+      family,
+      flagsBitmap: bitmap,
+      activeFlags: active,
+      feeTier: parseInt(r.feeTier, 10),
+      tickSpacing: parseInt(r.tickSpacing, 10),
+      tvlUsd: parseFloat(r.totalValueLockedUSD || "0"),
+      volumeUsd: parseFloat(r.volumeUSD || "0"),
+      pair,
+    };
+  });
+
+  // Top family : the one with the most TVL across candidates.
+  const tvlByFamily = new Map<HookFamily, number>();
+  for (const c of candidates) {
+    tvlByFamily.set(c.family, (tvlByFamily.get(c.family) ?? 0) + c.tvlUsd);
+  }
+  let topFamily: HookFamily = "UNKNOWN";
+  let topFamilyTvl = -1;
+  for (const [fam, tvl] of tvlByFamily) {
+    if (tvl > topFamilyTvl) {
+      topFamily = fam;
+      topFamilyTvl = tvl;
+    }
+  }
+
+  emit({
+    type: "tool.result",
+    tool: "discoverV4Hooks",
+    output: { candidates, topFamily, count: candidates.length },
+    latencyMs: Date.now() - t0,
+  });
+
+  if (candidates.length === 0) {
+    emit({
+      type: "narrative",
+      text: `No active V4 hooks found for ${pair} on mainnet.`,
+    });
+  } else {
+    emit({
+      type: "narrative",
+      text: `Found ${candidates.length} V4 hook(s) on ${pair}; top family: ${topFamily.toLowerCase().replace(/_/g, "-")}.`,
+    });
+  }
+  emit({ type: "phase.end", phase: 5, durationMs: Date.now() - t0 });
+
+  return {
+    pair,
+    candidates: labeled(candidates, "v4-subgraph + flag-bitmap-heuristic"),
+    topFamily: labeled(topFamily, "tvl-weighted-family-vote"),
   };
 }

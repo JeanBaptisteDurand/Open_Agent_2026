@@ -1,5 +1,10 @@
 import { useParams } from "react-router-dom";
+import { DiagnosticGraph } from "../components/DiagnosticGraph.js";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
+import {
+  HooksPanel,
+  type HookDiscoveryResult,
+} from "../components/HooksPanel.js";
 import { LabelBadge } from "../components/LabelBadge.js";
 import {
   RegimePanel,
@@ -40,14 +45,11 @@ export function Diagnose() {
     (e): e is Extract<DiagnosticEvent, { type: "narrative" }> =>
       e.type === "narrative",
   );
-  const phaseEvents = events.filter(
-    (e): e is Extract<DiagnosticEvent, { type: "phase.start" }> =>
-      e.type === "phase.start",
-  );
 
   const resolved = pickToolResult<ResolvedPositionOutput>(events, "getV3Position");
   const ilBreakdown = pickToolResult<ILBreakdown>(events, "computeIL");
   const regime = pickToolResult<RegimeClassification>(events, "classifyRegime");
+  const hooks = pickToolResult<HookDiscoveryResult>(events, "discoverV4Hooks");
   const token1Symbol = resolved?.pair?.split("/")?.[1] ?? "T1";
 
   return (
@@ -63,10 +65,11 @@ export function Diagnose() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap justify-end">
             {resolved && <LabelBadge label="VERIFIED" />}
             {ilBreakdown && <LabelBadge label="COMPUTED" />}
             {regime && <LabelBadge label="ESTIMATED" />}
+            {hooks && <LabelBadge label="LABELED" />}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -74,30 +77,12 @@ export function Diagnose() {
 
       <main className="max-w-6xl mx-auto mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 space-y-6">
+          <DiagnosticGraph events={events} />
           {ilBreakdown && (
             <ILPanel breakdown={ilBreakdown} token1Symbol={token1Symbol} />
           )}
           {regime && <RegimePanel classification={regime} />}
-
-          <section className="p-6 rounded-lg border border-slate-700 bg-slate-900/50 min-h-[200px]">
-            <h2 className="text-xs uppercase tracking-wider text-slate-500">
-              Phases
-            </h2>
-            <ul className="mt-4 space-y-2 text-sm font-mono">
-              {phaseEvents.map((p, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="text-cyan-300">phase {p.phase}</span>
-                  <span className="text-slate-300">{p.label}</span>
-                </li>
-              ))}
-              {phaseEvents.length === 0 && (
-                <li className="text-slate-500">waiting for first phase…</li>
-              )}
-            </ul>
-            <p className="mt-6 text-slate-500 text-xs">
-              React Flow graph wires in a follow-up feature.
-            </p>
-          </section>
+          {hooks && <HooksPanel result={hooks} />}
         </section>
 
         <aside className="space-y-6">
