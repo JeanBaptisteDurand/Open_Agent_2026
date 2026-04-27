@@ -24,7 +24,7 @@ agent phases ship.
 | Path | Purpose |
 | --- | --- |
 | `/` | Atlas — wallet input, list of LP positions, sample-address shortcut |
-| `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL, regime, hooks, migration preview, report provenance, narrative |
+| `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL, regime, hooks, migration preview, report provenance + anchor, narrative |
 
 ## Components
 
@@ -36,7 +36,7 @@ agent phases ship.
 | `HooksPanel` | diagnose page | candidate V4 hooks for the pair, family-coloured, with LABELED tag |
 | `FlagBitChips` | hooks panel detail | 14-bit permission flag visualisation |
 | `MigrationPanel` | diagnose page | close → swap → mint preview with EMULATED tag, sourced from Uniswap Trading API |
-| `ReportProvenancePanel` | diagnose page | rootHash + 0G Storage URL + copy button, VERIFIED when uploaded for real |
+| `ReportProvenancePanel` | diagnose page | rootHash + 0G Storage URL + 0G Chain anchor tx, VERIFIED only when both legs hit the network |
 | `PositionCard` | atlas | green/amber/red traffic light + click-to-diagnose link |
 | `ToolCallBadge` | diagnose page | tool.call / tool.result events badge |
 | `TypewriterText` | diagnose page | typewriter animation for live narrative |
@@ -49,14 +49,22 @@ preview is fast and deterministic; the user signs at migration time with
 their own slippage budget. The agent never executes the swap — the result
 is rendered as `EMULATED` with the `warnings[]` array exposed to the user.
 
-## Report provenance & 0G Storage
+## Report provenance — 0G Storage + 0G Chain
 
 Phase 8 assembles the agent's verdict (position, IL, regime, hooks,
 migration plan) into a single JSON report and uploads it to 0G Storage.
 The merkle rootHash returned by the indexer is content-addressed, which
 means anyone can re-download the report and verify it byte-for-byte
-matches the hash. The `ReportProvenancePanel` renders the rootHash and a
-storage scanner link in the report's last section. When the server has no
-`OG_STORAGE_PRIVATE_KEY` configured the upload short-circuits to a
-deterministic stub fingerprint and the panel labels itself `EMULATED` so
-the demo never silently lies about provenance.
+matches the hash.
+
+Phase 9 anchors that rootHash on 0G Chain by submitting a transaction
+whose calldata is the rootHash. The transaction hash becomes a permanent,
+tamper-evident commitment: any future re-derivation of the rootHash from
+the storage blob can be cross-referenced against the on-chain commitment
+to detect tampering.
+
+The `ReportProvenancePanel` only labels the section `VERIFIED` when both
+the storage upload and the chain anchor succeeded; if either short-
+circuits to a stub (no `OG_STORAGE_PRIVATE_KEY` or `OG_ANCHOR_PRIVATE_KEY`
+configured) the panel labels itself `EMULATED` so the demo never silently
+lies about provenance.
