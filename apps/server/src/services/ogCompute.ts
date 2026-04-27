@@ -1,8 +1,19 @@
+import { createRequire } from "node:module";
 import { ethers } from "ethers";
-import { createZGComputeNetworkBroker } from "@0glabs/0g-serving-broker";
+import type { createZGComputeNetworkBroker as createZGComputeNetworkBrokerT } from "@0glabs/0g-serving-broker";
 import OpenAI from "openai";
 import { config } from "../config.js";
 import { logger } from "../logger.js";
+
+// @0glabs/0g-serving-broker@0.7.5 ships a broken ESM build (re-exports
+// minified symbols that don't exist in the chunk it points at). Bridge
+// to the working CJS build via createRequire — same pattern used for
+// @uniswap/v3-sdk. Types stay TS-resolved.
+const require = createRequire(import.meta.url);
+const broker0g = require("@0glabs/0g-serving-broker") as {
+  createZGComputeNetworkBroker: typeof createZGComputeNetworkBrokerT;
+};
+const { createZGComputeNetworkBroker } = broker0g;
 
 // 0G Compute adapter — uses the broker SDK to discover a TEE-attested
 // inference provider, then calls it via an OpenAI-compatible client with
