@@ -24,7 +24,7 @@ agent phases ship.
 | Path | Purpose |
 | --- | --- |
 | `/` | Atlas — wallet input, list of LP positions, sample-address shortcut |
-| `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL panel, regime panel, hooks panel, migration preview, narrative |
+| `/diagnose/:tokenId` | Live SSE diagnostic — phases, IL, regime, hooks, migration preview, report provenance, narrative |
 
 ## Components
 
@@ -36,6 +36,7 @@ agent phases ship.
 | `HooksPanel` | diagnose page | candidate V4 hooks for the pair, family-coloured, with LABELED tag |
 | `FlagBitChips` | hooks panel detail | 14-bit permission flag visualisation |
 | `MigrationPanel` | diagnose page | close → swap → mint preview with EMULATED tag, sourced from Uniswap Trading API |
+| `ReportProvenancePanel` | diagnose page | rootHash + 0G Storage URL + copy button, VERIFIED when uploaded for real |
 | `PositionCard` | atlas | green/amber/red traffic light + click-to-diagnose link |
 | `ToolCallBadge` | diagnose page | tool.call / tool.result events badge |
 | `TypewriterText` | diagnose page | typewriter animation for live narrative |
@@ -47,3 +48,15 @@ phase 7. The agent quotes a small sample notional (1 unit of token0) so the
 preview is fast and deterministic; the user signs at migration time with
 their own slippage budget. The agent never executes the swap — the result
 is rendered as `EMULATED` with the `warnings[]` array exposed to the user.
+
+## Report provenance & 0G Storage
+
+Phase 8 assembles the agent's verdict (position, IL, regime, hooks,
+migration plan) into a single JSON report and uploads it to 0G Storage.
+The merkle rootHash returned by the indexer is content-addressed, which
+means anyone can re-download the report and verify it byte-for-byte
+matches the hash. The `ReportProvenancePanel` renders the rootHash and a
+storage scanner link in the report's last section. When the server has no
+`OG_STORAGE_PRIVATE_KEY` configured the upload short-circuits to a
+deterministic stub fingerprint and the panel labels itself `EMULATED` so
+the demo never silently lies about provenance.

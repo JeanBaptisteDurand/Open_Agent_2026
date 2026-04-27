@@ -14,6 +14,10 @@ import {
   RegimePanel,
   type RegimeClassification,
 } from "../components/RegimePanel.js";
+import {
+  ReportProvenancePanel,
+  type ReportProvenance,
+} from "../components/ReportProvenancePanel.js";
 import { ToolCallBadge } from "../components/ToolCallBadge.js";
 import { TypewriterText } from "../components/TypewriterText.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
@@ -38,6 +42,13 @@ function pickToolResult<T>(events: DiagnosticEvent[], tool: string): T | null {
   return ev ? (ev.output as T) : null;
 }
 
+function pickReportUploaded(events: DiagnosticEvent[]): ReportProvenance | null {
+  const ev = events.find((e) => e.type === "report.uploaded") as
+    | Extract<DiagnosticEvent, { type: "report.uploaded" }>
+    | undefined;
+  return ev ? { rootHash: ev.rootHash, storageUrl: ev.storageUrl } : null;
+}
+
 export function Diagnose() {
   const { tokenId } = useParams<{ tokenId: string }>();
   const { events, status, error } = useDiagnosticStream(tokenId ?? null);
@@ -58,6 +69,11 @@ export function Diagnose() {
     events,
     "buildMigrationPreview",
   );
+  const provenance = pickReportUploaded(events);
+  const provenanceIsStub =
+    provenance !== null &&
+    (provenance.rootHash.startsWith("0xstub") ||
+      provenance.storageUrl.startsWith("stub://"));
   const token1Symbol = resolved?.pair?.split("/")?.[1] ?? "T1";
 
   return (
@@ -79,6 +95,9 @@ export function Diagnose() {
             {regime && <LabelBadge label="ESTIMATED" />}
             {hooks && <LabelBadge label="LABELED" />}
             {migration && <LabelBadge label="EMULATED" />}
+            {provenance && (
+              <LabelBadge label={provenanceIsStub ? "EMULATED" : "VERIFIED"} />
+            )}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -93,6 +112,7 @@ export function Diagnose() {
           {regime && <RegimePanel classification={regime} />}
           {hooks && <HooksPanel result={hooks} />}
           {migration && <MigrationPanel preview={migration} />}
+          {provenance && <ReportProvenancePanel provenance={provenance} />}
         </section>
 
         <aside className="space-y-6">
