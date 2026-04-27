@@ -36,6 +36,10 @@ import type {
   Phase8Output,
   ReportProvenance,
 } from "./phases/08-report/types.js";
+import type {
+  AnchorReceipt,
+  Phase9Output,
+} from "./phases/09-anchor/types.js";
 
 export type Emit = (event: DiagnosticEvent) => void;
 
@@ -65,12 +69,17 @@ export type ReportUploader = (
   report: AssembledReport,
 ) => Promise<Omit<ReportProvenance, "uploadedAt">>;
 
+export type ReportAnchorer = (
+  rootHash: string,
+) => Promise<Omit<AnchorReceipt, "anchoredAt" | "rootHash">>;
+
 export interface AgentDeps {
   fetchV3Position: V3PositionFetcher;
   fetchPoolHourDatas?: PoolHourFetcher;
   fetchV4HookedPools?: V4HookedPoolsFetcher;
   quoteSwap?: Quoter;
   uploadReport?: ReportUploader;
+  anchorReport?: ReportAnchorer;
 }
 
 export interface Phase3Output {
@@ -442,5 +451,69 @@ export async function runPhase8(
     provenance: provenance.stub
       ? emulated(provenance, ["stub hash — not anchored on 0G Storage"])
       : verified(provenance, "0g-storage-merkle-root"),
+  };
+}
+
+export async function runPhase9(
+  storageResult: Phase8Output | null,
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase9Output | null> {
+  if (!storageResult) {
+    emit({
+      type: "narrative",
+      text: "Skipping chain anchor — no storage rootHash to anchor.",
+    });
+    return null;
+  }
+  if (!deps.anchorReport) {
+    emit({
+      type: "narrative",
+      text: "Skipping chain anchor — no anchor signer configured.",
+    });
+    return null;
+  }
+
+  const rootHash = storageResult.provenance.value.rootHash;
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 9, label: "0g chain anchor" });
+  emit({
+    type: "tool.call",
+    tool: "anchorRootHashOnOgChain",
+    input: { rootHash },
+  });
+
+  const partial = await deps.anchorReport(rootHash);
+  const receipt: AnchorReceipt = {
+    ...partial,
+    rootHash,
+    anchoredAt: new Date().toISOString(),
+  };
+
+  emit({
+    type: "tool.result",
+    tool: "anchorRootHashOnOgChain",
+    output: receipt,
+    latencyMs: Date.now() - t0,
+  });
+
+  emit({
+    type: "report.anchored",
+    txHash: receipt.txHash,
+    chainId: receipt.chainId,
+  });
+
+  emit({
+    type: "narrative",
+    text: receipt.stub
+      ? `Chain anchor skipped — emitting deterministic stub txHash ${receipt.txHash.slice(0, 14)}…`
+      : `Anchored on 0G Chain (id ${receipt.chainId}). tx ${receipt.txHash.slice(0, 14)}…`,
+  });
+  emit({ type: "phase.end", phase: 9, durationMs: Date.now() - t0 });
+
+  return {
+    anchor: receipt.stub
+      ? emulated(receipt, ["stub anchor — 0G chain signing key not configured"])
+      : verified(receipt, `0g-chain-${receipt.chainId}`),
   };
 }

@@ -54,6 +54,10 @@ export type {
   Phase8Output,
   ReportProvenance,
 } from "./phases/08-report/types.js";
+export type {
+  AnchorReceipt,
+  Phase9Output,
+} from "./phases/09-anchor/types.js";
 export {
   runPhase1,
   runPhase3,
@@ -61,10 +65,12 @@ export {
   runPhase5,
   runPhase7,
   runPhase8,
+  runPhase9,
   type AgentDeps,
   type Emit,
   type Phase3Output,
   type PoolHourFetcher,
+  type ReportAnchorer,
   type ReportUploader,
   type V4HookedPoolRow,
   type V4HookedPoolsFetcher,

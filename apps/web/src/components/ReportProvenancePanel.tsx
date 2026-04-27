@@ -6,8 +6,14 @@ export interface ReportProvenance {
   storageUrl: string;
 }
 
+export interface ReportAnchor {
+  txHash: string;
+  chainId: number;
+}
+
 interface Props {
   provenance: ReportProvenance;
+  anchor?: ReportAnchor | null;
 }
 
 function shortHash(hash: string): string {
@@ -15,9 +21,20 @@ function shortHash(hash: string): string {
   return `${hash.slice(0, 10)}…${hash.slice(-6)}`;
 }
 
-export function ReportProvenancePanel({ provenance }: Props) {
+function explorerUrl(chainId: number, txHash: string): string | null {
+  if (chainId === 16602) return `https://chainscan-newton.0g.ai/tx/${txHash}`;
+  if (chainId === 16661) return `https://chainscan.0g.ai/tx/${txHash}`;
+  return null;
+}
+
+export function ReportProvenancePanel({ provenance, anchor }: Props) {
   const { rootHash, storageUrl } = provenance;
-  const isStub = rootHash.startsWith("0xstub") || storageUrl.startsWith("stub://");
+  const storageIsStub =
+    rootHash.startsWith("0xstub") || storageUrl.startsWith("stub://");
+  const anchorIsStub = anchor
+    ? anchor.txHash.startsWith("0xstub")
+    : false;
+  const fullyVerified = !storageIsStub && anchor !== null && anchor !== undefined && !anchorIsStub;
   const [copied, setCopied] = useState(false);
 
   const onCopy = async () => {
@@ -26,9 +43,11 @@ export function ReportProvenancePanel({ provenance }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // ignore — clipboard might be denied in some contexts
+      // clipboard may be denied
     }
   };
+
+  const anchorLink = anchor ? explorerUrl(anchor.chainId, anchor.txHash) : null;
 
   return (
     <section className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
@@ -36,7 +55,7 @@ export function ReportProvenancePanel({ provenance }: Props) {
         <h2 className="text-xs uppercase tracking-wider text-slate-500">
           Report provenance
         </h2>
-        <LabelBadge label={isStub ? "EMULATED" : "VERIFIED"} />
+        <LabelBadge label={fullyVerified ? "VERIFIED" : "EMULATED"} />
       </header>
 
       <div className="mt-3 space-y-2">
@@ -71,12 +90,42 @@ export function ReportProvenancePanel({ provenance }: Props) {
             </span>
           )}
         </div>
+
+        {anchor && (
+          <>
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-slate-500 w-20 shrink-0">anchor tx</span>
+              {anchorLink && !anchorIsStub ? (
+                <a
+                  href={anchorLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-300 hover:text-emerald-200 truncate"
+                  title={anchor.txHash}
+                >
+                  {shortHash(anchor.txHash)}
+                </a>
+              ) : (
+                <span className="text-slate-400 truncate" title={anchor.txHash}>
+                  {shortHash(anchor.txHash)}
+                </span>
+              )}
+              <span className="ml-auto text-[10px] text-slate-500">
+                chain {anchor.chainId}
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       <p className="mt-3 text-[10px] text-slate-500">
-        {isStub
-          ? "Stub upload — the agent emitted a deterministic fingerprint of the report payload. Configure OG_STORAGE_PRIVATE_KEY on the server to publish to 0G Storage."
-          : "Report payload uploaded to 0G Storage. The merkle rootHash above is content-addressed — anyone can re-download the report and verify it matches this hash."}
+        {fullyVerified
+          ? "Report uploaded to 0G Storage and anchored on 0G Chain. Anyone can re-download the report from Storage and verify both the rootHash and the on-chain commitment."
+          : storageIsStub
+            ? "Stub provenance — the agent emitted a deterministic fingerprint. Configure OG_STORAGE_PRIVATE_KEY and OG_ANCHOR_PRIVATE_KEY on the server to publish to 0G Storage and 0G Chain."
+            : anchor
+              ? "Report uploaded to 0G Storage but anchor is a stub — configure OG_ANCHOR_PRIVATE_KEY to write the rootHash to 0G Chain."
+              : "Report uploaded to 0G Storage. The merkle rootHash is content-addressed — anchor will follow once phase 9 runs."}
       </p>
     </section>
   );
