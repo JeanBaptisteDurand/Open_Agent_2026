@@ -7,10 +7,12 @@ import {
   runPhase7,
   runPhase8,
   runPhase9,
+  runPhase10,
   type Quoter,
   type QuoteSummary,
   type ReportAnchorer,
   type ReportUploader,
+  type VerdictSynthesizer,
 } from "@lplens/agent";
 import { fakePhaseSequence } from "../services/diagnoseFake.js";
 import { SSEStream } from "../lib/sse.js";
@@ -19,6 +21,7 @@ import { subgraph } from "../services/subgraph.js";
 import { tradingApi } from "../services/tradingApi.js";
 import { ogStorage } from "../services/ogStorage.js";
 import { ogChain } from "../services/ogChain.js";
+import { ogCompute } from "../services/ogCompute.js";
 import { reportCache } from "../services/reportCache.js";
 
 export async function diagnoseHandler(
@@ -96,6 +99,17 @@ export async function diagnoseHandler(
       };
     };
 
+    const synthesizeVerdict: VerdictSynthesizer = async (reportJson) => {
+      const result = await ogCompute.synthesizeVerdict(reportJson);
+      return {
+        markdown: result.markdown,
+        model: result.model,
+        providerAddress: result.providerAddress,
+        stub: result.stub,
+        latencyMs: result.latencyMs,
+      };
+    };
+
     const deps = {
       fetchV3Position: (id: string) => subgraph.getV3PositionById(id),
       fetchPoolHourDatas: (poolId: string, from: number) =>
@@ -105,6 +119,7 @@ export async function diagnoseHandler(
       quoteSwap,
       uploadReport,
       anchorReport,
+      synthesizeVerdict,
     };
 
     const position = await runPhase1(tokenId, deps, (event) => sse.emit(event));
@@ -121,6 +136,7 @@ export async function diagnoseHandler(
       (event) => sse.emit(event),
     );
     const anchor = await runPhase9(storage, deps, (event) => sse.emit(event));
+    await runPhase10(storage, deps, (event) => sse.emit(event));
 
     if (storage) {
       const provenance = storage.provenance.value;
@@ -146,7 +162,8 @@ export async function diagnoseHandler(
           event.phase === 5 ||
           event.phase === 7 ||
           event.phase === 8 ||
-          event.phase === 9)
+          event.phase === 9 ||
+          event.phase === 10)
       )
         continue;
       if (
@@ -154,7 +171,12 @@ export async function diagnoseHandler(
         (event.tool === "getPosition" || event.tool === "computeIL")
       )
         continue;
-      if (event.type === "report.uploaded" || event.type === "report.anchored")
+      if (
+        event.type === "report.uploaded" ||
+        event.type === "report.anchored" ||
+        event.type === "verdict.partial" ||
+        event.type === "verdict.final"
+      )
         continue;
       sse.emit(event);
     }

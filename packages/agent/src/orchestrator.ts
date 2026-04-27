@@ -40,6 +40,11 @@ import type {
   AnchorReceipt,
   Phase9Output,
 } from "./phases/09-anchor/types.js";
+import { buildVerdictPrompt } from "./phases/10-verdict/buildPrompt.js";
+import type {
+  Phase10Output,
+  VerdictPayload,
+} from "./phases/10-verdict/types.js";
 
 export type Emit = (event: DiagnosticEvent) => void;
 
@@ -73,6 +78,10 @@ export type ReportAnchorer = (
   rootHash: string,
 ) => Promise<Omit<AnchorReceipt, "anchoredAt" | "rootHash">>;
 
+export type VerdictSynthesizer = (
+  reportJson: string,
+) => Promise<Omit<VerdictPayload, "generatedAt">>;
+
 export interface AgentDeps {
   fetchV3Position: V3PositionFetcher;
   fetchPoolHourDatas?: PoolHourFetcher;
@@ -80,6 +89,7 @@ export interface AgentDeps {
   quoteSwap?: Quoter;
   uploadReport?: ReportUploader;
   anchorReport?: ReportAnchorer;
+  synthesizeVerdict?: VerdictSynthesizer;
 }
 
 export interface Phase3Output {
@@ -515,5 +525,78 @@ export async function runPhase9(
     anchor: receipt.stub
       ? emulated(receipt, ["stub anchor — 0G chain signing key not configured"])
       : verified(receipt, `0g-chain-${receipt.chainId}`),
+  };
+}
+
+export async function runPhase10(
+  storageResult: Phase8Output | null,
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase10Output | null> {
+  if (!storageResult) {
+    emit({
+      type: "narrative",
+      text: "Skipping verdict synthesis — no report to summarize.",
+    });
+    return null;
+  }
+  if (!deps.synthesizeVerdict) {
+    emit({
+      type: "narrative",
+      text: "Skipping verdict synthesis — no 0G compute synthesizer configured.",
+    });
+    return null;
+  }
+
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 10, label: "0g compute verdict" });
+  emit({
+    type: "tool.call",
+    tool: "synthesizeVerdict",
+    input: { schemaVersion: storageResult.report.value.schemaVersion },
+  });
+
+  const prompt = buildVerdictPrompt(storageResult.report.value);
+  const partial = await deps.synthesizeVerdict(prompt);
+  const payload: VerdictPayload = {
+    ...partial,
+    generatedAt: new Date().toISOString(),
+  };
+
+  emit({
+    type: "tool.result",
+    tool: "synthesizeVerdict",
+    output: {
+      model: payload.model,
+      providerAddress: payload.providerAddress,
+      stub: payload.stub,
+      latencyMs: payload.latencyMs,
+      chars: payload.markdown.length,
+    },
+    latencyMs: Date.now() - t0,
+  });
+
+  emit({
+    type: "verdict.final",
+    markdown: payload.markdown,
+    labels: {
+      model: payload.model,
+      provider: payload.providerAddress ?? "stub",
+      label: payload.stub ? "EMULATED" : "ESTIMATED",
+    },
+  });
+
+  emit({
+    type: "narrative",
+    text: payload.stub
+      ? `Verdict synthesis skipped — emitting deterministic stub.`
+      : `Verdict synthesized via 0G Compute (${payload.model}) in ${payload.latencyMs}ms.`,
+  });
+  emit({ type: "phase.end", phase: 10, durationMs: Date.now() - t0 });
+
+  return {
+    verdict: payload.stub
+      ? emulated(payload, ["verdict synthesized as deterministic stub — 0G compute not configured"])
+      : estimated(payload, 0.7, `0g-compute-${payload.model}`),
   };
 }

@@ -58,6 +58,11 @@ export type {
   AnchorReceipt,
   Phase9Output,
 } from "./phases/09-anchor/types.js";
+export { buildVerdictPrompt } from "./phases/10-verdict/buildPrompt.js";
+export type {
+  Phase10Output,
+  VerdictPayload,
+} from "./phases/10-verdict/types.js";
 export {
   runPhase1,
   runPhase3,
@@ -66,6 +71,7 @@ export {
   runPhase7,
   runPhase8,
   runPhase9,
+  runPhase10,
   type AgentDeps,
   type Emit,
   type Phase3Output,
@@ -74,4 +80,5 @@ export {
   type ReportUploader,
   type V4HookedPoolRow,
   type V4HookedPoolsFetcher,
+  type VerdictSynthesizer,
 } from "./orchestrator.js";

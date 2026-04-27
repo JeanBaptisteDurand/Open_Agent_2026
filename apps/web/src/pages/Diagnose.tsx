@@ -21,6 +21,10 @@ import {
 } from "../components/ReportProvenancePanel.js";
 import { ToolCallBadge } from "../components/ToolCallBadge.js";
 import { TypewriterText } from "../components/TypewriterText.js";
+import {
+  VerdictPanel,
+  type VerdictMeta,
+} from "../components/VerdictPanel.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
 import type { DiagnosticEvent } from "@lplens/core";
 
@@ -57,6 +61,19 @@ function pickReportAnchored(events: DiagnosticEvent[]): ReportAnchor | null {
   return ev ? { txHash: ev.txHash, chainId: ev.chainId } : null;
 }
 
+function pickVerdict(events: DiagnosticEvent[]): VerdictMeta | null {
+  const ev = events.find((e) => e.type === "verdict.final") as
+    | Extract<DiagnosticEvent, { type: "verdict.final" }>
+    | undefined;
+  if (!ev) return null;
+  return {
+    markdown: ev.markdown,
+    model: ev.labels?.model,
+    provider: ev.labels?.provider,
+    stub: ev.labels?.label === "EMULATED",
+  };
+}
+
 export function Diagnose() {
   const { tokenId } = useParams<{ tokenId: string }>();
   const { events, status, error } = useDiagnosticStream(tokenId ?? null);
@@ -79,6 +96,7 @@ export function Diagnose() {
   );
   const provenance = pickReportUploaded(events);
   const anchor = pickReportAnchored(events);
+  const verdict = pickVerdict(events);
 
   const provenanceFullyVerified =
     provenance !== null &&
@@ -111,6 +129,9 @@ export function Diagnose() {
             {provenance && (
               <LabelBadge label={provenanceFullyVerified ? "VERIFIED" : "EMULATED"} />
             )}
+            {verdict && (
+              <LabelBadge label={verdict.stub ? "EMULATED" : "ESTIMATED"} />
+            )}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -128,6 +149,7 @@ export function Diagnose() {
           {provenance && (
             <ReportProvenancePanel provenance={provenance} anchor={anchor} />
           )}
+          {verdict && <VerdictPanel verdict={verdict} />}
         </section>
 
         <aside className="space-y-6">
