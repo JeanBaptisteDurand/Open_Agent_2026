@@ -38,10 +38,22 @@ export type {
   Phase5Output,
 } from "./phases/05-hooks/types.js";
 export {
+  buildMigrationPreview,
+  type Quoter,
+  type QuoteHop,
+  type QuoteSummary,
+} from "./phases/07-migration/buildPreview.js";
+export type {
+  MigrationPreview,
+  MigrationStep,
+  Phase7Output,
+} from "./phases/07-migration/types.js";
+export {
   runPhase1,
   runPhase3,
   runPhase4,
   runPhase5,
+  runPhase7,
   type AgentDeps,
   type Emit,
   type Phase3Output,

@@ -7,6 +7,10 @@ import {
 } from "../components/HooksPanel.js";
 import { LabelBadge } from "../components/LabelBadge.js";
 import {
+  MigrationPanel,
+  type MigrationPreview,
+} from "../components/MigrationPanel.js";
+import {
   RegimePanel,
   type RegimeClassification,
 } from "../components/RegimePanel.js";
@@ -50,6 +54,10 @@ export function Diagnose() {
   const ilBreakdown = pickToolResult<ILBreakdown>(events, "computeIL");
   const regime = pickToolResult<RegimeClassification>(events, "classifyRegime");
   const hooks = pickToolResult<HookDiscoveryResult>(events, "discoverV4Hooks");
+  const migration = pickToolResult<MigrationPreview>(
+    events,
+    "buildMigrationPreview",
+  );
   const token1Symbol = resolved?.pair?.split("/")?.[1] ?? "T1";
 
   return (
@@ -70,6 +78,7 @@ export function Diagnose() {
             {ilBreakdown && <LabelBadge label="COMPUTED" />}
             {regime && <LabelBadge label="ESTIMATED" />}
             {hooks && <LabelBadge label="LABELED" />}
+            {migration && <LabelBadge label="EMULATED" />}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -83,6 +92,7 @@ export function Diagnose() {
           )}
           {regime && <RegimePanel classification={regime} />}
           {hooks && <HooksPanel result={hooks} />}
+          {migration && <MigrationPanel preview={migration} />}
         </section>
 
         <aside className="space-y-6">
