@@ -14,6 +14,7 @@ const schema = z.object({
   OG_NEWTON_RPC: z.string().url().default("https://evmrpc-testnet.0g.ai"),
   OG_GALILEO_RPC: z.string().url().default("https://evmrpc.0g.ai"),
   OG_INDEXER_RPC: z.string().url().default("https://indexer-storage-testnet-turbo.0g.ai"),
+  OG_STORAGE_PRIVATE_KEY: z.string().optional(),
 
   MAINNET_RPC: z.string().url().default("https://eth.llamarpc.com"),
   SEPOLIA_RPC: z.string().url().default("https://rpc.sepolia.org"),
