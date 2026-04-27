@@ -19,6 +19,7 @@ import { subgraph } from "../services/subgraph.js";
 import { tradingApi } from "../services/tradingApi.js";
 import { ogStorage } from "../services/ogStorage.js";
 import { ogChain } from "../services/ogChain.js";
+import { reportCache } from "../services/reportCache.js";
 
 export async function diagnoseHandler(
   req: Request<{ tokenId: string }>,
@@ -119,7 +120,21 @@ export async function diagnoseHandler(
       deps,
       (event) => sse.emit(event),
     );
-    await runPhase9(storage, deps, (event) => sse.emit(event));
+    const anchor = await runPhase9(storage, deps, (event) => sse.emit(event));
+
+    if (storage) {
+      const provenance = storage.provenance.value;
+      reportCache.put({
+        rootHash: provenance.rootHash,
+        storageUrl: provenance.storageUrl,
+        anchorTxHash: anchor?.anchor.value.txHash,
+        anchorChainId: anchor?.anchor.value.chainId,
+        storageStub: provenance.stub,
+        anchorStub: anchor?.anchor.value.stub,
+        cachedAt: new Date().toISOString(),
+        payload: storage.report.value,
+      });
+    }
 
     // Phases 2, 6 — placeholder fake script until each phase is real.
     for await (const event of fakePhaseSequence(tokenId)) {
@@ -139,8 +154,6 @@ export async function diagnoseHandler(
         (event.tool === "getPosition" || event.tool === "computeIL")
       )
         continue;
-      // runPhase8/9 already emit the real provenance events — drop any
-      // stubs from the fake sequence.
       if (event.type === "report.uploaded" || event.type === "report.anchored")
         continue;
       sse.emit(event);
