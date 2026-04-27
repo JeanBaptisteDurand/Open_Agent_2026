@@ -1,4 +1,4 @@
-import { computed, estimated, labeled } from "@lplens/core";
+import { computed, emulated, estimated, labeled } from "@lplens/core";
 import type { DiagnosticEvent, Labeled } from "@lplens/core";
 import {
   resolveV3Position,
@@ -25,6 +25,11 @@ import type {
   HookFamily,
   Phase5Output,
 } from "./phases/05-hooks/types.js";
+import {
+  buildMigrationPreview,
+  type Quoter,
+} from "./phases/07-migration/buildPreview.js";
+import type { Phase7Output } from "./phases/07-migration/types.js";
 
 export type Emit = (event: DiagnosticEvent) => void;
 
@@ -54,6 +59,7 @@ export interface AgentDeps {
   fetchV3Position: V3PositionFetcher;
   fetchPoolHourDatas?: PoolHourFetcher;
   fetchV4HookedPools?: V4HookedPoolsFetcher;
+  quoteSwap?: Quoter;
 }
 
 export interface Phase3Output {
@@ -248,7 +254,6 @@ export async function runPhase5(
     };
   });
 
-  // Top family : the one with the most TVL across candidates.
   const tvlByFamily = new Map<HookFamily, number>();
   for (const c of candidates) {
     tvlByFamily.set(c.family, (tvlByFamily.get(c.family) ?? 0) + c.tvlUsd);
@@ -286,5 +291,59 @@ export async function runPhase5(
     pair,
     candidates: labeled(candidates, "v4-subgraph + flag-bitmap-heuristic"),
     topFamily: labeled(topFamily, "tvl-weighted-family-vote"),
+  };
+}
+
+export async function runPhase7(
+  position: Phase1Output,
+  hookResult: Phase5Output | null,
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase7Output | null> {
+  if (!deps.quoteSwap) {
+    emit({
+      type: "narrative",
+      text: "Skipping migration preview — no swap quoter configured.",
+    });
+    return null;
+  }
+
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 7, label: "migration preview" });
+  emit({
+    type: "tool.call",
+    tool: "buildMigrationPreview",
+    input: { tokenId: position.tokenId },
+  });
+
+  const candidates = hookResult?.candidates.value ?? [];
+  const preview = await buildMigrationPreview({
+    position,
+    hookCandidates: candidates,
+    quoter: deps.quoteSwap,
+  });
+
+  emit({
+    type: "tool.result",
+    tool: "buildMigrationPreview",
+    output: preview,
+    latencyMs: Date.now() - t0,
+  });
+
+  if (preview.targetHook && preview.swapQuote) {
+    emit({
+      type: "narrative",
+      text: `Migration preview: close → swap (impact ${(preview.swapQuote.priceImpact * 100).toFixed(3)}%) → mint into ${preview.targetHook.family.toLowerCase().replace(/_/g, "-")} hook.`,
+    });
+  } else {
+    emit({
+      type: "narrative",
+      text: `Migration preview built with limited data — see warnings.`,
+    });
+  }
+  emit({ type: "phase.end", phase: 7, durationMs: Date.now() - t0 });
+
+  return {
+    preview: emulated(preview, preview.warnings),
   };
 }
