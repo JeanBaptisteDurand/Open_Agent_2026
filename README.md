@@ -127,24 +127,40 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 ---
 
 
-## Build status — v1.0.0-rc.1
 
-**11 of 11 phases live.** No fake fallbacks in the agent's hot path; the only stubs are short-circuit paths in the storage / chain / compute / ENS adapters when a signing key is not configured (the panel labels itself `EMULATED` so the demo never silently lies about provenance).
+
+## Build status — v1.0.0-rc.1 (honesty pass applied)
+
+The label column is the truth, not the marketing. Anything `EMULATED` or
+`heuristic` is exactly that — explicit warnings travel with the value.
 
 | Phase | Status | What it does |
 | --- | --- | --- |
-| 1 — Position resolution | ✅ live | Reads tokenId from Uniswap V3 subgraph; returns `VERIFIED` token / pool / tick / liquidity. |
-| 3 — IL reconstruction | ✅ live | Eq. 6.29 / 6.30 of the V3 whitepaper via `@uniswap/v3-sdk` `SqrtPriceMath`. Returns `COMPUTED`. |
-| 4 — Regime classification | ✅ live | Volatility / Hurst / linreg / toxicity / JIT proxies over 30d hourly history. Returns `ESTIMATED` with confidence. |
+| 1 — Position resolution | ✅ live | V3: subgraph getV3Position. V4: `PositionManager.getPoolAndPositionInfo(tokenId)` decodes the packed PositionInfo; aggregator-only fallback if `MAINNET_RPC` is missing. Returns `VERIFIED`. |
+| 3 — IL reconstruction | ✅ live | Eq. 6.29 / 6.30 of the V3 whitepaper via `@uniswap/v3-sdk` `SqrtPriceMath`. Vitest invariants in `packages/agent/test/IL.invariants.test.ts` cover the four foundational cases. Returns `COMPUTED`. |
+| 4 — Regime classification | ✅ live | Realized vol / Hurst / linreg + sandwich-spike proxy (hours where volume/liquidity > 3σ) + JIT proxy (liquidity volatility / mean). Returns `ESTIMATED` with confidence. |
 | 5 — V4 hook discovery | ✅ live | V4 subgraph + 14-bit hook flag-bitmap decoding → 7 family classifier. Returns `LABELED`. |
-| 6 — V4 hook replay | ✅ live | Re-runs the pool's 30d history with the top-TVL candidate hook installed; emits simulated APR / IL / fee capture. Returns `EMULATED`. |
-| 7 — Migration preview | ✅ live | Uniswap Trading API `/quote` for the swap leg; close → swap → mint preview. Permit2 EIP-712 ready. Returns `EMULATED` with warnings. |
-| 8 — Report assembly + 0G Storage | ✅ live | Assembles the full verdict JSON, uploads to 0G Storage, returns merkle rootHash. Returns `VERIFIED` (or `EMULATED` stub if no key). |
-| 9 — 0G Chain anchor | ✅ live | Calls `LPLensReports.publishReport(tokenId, rootHash, attestation)` if `LPLENS_REPORTS_CONTRACT` is set, else self-tx with rootHash as calldata. Returns `VERIFIED` or stub. |
-| 10 — TEE verdict synthesis | ✅ live | 0G Compute broker → `qwen-2.5-7b-instruct` → 3-sentence verdict markdown. Returns `ESTIMATED` (TEE-attested) or stub. |
-| 11 — ENS identity publish | ✅ live | Writes per-position text records under the agent's parent ENS name. Returns `VERIFIED` or stub. |
+| 6 — V4 hook **scoring** | ⚠️ heuristic | Family-conditional multipliers (feeApr / volume / il / retention) derived from a 30-day pool sample, applied to the actual pool history's volume + tier. **Not** an EVM-state replay. The panel surfaces the multipliers as the assumption surface, and the value is wrapped `EMULATED` with an explicit warning. |
+| 7 — Migration preview | ✅ live | Uniswap Trading API `/quote` for the swap leg; close → swap → mint preview. Permit2 EIP-712 PermitSingle ready for the wallet. Returns `EMULATED` with warnings (sample notional, no live execution). |
+| 8 — Report assembly + 0G Storage | ✅ live | Assembles the full verdict JSON, uploads to 0G Storage, returns merkle rootHash. `VERIFIED` with key, deterministic stub `EMULATED` without. |
+| 9 — 0G Chain anchor | ✅ live | Calls `LPLensReports.publishReport(tokenId, rootHash, attestation)` if `LPLENS_REPORTS_CONTRACT` is set, else self-tx with rootHash as calldata. `VERIFIED` or stub. |
+| 10 — TEE verdict synthesis | ✅ live + AT-4 guard | 0G Compute broker → `qwen-2.5-7b-instruct` → 3-sentence markdown. Every `$` / `%` / hex claim is regex-extracted and checked (within ±2%) against the report payload; unsupported claims are masked `[unsupported]` and the value drops to `EMULATED` with the mismatch list. |
+| 11 — ENS identity publish | ✅ live | Writes per-position text records under the agent's parent ENS name. `VERIFIED` or stub. |
 
-Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the LLM call is what writes the user-facing summary, so the agent doesn't need a separate planning pass.
+Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the LLM call is what writes the user-facing summary, so a separate planning pass would duplicate the LLM cost.
+
+## Acceptance tests (`data/reliability-tests.md`)
+
+- **AT-1 IL invariants** — covered by `packages/agent/test/IL.invariants.test.ts`. CI runs them on every PR.
+- **AT-4 LLM hallucination guard** — covered inline by `validateVerdict` (phase 10). Unsupported claims are masked + warned, not silently shipped.
+- AT-2, AT-3, AT-5, AT-6, AT-7, AT-8, AT-9, AT-10 — designed but not yet wired as test harnesses. Tracking issues will follow the submission.
+
+## Known limitations
+
+- Phase 6 is heuristic, not a swap-by-swap EVM-state replay. The README and panel both say so explicitly. A full `SwapMath.computeSwapStep` replay is a follow-up, not a hackathon ask.
+- The sample address used in DEMO.md depends on real-time chain state — its exact health-state distribution is not pinned. Judges paste their own wallet for an authoritative run.
+- Regime classifier weights are heuristic and not back-tested against a labeled dataset; the panel surfaces the raw features so a reviewer can sanity-check.
+- ENS publish writes structured records under a single parent name keyed by tokenId. The "subname per position" pattern from the design doc would require parent-name ownership + NameWrapper writes, which is a follow-up.
 
 ## Deployed contracts
 
@@ -153,7 +169,7 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 | 0G Newton (chainId 16602) | `LPLensReports` | _filled at submission_ |
 | 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | _filled at submission_ |
 
-Foundry sources live in `contracts/` — see [contracts/README.md](contracts/README.md). The deployment script writes addresses to `contracts/deployments/newton.json`; copy them into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` to switch the server from stub anchoring to real on-chain calls.
+See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. After deploy, copy the addresses into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` — the server's `ogChain` adapter switches from raw self-tx anchoring to a real `publishReport(...)` call automatically.
 
 ## Tracks applied
 
