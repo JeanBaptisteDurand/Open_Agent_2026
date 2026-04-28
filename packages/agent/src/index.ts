@@ -37,6 +37,12 @@ export type {
   HookFamily,
   Phase5Output,
 } from "./phases/05-hooks/types.js";
+export { replayHook } from "./phases/06-replay/replayHook.js";
+export type {
+  HookReplayMultipliers,
+  HookReplayResult,
+  Phase6Output,
+} from "./phases/06-replay/types.js";
 export {
   buildMigrationPreview,
   type Quoter,
@@ -63,17 +69,25 @@ export type {
   Phase10Output,
   VerdictPayload,
 } from "./phases/10-verdict/types.js";
+export type {
+  EnsPublication,
+  EnsRecord,
+  Phase11Output,
+} from "./phases/11-ens/types.js";
 export {
   runPhase1,
   runPhase3,
   runPhase4,
   runPhase5,
+  runPhase6,
   runPhase7,
   runPhase8,
   runPhase9,
   runPhase10,
+  runPhase11,
   type AgentDeps,
   type Emit,
+  type EnsPublisher,
   type Phase3Output,
   type PoolHourFetcher,
   type ReportAnchorer,

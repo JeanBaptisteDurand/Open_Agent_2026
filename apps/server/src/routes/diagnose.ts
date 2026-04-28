@@ -4,10 +4,13 @@ import {
   runPhase3,
   runPhase4,
   runPhase5,
+  runPhase6,
   runPhase7,
   runPhase8,
   runPhase9,
   runPhase10,
+  runPhase11,
+  type EnsPublisher,
   type Quoter,
   type QuoteSummary,
   type ReportAnchorer,
@@ -22,6 +25,7 @@ import { tradingApi } from "../services/tradingApi.js";
 import { ogStorage } from "../services/ogStorage.js";
 import { ogChain } from "../services/ogChain.js";
 import { ogCompute } from "../services/ogCompute.js";
+import { ensWriter } from "../services/ensWriter.js";
 import { reportCache } from "../services/reportCache.js";
 
 export async function diagnoseHandler(
@@ -88,8 +92,11 @@ export async function diagnoseHandler(
       };
     };
 
+    // Set after runPhase1 resolves so the LPLensReports contract call
+    // (when configured) can index the report by tokenId.
+    let anchorTokenId: string | undefined;
     const anchorReport: ReportAnchorer = async (rootHash) => {
-      const result = await ogChain.anchor(rootHash);
+      const result = await ogChain.anchor(rootHash, anchorTokenId);
       return {
         txHash: result.txHash,
         blockNumber: result.blockNumber,
@@ -110,6 +117,18 @@ export async function diagnoseHandler(
       };
     };
 
+    const publishEns: EnsPublisher = async (args) => {
+      const result = await ensWriter.publish(args);
+      return {
+        parentName: result.parentName,
+        subnameLabel: result.subnameLabel,
+        records: result.records,
+        resolverAddress: result.resolverAddress,
+        network: result.network,
+        stub: result.stub,
+      };
+    };
+
     const deps = {
       fetchV3Position: (id: string) => subgraph.getV3PositionById(id),
       fetchPoolHourDatas: (poolId: string, from: number) =>
@@ -120,12 +139,21 @@ export async function diagnoseHandler(
       uploadReport,
       anchorReport,
       synthesizeVerdict,
+      publishEns,
     };
 
     const position = await runPhase1(tokenId, deps, (event) => sse.emit(event));
+    anchorTokenId = position.tokenId;
     const il = await runPhase3(position, (event) => sse.emit(event));
     const regime = await runPhase4(position, deps, (event) => sse.emit(event));
     const hooks = await runPhase5(position, deps, (event) => sse.emit(event));
+    const replay = await runPhase6(
+      position,
+      { regime, hooks, il },
+      deps,
+      (event) => sse.emit(event),
+    );
+    void replay;
     const migration = await runPhase7(position, hooks, deps, (event) =>
       sse.emit(event),
     );
@@ -136,7 +164,13 @@ export async function diagnoseHandler(
       (event) => sse.emit(event),
     );
     const anchor = await runPhase9(storage, deps, (event) => sse.emit(event));
-    await runPhase10(storage, deps, (event) => sse.emit(event));
+    const verdict = await runPhase10(storage, deps, (event) => sse.emit(event));
+    await runPhase11(
+      position,
+      { storage, anchor, verdict },
+      deps,
+      (event) => sse.emit(event),
+    );
 
     if (storage) {
       const provenance = storage.provenance.value;
@@ -156,10 +190,12 @@ export async function diagnoseHandler(
     for await (const event of fakePhaseSequence(tokenId)) {
       if (
         (event.type === "phase.start" || event.type === "phase.end") &&
-        (event.phase === 1 ||
+        (event.phase === 11 ||
+          event.phase === 1 ||
           event.phase === 3 ||
           event.phase === 4 ||
           event.phase === 5 ||
+          event.phase === 6 ||
           event.phase === 7 ||
           event.phase === 8 ||
           event.phase === 9 ||

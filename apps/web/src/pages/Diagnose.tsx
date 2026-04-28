@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { AppHeader } from "../components/AppHeader.js";
 import { DiagnosticGraph } from "../components/DiagnosticGraph.js";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
 import {
@@ -25,6 +26,14 @@ import {
   VerdictPanel,
   type VerdictMeta,
 } from "../components/VerdictPanel.js";
+import {
+  EnsPanel,
+  type EnsPublication,
+} from "../components/EnsPanel.js";
+import {
+  ReplayPanel,
+  type HookReplayResult,
+} from "../components/ReplayPanel.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
 import type { DiagnosticEvent } from "@lplens/core";
 
@@ -97,6 +106,8 @@ export function Diagnose() {
   const provenance = pickReportUploaded(events);
   const anchor = pickReportAnchored(events);
   const verdict = pickVerdict(events);
+  const ensPublication = pickToolResult<EnsPublication>(events, "publishEnsRecords");
+  const replay = pickToolResult<HookReplayResult>(events, "replayHook");
 
   const provenanceFullyVerified =
     provenance !== null &&
@@ -108,7 +119,9 @@ export function Diagnose() {
   const token1Symbol = resolved?.pair?.split("/")?.[1] ?? "T1";
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen">
+      <AppHeader />
+      <div className="p-8">
       <header className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -132,6 +145,9 @@ export function Diagnose() {
             {verdict && (
               <LabelBadge label={verdict.stub ? "EMULATED" : "ESTIMATED"} />
             )}
+            {ensPublication && (
+              <LabelBadge label={ensPublication.stub ? "EMULATED" : "VERIFIED"} />
+            )}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -145,11 +161,13 @@ export function Diagnose() {
           )}
           {regime && <RegimePanel classification={regime} />}
           {hooks && <HooksPanel result={hooks} />}
+          {replay && <ReplayPanel result={replay} />}
           {migration && <MigrationPanel preview={migration} />}
           {provenance && (
             <ReportProvenancePanel provenance={provenance} anchor={anchor} />
           )}
           {verdict && <VerdictPanel verdict={verdict} />}
+          {ensPublication && <EnsPanel publication={ensPublication} />}
         </section>
 
         <aside className="space-y-6">
@@ -193,6 +211,7 @@ export function Diagnose() {
           </section>
         </aside>
       </main>
+      </div>
     </div>
   );
 }

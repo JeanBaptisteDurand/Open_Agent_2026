@@ -25,6 +25,11 @@ import type {
   HookFamily,
   Phase5Output,
 } from "./phases/05-hooks/types.js";
+import { replayHook } from "./phases/06-replay/replayHook.js";
+import type {
+  HookReplayResult,
+  Phase6Output,
+} from "./phases/06-replay/types.js";
 import {
   buildMigrationPreview,
   type Quoter,
@@ -45,6 +50,11 @@ import type {
   Phase10Output,
   VerdictPayload,
 } from "./phases/10-verdict/types.js";
+import type {
+  EnsPublication,
+  EnsRecord,
+  Phase11Output,
+} from "./phases/11-ens/types.js";
 
 export type Emit = (event: DiagnosticEvent) => void;
 
@@ -82,6 +92,22 @@ export type VerdictSynthesizer = (
   reportJson: string,
 ) => Promise<Omit<VerdictPayload, "generatedAt">>;
 
+export type EnsPublisher = (args: {
+  tokenId: string;
+  rootHash: string;
+  storageUrl: string;
+  anchorTxHash?: string;
+  chainId?: number;
+  verdictExcerpt?: string;
+}) => Promise<{
+  parentName: string;
+  subnameLabel: string;
+  records: EnsRecord[];
+  resolverAddress: string;
+  network: "mainnet" | "sepolia";
+  stub: boolean;
+}>;
+
 export interface AgentDeps {
   fetchV3Position: V3PositionFetcher;
   fetchPoolHourDatas?: PoolHourFetcher;
@@ -90,6 +116,7 @@ export interface AgentDeps {
   uploadReport?: ReportUploader;
   anchorReport?: ReportAnchorer;
   synthesizeVerdict?: VerdictSynthesizer;
+  publishEns?: EnsPublisher;
 }
 
 export interface Phase3Output {
@@ -321,6 +348,97 @@ export async function runPhase5(
     pair,
     candidates: labeled(candidates, "v4-subgraph + flag-bitmap-heuristic"),
     topFamily: labeled(topFamily, "tvl-weighted-family-vote"),
+  };
+}
+
+const REPLAY_LOOKBACK_HOURS = 30 * 24;
+
+export async function runPhase6(
+  position: Phase1Output,
+  inputs: {
+    regime: Phase4Output | null;
+    hooks: Phase5Output | null;
+    il: Phase3Output | null;
+  },
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase6Output | null> {
+  if (!deps.fetchPoolHourDatas) {
+    emit({
+      type: "narrative",
+      text: "Skipping hook replay — no pool history fetcher configured.",
+    });
+    return null;
+  }
+  if (!inputs.hooks || inputs.hooks.candidates.value.length === 0) {
+    emit({
+      type: "narrative",
+      text: "Skipping hook replay — no candidate hooks discovered.",
+    });
+    return null;
+  }
+  if (!inputs.regime) {
+    emit({
+      type: "narrative",
+      text: "Skipping hook replay — regime classification unavailable.",
+    });
+    return null;
+  }
+
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 6, label: "v4 hook replay" });
+
+  // Pick the top hook by TVL — same heuristic as phase 5 narrative.
+  const candidates = inputs.hooks.candidates.value;
+  const top = candidates.reduce(
+    (best, c) => (c.tvlUsd > best.tvlUsd ? c : best),
+    candidates[0],
+  );
+
+  emit({
+    type: "tool.call",
+    tool: "replayHook",
+    input: { hook: top.hookAddress, family: top.family },
+  });
+
+  const fromUnix =
+    Math.floor(Date.now() / 1000) - REPLAY_LOOKBACK_HOURS * 3600;
+  const history = await deps.fetchPoolHourDatas(
+    position.pool.value.address,
+    fromUnix,
+  );
+
+  const baselineIlPct = inputs.il?.ilPct.value ?? 0;
+
+  const result: HookReplayResult = replayHook({
+    hook: top,
+    feeTierPpm: position.pool.value.feeTier,
+    features: inputs.regime.features.value,
+    history,
+    baselineIlPct,
+  });
+
+  emit({
+    type: "tool.result",
+    tool: "replayHook",
+    output: result,
+    latencyMs: Date.now() - t0,
+  });
+
+  emit({
+    type: "narrative",
+    text:
+      result.deltaAprPct > 0
+        ? `Replay of ${result.family.toLowerCase().replace(/_/g, "-")} hook: simulated APR ${result.simulatedAprPct.toFixed(2)}% (Δ ${result.deltaAprPct >= 0 ? "+" : ""}${result.deltaAprPct.toFixed(2)} pts vs baseline).`
+        : `Replay of ${result.family.toLowerCase().replace(/_/g, "-")} hook: APR delta is ${result.deltaAprPct.toFixed(2)} pts; this family does not improve LP economics in the current regime.`,
+  });
+  emit({ type: "phase.end", phase: 6, durationMs: Date.now() - t0 });
+
+  return {
+    result: emulated(result, [
+      "Replay is a heuristic emulation, not an EVM-state replay. Multipliers calibrated against a 30-day backtest set; treat as directional.",
+      ...result.warnings,
+    ]),
   };
 }
 
@@ -598,5 +716,85 @@ export async function runPhase10(
     verdict: payload.stub
       ? emulated(payload, ["verdict synthesized as deterministic stub — 0G compute not configured"])
       : estimated(payload, 0.7, `0g-compute-${payload.model}`),
+  };
+}
+
+export async function runPhase11(
+  position: Phase1Output,
+  outputs: {
+    storage: Phase8Output | null;
+    anchor: Phase9Output | null;
+    verdict: Phase10Output | null;
+  },
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase11Output | null> {
+  if (!deps.publishEns) {
+    emit({
+      type: "narrative",
+      text: "Skipping ENS publish — no ENS publisher configured.",
+    });
+    return null;
+  }
+  if (!outputs.storage) {
+    emit({
+      type: "narrative",
+      text: "Skipping ENS publish — no storage rootHash to anchor.",
+    });
+    return null;
+  }
+
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 11, label: "ens identity publish" });
+  emit({
+    type: "tool.call",
+    tool: "publishEnsRecords",
+    input: { tokenId: position.tokenId },
+  });
+
+  const provenance = outputs.storage.provenance.value;
+  const anchor = outputs.anchor?.anchor.value;
+  const verdict = outputs.verdict?.verdict.value;
+
+  const result = await deps.publishEns({
+    tokenId: position.tokenId,
+    rootHash: provenance.rootHash,
+    storageUrl: provenance.storageUrl,
+    anchorTxHash: anchor?.txHash,
+    chainId: anchor?.chainId,
+    verdictExcerpt: verdict?.markdown,
+  });
+
+  const fullName = `${result.subnameLabel}.${result.parentName}`;
+  const resolverUrl =
+    result.network === "mainnet"
+      ? `https://app.ens.domains/${result.parentName}`
+      : `https://sepolia.app.ens.domains/${result.parentName}`;
+  const publication: EnsPublication = {
+    ...result,
+    fullName,
+    resolverUrl,
+    publishedAt: new Date().toISOString(),
+  };
+
+  emit({
+    type: "tool.result",
+    tool: "publishEnsRecords",
+    output: publication,
+    latencyMs: Date.now() - t0,
+  });
+
+  emit({
+    type: "narrative",
+    text: result.stub
+      ? `ENS publish skipped — would have written ${result.records.length} text records under ${result.parentName}.`
+      : `ENS records published — ${result.records.length} keys live on ${result.network} under ${result.parentName}.`,
+  });
+  emit({ type: "phase.end", phase: 11, durationMs: Date.now() - t0 });
+
+  return {
+    ens: result.stub
+      ? emulated(publication, ["ENS records prepared as stub — set ENS_PARENT_PRIVATE_KEY to publish"])
+      : verified(publication, `ens-${result.network}`),
   };
 }

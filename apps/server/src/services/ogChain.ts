@@ -11,12 +11,12 @@ import { privateKeyToAccount } from "viem/accounts";
 import { config } from "../config.js";
 import { logger } from "../logger.js";
 
-// 0G Chain anchor — submits a tx whose calldata is the report's merkle
-// rootHash, so the rootHash is permanently anchored on the 0G Newton
-// testnet (or Galileo mainnet). No registry contract required for the
-// hackathon demo — `tx.input` is the canonical anchor field. The server
-// falls back to a deterministic stub txHash when no signing key is set
-// so the agent's `report.anchored` event remains shape-stable offline.
+// 0G Chain anchor — preferred path is to call LPLensReports.publishReport
+// when LPLENS_REPORTS_CONTRACT is configured. That gives us a real
+// content-addressed registry on 0G Chain (anyone can read by rootHash).
+// Fallback path is a self-tx with the rootHash as calldata, which still
+// puts the hash on chain but without the registry indexing. Last fallback
+// is a deterministic stub — used when no signing key is set.
 
 const zeroGNewton = defineChain({
   id: config.OG_CHAIN_ID,
@@ -30,19 +30,36 @@ export interface AnchorReceipt {
   blockNumber?: number;
   chainId: number;
   explorerUrl: string;
+  contract?: string;
   stub: boolean;
 }
 
 const EXPLORER_BASE = "https://chainscan-newton.0g.ai/tx";
+
+const LPLENS_REPORTS_ABI = [
+  {
+    name: "publishReport",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "rootHash", type: "bytes32" },
+      { name: "attestation", type: "bytes" },
+    ],
+    outputs: [],
+  },
+] as const;
 
 export class OgChainClient {
   isReady(): boolean {
     return Boolean(config.OG_ANCHOR_PRIVATE_KEY);
   }
 
-  async anchor(rootHash: string): Promise<AnchorReceipt> {
-    const data = normalizeHex(rootHash);
+  hasContract(): boolean {
+    return Boolean(config.LPLENS_REPORTS_CONTRACT);
+  }
 
+  async anchor(rootHash: string, tokenId?: string): Promise<AnchorReceipt> {
     if (!config.OG_ANCHOR_PRIVATE_KEY) {
       const stubTx = stubTxHash(rootHash);
       logger.info(
@@ -70,20 +87,36 @@ export class OgChainClient {
         transport: http(),
       });
 
-      const txHash = await wallet.sendTransaction({
-        to: account.address,
-        value: 0n,
-        data,
-      });
+      let txHash: Hex;
 
-      // Wait for one confirmation so the explorer link resolves.
+      if (config.LPLENS_REPORTS_CONTRACT) {
+        // Preferred: call the registry contract.
+        txHash = await wallet.writeContract({
+          address: config.LPLENS_REPORTS_CONTRACT as Hex,
+          abi: LPLENS_REPORTS_ABI,
+          functionName: "publishReport",
+          args: [
+            BigInt(tokenId ?? "0"),
+            normalizeHex(rootHash),
+            "0x" as Hex,
+          ],
+        });
+      } else {
+        // Fallback: self-tx with rootHash as calldata.
+        txHash = await wallet.sendTransaction({
+          to: account.address,
+          value: 0n,
+          data: normalizeHex(rootHash),
+        });
+      }
+
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: txHash,
         timeout: 30_000,
       });
 
       logger.info(
-        `0g-chain anchored rootHash=${rootHash} tx=${txHash} block=${receipt.blockNumber}`,
+        `0g-chain anchored rootHash=${rootHash} tx=${txHash} block=${receipt.blockNumber} contract=${config.LPLENS_REPORTS_CONTRACT ?? "self-tx"}`,
       );
 
       return {
@@ -91,6 +124,7 @@ export class OgChainClient {
         blockNumber: Number(receipt.blockNumber),
         chainId: config.OG_CHAIN_ID,
         explorerUrl: `${EXPLORER_BASE}/${txHash}`,
+        contract: config.LPLENS_REPORTS_CONTRACT,
         stub: false,
       };
     } catch (err) {

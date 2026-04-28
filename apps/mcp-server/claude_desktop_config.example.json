@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "lplens": {
+      "command": "node",
+      "args": [
+        "/ABSOLUTE/PATH/TO/Open_Agent_2026/apps/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "LPLENS_API_URL": "http://localhost:3001",
+        "LPLENS_REPORTS_CONTRACT": ""
+      }
+    }
+  }
+}

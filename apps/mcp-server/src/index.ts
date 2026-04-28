@@ -10,6 +10,26 @@ import {
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ping, pingToolDefinition } from "./tools/ping.js";
+import {
+  diagnose,
+  diagnoseInputSchema,
+  diagnoseToolDefinition,
+} from "./tools/diagnose.js";
+import {
+  lookupReport,
+  lookupReportInputSchema,
+  lookupReportToolDefinition,
+} from "./tools/lookupReport.js";
+import {
+  resolveEnsRecord,
+  resolveEnsRecordInputSchema,
+  resolveEnsRecordToolDefinition,
+} from "./tools/resolveEnsRecord.js";
+import {
+  lookupReportOnChain,
+  lookupReportOnChainInputSchema,
+  lookupReportOnChainToolDefinition,
+} from "./tools/lookupReportOnChain.js";
 
 async function main() {
   const server = new Server(
@@ -25,15 +45,41 @@ async function main() {
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [pingToolDefinition],
+    tools: [
+      pingToolDefinition,
+      diagnoseToolDefinition,
+      lookupReportToolDefinition,
+      resolveEnsRecordToolDefinition,
+      lookupReportOnChainToolDefinition,
+    ],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name } = request.params;
+    const { name, arguments: args } = request.params;
     switch (name) {
       case "lplens.ping": {
         const result = await ping();
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+      case "lplens.diagnose": {
+        const parsed = diagnoseInputSchema.parse(args ?? {});
+        const result = await diagnose(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.lookupReport": {
+        const parsed = lookupReportInputSchema.parse(args ?? {});
+        const result = await lookupReport(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.resolveEnsRecord": {
+        const parsed = resolveEnsRecordInputSchema.parse(args ?? {});
+        const result = await resolveEnsRecord(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.lookupReportOnChain": {
+        const parsed = lookupReportOnChainInputSchema.parse(args ?? {});
+        const result = await lookupReportOnChain(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
       default:
         throw new Error(`unknown tool: ${name}`);

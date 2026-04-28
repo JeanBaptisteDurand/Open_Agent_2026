@@ -123,14 +123,28 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 
 ---
 
+## Deployed contracts
+
+| Network | Contract | Address |
+| --- | --- | --- |
+| 0G Newton (chainId 16602) | `LPLensReports` | _filled at submission_ |
+| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | _filled at submission_ |
+
+Foundry sources live in `contracts/` — see [contracts/README.md](contracts/README.md) for build + deploy instructions. The
+server's `ogChain` adapter switches from raw self-tx anchoring to a
+`LPLensReports.publishReport(tokenId, rootHash, attestation)` call once
+`LPLENS_REPORTS_CONTRACT` is set in the project root `.env`.
+
+The agent's iNFT is minted by the deploy script (`Deploy.s.sol`) when
+`LPLENS_CODE_IMAGE_HASH` is provided; the resulting tokenId becomes the
+agent's permanent on-chain identity, with `memoryRoot` updated each
+diagnose cycle and `reputation` incremented per anchored report.
+
 ## Tracks applied
 
-- **0G — OpenClaw Agent on 0G** ($6 000) : LPLens is published as an iNFT ERC-7857-style agent, uses 0G Compute TEE for audit-grade verdicts, 0G Storage for the report corpus + cycle DAG, 0G Chain for the signed-report registry.
-- **Uniswap Foundation — Best Uniswap API Integration** ($5 000) : Subgraph v3 + v4 (`modifyLiquidities`, positions, ticks, fee growth), Trading API v1 for quotes + swap calldata, Permit2 `PermitSingle/PermitBatch` for the migration bundle, V4 hook flag decoding and replay.
-
-Other partner tech used but not applied for : KeeperHub Builder Feedback bounty — minimal integration noted in `FEEDBACK.md`.
-
----
+- **0G — Best Autonomous Agents, Swarms & iNFT Innovations** ($7 500) : LPLens is published as an iNFT ERC-7857-style agent, uses 0G Compute TEE for audit-grade verdicts (`qwen-2.5-7b-instruct` on testnet), 0G Storage for the report corpus + cycle DAG, 0G Chain for the signed-report registry.
+- **Uniswap Foundation — Best Uniswap API Integration** ($5 000) : Subgraph v3 + v4 (`modifyLiquidities`, positions, ticks, fee growth), Trading API v1 for quotes + swap calldata, Permit2 `PermitSingle/PermitBatch` for the migration bundle, V4 hook flag decoding and replay. Builder feedback in [FEEDBACK.md](FEEDBACK.md).
+- **ENS — Best ENS Integration for AI Agents** ($2 500) : agent identity layer. Each LPLens diagnosis publishes its rootHash + storageUrl + anchor txHash into a per-position subname text record under `lplens-demo.eth`, so resolving the ENS name returns the full provenance triple — `<tokenId>.lplens-demo.eth` is the agent's persistent, human-readable witness.
 
 ## Local setup
 

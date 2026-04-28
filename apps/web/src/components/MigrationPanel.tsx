@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { LabelBadge } from "./LabelBadge.js";
+import { MigrationModal } from "./MigrationModal.js";
 
 interface MigrationStep {
   kind: "close" | "swap" | "mint";
@@ -46,6 +48,8 @@ interface Props {
 
 export function MigrationPanel({ preview }: Props) {
   const { steps, targetHook, swapQuote, warnings } = preview;
+  const [open, setOpen] = useState(false);
+  const canMigrate = preview.steps.length > 0;
 
   return (
     <section className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
@@ -126,11 +130,35 @@ export function MigrationPanel({ preview }: Props) {
         </ul>
       )}
 
-      <p className="mt-3 text-[10px] text-slate-500">
-        Quote fetched live from the Uniswap Trading API for a small sample
-        notional. The agent never executes the swap — the user signs at
-        migration time with their own slippage budget.
-      </p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-[10px] text-slate-500 flex-1">
+          Quote fetched live from the Uniswap Trading API for a small sample
+          notional. The agent never executes the swap — the user signs at
+          migration time with their own slippage budget.
+        </p>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={!canMigrate}
+          className="text-[11px] text-cyan-300 hover:text-cyan-200 px-3 py-1.5 rounded border border-cyan-500/40 hover:border-cyan-400/60 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Migrate →
+        </button>
+      </div>
+
+      {open && (
+        <MigrationModal
+          preview={{
+            fromVersion: preview.fromVersion,
+            targetHook: preview.targetHook
+              ? { address: preview.targetHook.address, family: preview.targetHook.family }
+              : undefined,
+            steps: preview.steps,
+            warnings: preview.warnings,
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </section>
   );
 }
