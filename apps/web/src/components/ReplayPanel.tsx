@@ -40,13 +40,13 @@ export function ReplayPanel({ result }: Props) {
     <section className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
       <header className="flex items-center justify-between gap-2">
         <h2 className="text-xs uppercase tracking-wider text-slate-500">
-          V4 hook replay
+          V4 hook scoring (heuristic)
         </h2>
         <LabelBadge label="EMULATED" />
       </header>
 
       <p className="mt-3 text-sm text-slate-400">
-        Replayed{" "}
+        Scored{" "}
         <span className="text-violet-300 font-mono">
           {shortAddr(result.hookAddress)}
         </span>{" "}
@@ -54,11 +54,12 @@ export function ReplayPanel({ result }: Props) {
         <span className="text-slate-300">
           {result.family.toLowerCase().replace(/_/g, "-")}
         </span>{" "}
-        over{" "}
+        against{" "}
         <span className="font-mono text-slate-300">
           {result.hoursReplayed}h
         </span>{" "}
-        of pool history.
+        of pool history with calibrated family multipliers — not an EVM-state
+        replay.
       </p>
 
       <div className="mt-3 grid grid-cols-3 gap-3 text-[11px] font-mono pt-3 border-t border-slate-800">
