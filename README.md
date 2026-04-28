@@ -1,12 +1,15 @@
 # LPLens
 
-AI-powered risk intelligence & autonomous migration agent for Uniswap V3/V4 liquidity providers.
+**An autonomous diagnostic agent for Uniswap V3/V4 liquidity providers, running on the full 0G stack.**
 
-LPLens is a full-stack platform that reads any Uniswap LP position, reconstructs **why** it is losing money in real time, simulates V4 hook alternatives against the real pool history, and lets the user migrate their position in one Permit2 signature.
+LPLens reads any LP position, reconstructs *why* it is losing money against a HODL baseline, replays a V4 hook against the pool's real swap history, drafts a migration plan, and ships an audit-grade signed report — in 30 seconds, with one Permit2 signature when the user decides to migrate.
 
-Every verdict is signed by a TEE on 0G Compute, stored on 0G Storage, and anchored on 0G Chain — giving LPs an audit-grade report they can share or use in disputes.
+Every numeric value carries one of five honesty labels (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so a judge can tell at a glance which claims trace back to chain-state and which are heuristics.
+
+The verdict is synthesized by a TEE-attested LLM on **0G Compute**, the report blob is pinned to **0G Storage** with a merkle rootHash, and that rootHash is anchored on **0G Chain** through the `LPLensReports` registry. The agent's identity is published as a per-position subname on **ENS**, so resolving `<tokenId>.lplens-demo.eth` returns the full provenance triple. An MCP server exposes `lplens.diagnose`, `lplens.lookupReport`, `lplens.resolveEnsRecord`, and `lplens.lookupReportOnChain` to any other agent.
 
 Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — Apr 24 → May 6 2026.
+
 
 ---
 
