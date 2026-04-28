@@ -33,15 +33,53 @@ export function computeFeatures(points: PoolHourPoint[]): RegimeFeatures {
   // Linear regression on log close vs index.
   const { slope, rSquared } = linreg(logCloses);
 
-  // Toxicity proxy : volume / mean liquidity. Crude — refined later.
+  // Toxicity proxy: hourly volume / hourly liquidity ratio + sandwich
+  // spike detection. Hours where (volume / liquidity) is more than 3
+  // standard deviations above the mean count as candidate sandwich
+  // hours (a high-throughput burst against thin liquidity is a strong
+  // sandwich signal). The proxy returns the *fraction* of hours that
+  // tripped the threshold — a number in [0, 1].
+  const liquidities = points.map((p) => parseFloat(p.liquidity) || 0);
+  const meanLiquidity = mean(liquidities) || 1;
   const totalVolumeUSD = points.reduce((acc, p) => acc + p.volumeUSD, 0);
-  const meanLiquidity =
-    mean(points.map((p) => parseFloat(p.liquidity) || 0)) || 1;
-  const toxicityProxy = totalVolumeUSD / meanLiquidity;
+  const grossRatio = totalVolumeUSD / meanLiquidity;
+  const ratios = points.map(
+    (p, i) => p.volumeUSD / Math.max(1, liquidities[i] || meanLiquidity),
+  );
+  const ratioMean = mean(ratios);
+  const ratioStd = Math.sqrt(
+    ratios.length > 1
+      ? ratios.reduce((acc, r) => acc + (r - ratioMean) ** 2, 0) /
+          (ratios.length - 1)
+      : 0,
+  );
+  const sandwichSpikes = ratios.filter(
+    (r) => ratioStd > 0 && (r - ratioMean) / ratioStd > 3,
+  ).length;
+  // Composite toxicity: gross ratio (saturating around 1.0) + a +0.4
+  // boost when spike density is high.
+  const spikeFraction = ratios.length > 0 ? sandwichSpikes / ratios.length : 0;
+  const toxicityProxy = Math.min(
+    1,
+    grossRatio / (grossRatio + meanLiquidity) + spikeFraction * 0.4,
+  );
 
-  // JIT proxy : 0 until we wire mint/burn correlation. Surfaces in scores
-  // as a low value so the regime never spuriously flags JIT.
-  const jitProxy = 0;
+  // JIT proxy: liquidity volatility relative to its mean. Hours with
+  // sharp liquidity swings (mints/burns sandwiching trades) push this
+  // up. Pure proxy — no mint/burn correlation yet — but populates
+  // Phase 4's `jitProxy` field with real data instead of a hardcoded
+  // zero.
+  const liquidityMean = meanLiquidity;
+  const liquidityVariance =
+    liquidities.length > 1
+      ? liquidities.reduce((acc, l) => acc + (l - liquidityMean) ** 2, 0) /
+        (liquidities.length - 1)
+      : 0;
+  const liquidityStd = Math.sqrt(liquidityVariance);
+  const jitProxy =
+    liquidityMean > 0
+      ? Math.min(1, liquidityStd / liquidityMean)
+      : 0;
 
   return {
     volRealized,

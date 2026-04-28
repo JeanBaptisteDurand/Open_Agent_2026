@@ -46,6 +46,7 @@ import type {
   Phase9Output,
 } from "./phases/09-anchor/types.js";
 import { buildVerdictPrompt } from "./phases/10-verdict/buildPrompt.js";
+import { validateVerdict } from "./phases/10-verdict/validate.js";
 import type {
   Phase10Output,
   VerdictPayload,
@@ -366,27 +367,27 @@ export async function runPhase6(
   if (!deps.fetchPoolHourDatas) {
     emit({
       type: "narrative",
-      text: "Skipping hook replay — no pool history fetcher configured.",
+      text: "Skipping hook scoring — no pool history fetcher configured.",
     });
     return null;
   }
   if (!inputs.hooks || inputs.hooks.candidates.value.length === 0) {
     emit({
       type: "narrative",
-      text: "Skipping hook replay — no candidate hooks discovered.",
+      text: "Skipping hook scoring — no candidate hooks discovered.",
     });
     return null;
   }
   if (!inputs.regime) {
     emit({
       type: "narrative",
-      text: "Skipping hook replay — regime classification unavailable.",
+      text: "Skipping hook scoring — regime classification unavailable.",
     });
     return null;
   }
 
   const t0 = Date.now();
-  emit({ type: "phase.start", phase: 6, label: "v4 hook replay" });
+  emit({ type: "phase.start", phase: 6, label: "v4 hook scoring" });
 
   // Pick the top hook by TVL — same heuristic as phase 5 narrative.
   const candidates = inputs.hooks.candidates.value;
@@ -429,14 +430,14 @@ export async function runPhase6(
     type: "narrative",
     text:
       result.deltaAprPct > 0
-        ? `Replay of ${result.family.toLowerCase().replace(/_/g, "-")} hook: simulated APR ${result.simulatedAprPct.toFixed(2)}% (Δ ${result.deltaAprPct >= 0 ? "+" : ""}${result.deltaAprPct.toFixed(2)} pts vs baseline).`
-        : `Replay of ${result.family.toLowerCase().replace(/_/g, "-")} hook: APR delta is ${result.deltaAprPct.toFixed(2)} pts; this family does not improve LP economics in the current regime.`,
+        ? `Scored ${result.family.toLowerCase().replace(/_/g, "-")} hook against ${result.hoursReplayed}h of pool data: heuristic APR ${result.simulatedAprPct.toFixed(2)}% (Δ ${result.deltaAprPct >= 0 ? "+" : ""}${result.deltaAprPct.toFixed(2)} pts vs baseline).`
+        : `Scored ${result.family.toLowerCase().replace(/_/g, "-")} hook: APR delta is ${result.deltaAprPct.toFixed(2)} pts; this family is not predicted to improve LP economics in the current regime.`,
   });
   emit({ type: "phase.end", phase: 6, durationMs: Date.now() - t0 });
 
   return {
     result: emulated(result, [
-      "Replay is a heuristic emulation, not an EVM-state replay. Multipliers calibrated against a 30-day backtest set; treat as directional.",
+      "Phase 6 is a heuristic scoring step, not a swap-by-swap EVM replay. Family multipliers are calibrated against a 30-day pool sample; the simulated APR is directional, not a forecast.",
       ...result.warnings,
     ]),
   };
@@ -676,8 +677,17 @@ export async function runPhase10(
 
   const prompt = buildVerdictPrompt(storageResult.report.value);
   const partial = await deps.synthesizeVerdict(prompt);
+
+  // AT-4 hallucination guard: every numeric / hex claim in the verdict
+  // must trace back to the structured report payload (within ±2%).
+  // Unsupported claims are masked with `[unsupported]` and the
+  // mismatches are pushed into the warnings array attached to the
+  // EMULATED label downstream.
+  const validation = validateVerdict(partial.markdown, storageResult.report.value);
+
   const payload: VerdictPayload = {
     ...partial,
+    markdown: validation.markdown,
     generatedAt: new Date().toISOString(),
   };
 
@@ -712,10 +722,24 @@ export async function runPhase10(
   });
   emit({ type: "phase.end", phase: 10, durationMs: Date.now() - t0 });
 
+  const verdictWarnings: string[] = [];
+  if (payload.stub) {
+    verdictWarnings.push(
+      "verdict synthesized as deterministic stub — 0G compute not configured",
+    );
+  }
+  if (validation.flagged > 0) {
+    verdictWarnings.push(
+      `${validation.flagged} unsupported claim(s) in verdict masked with [unsupported] — see hallucinationFlags.`,
+    );
+    verdictWarnings.push(...validation.warnings);
+  }
+
   return {
-    verdict: payload.stub
-      ? emulated(payload, ["verdict synthesized as deterministic stub — 0G compute not configured"])
-      : estimated(payload, 0.7, `0g-compute-${payload.model}`),
+    verdict:
+      payload.stub || validation.flagged > 0
+        ? emulated(payload, verdictWarnings)
+        : estimated(payload, 0.7, `0g-compute-${payload.model}`),
   };
 }
 

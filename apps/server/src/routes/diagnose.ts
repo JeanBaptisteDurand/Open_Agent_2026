@@ -17,7 +17,6 @@ import {
   type ReportUploader,
   type VerdictSynthesizer,
 } from "@lplens/agent";
-import { fakePhaseSequence } from "../services/diagnoseFake.js";
 import { SSEStream } from "../lib/sse.js";
 import { logger } from "../logger.js";
 import { subgraph } from "../services/subgraph.js";
@@ -184,37 +183,6 @@ export async function diagnoseHandler(
         cachedAt: new Date().toISOString(),
         payload: storage.report.value,
       });
-    }
-
-    // Phases 2, 6 — placeholder fake script until each phase is real.
-    for await (const event of fakePhaseSequence(tokenId)) {
-      if (
-        (event.type === "phase.start" || event.type === "phase.end") &&
-        (event.phase === 11 ||
-          event.phase === 1 ||
-          event.phase === 3 ||
-          event.phase === 4 ||
-          event.phase === 5 ||
-          event.phase === 6 ||
-          event.phase === 7 ||
-          event.phase === 8 ||
-          event.phase === 9 ||
-          event.phase === 10)
-      )
-        continue;
-      if (
-        (event.type === "tool.call" || event.type === "tool.result") &&
-        (event.tool === "getPosition" || event.tool === "computeIL")
-      )
-        continue;
-      if (
-        event.type === "report.uploaded" ||
-        event.type === "report.anchored" ||
-        event.type === "verdict.partial" ||
-        event.type === "verdict.final"
-      )
-        continue;
-      sse.emit(event);
     }
   } catch (err) {
     logger.error(
