@@ -46,6 +46,7 @@ import type {
   Phase9Output,
 } from "./phases/09-anchor/types.js";
 import { buildVerdictPrompt } from "./phases/10-verdict/buildPrompt.js";
+import { validateVerdict } from "./phases/10-verdict/validate.js";
 import type {
   Phase10Output,
   VerdictPayload,
@@ -676,8 +677,17 @@ export async function runPhase10(
 
   const prompt = buildVerdictPrompt(storageResult.report.value);
   const partial = await deps.synthesizeVerdict(prompt);
+
+  // AT-4 hallucination guard: every numeric / hex claim in the verdict
+  // must trace back to the structured report payload (within ±2%).
+  // Unsupported claims are masked with `[unsupported]` and the
+  // mismatches are pushed into the warnings array attached to the
+  // EMULATED label downstream.
+  const validation = validateVerdict(partial.markdown, storageResult.report.value);
+
   const payload: VerdictPayload = {
     ...partial,
+    markdown: validation.markdown,
     generatedAt: new Date().toISOString(),
   };
 
@@ -712,10 +722,24 @@ export async function runPhase10(
   });
   emit({ type: "phase.end", phase: 10, durationMs: Date.now() - t0 });
 
+  const verdictWarnings: string[] = [];
+  if (payload.stub) {
+    verdictWarnings.push(
+      "verdict synthesized as deterministic stub — 0G compute not configured",
+    );
+  }
+  if (validation.flagged > 0) {
+    verdictWarnings.push(
+      `${validation.flagged} unsupported claim(s) in verdict masked with [unsupported] — see hallucinationFlags.`,
+    );
+    verdictWarnings.push(...validation.warnings);
+  }
+
   return {
-    verdict: payload.stub
-      ? emulated(payload, ["verdict synthesized as deterministic stub — 0G compute not configured"])
-      : estimated(payload, 0.7, `0g-compute-${payload.model}`),
+    verdict:
+      payload.stub || validation.flagged > 0
+        ? emulated(payload, verdictWarnings)
+        : estimated(payload, 0.7, `0g-compute-${payload.model}`),
   };
 }
 
