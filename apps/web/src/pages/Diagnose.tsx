@@ -29,6 +29,10 @@ import {
   EnsPanel,
   type EnsPublication,
 } from "../components/EnsPanel.js";
+import {
+  ReplayPanel,
+  type HookReplayResult,
+} from "../components/ReplayPanel.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
 import type { DiagnosticEvent } from "@lplens/core";
 
@@ -102,6 +106,7 @@ export function Diagnose() {
   const anchor = pickReportAnchored(events);
   const verdict = pickVerdict(events);
   const ensPublication = pickToolResult<EnsPublication>(events, "publishEnsRecords");
+  const replay = pickToolResult<HookReplayResult>(events, "replayHook");
 
   const provenanceFullyVerified =
     provenance !== null &&
@@ -153,6 +158,7 @@ export function Diagnose() {
           )}
           {regime && <RegimePanel classification={regime} />}
           {hooks && <HooksPanel result={hooks} />}
+          {replay && <ReplayPanel result={replay} />}
           {migration && <MigrationPanel preview={migration} />}
           {provenance && (
             <ReportProvenancePanel provenance={provenance} anchor={anchor} />
