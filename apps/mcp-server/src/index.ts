@@ -25,6 +25,11 @@ import {
   resolveEnsRecordInputSchema,
   resolveEnsRecordToolDefinition,
 } from "./tools/resolveEnsRecord.js";
+import {
+  lookupReportOnChain,
+  lookupReportOnChainInputSchema,
+  lookupReportOnChainToolDefinition,
+} from "./tools/lookupReportOnChain.js";
 
 async function main() {
   const server = new Server(
@@ -45,6 +50,7 @@ async function main() {
       diagnoseToolDefinition,
       lookupReportToolDefinition,
       resolveEnsRecordToolDefinition,
+      lookupReportOnChainToolDefinition,
     ],
   }));
 
@@ -68,6 +74,11 @@ async function main() {
       case "lplens.resolveEnsRecord": {
         const parsed = resolveEnsRecordInputSchema.parse(args ?? {});
         const result = await resolveEnsRecord(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.lookupReportOnChain": {
+        const parsed = lookupReportOnChainInputSchema.parse(args ?? {});
+        const result = await lookupReportOnChain(parsed);
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
       default:
