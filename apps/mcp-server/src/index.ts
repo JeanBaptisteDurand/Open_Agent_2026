@@ -20,6 +20,11 @@ import {
   lookupReportInputSchema,
   lookupReportToolDefinition,
 } from "./tools/lookupReport.js";
+import {
+  resolveEnsRecord,
+  resolveEnsRecordInputSchema,
+  resolveEnsRecordToolDefinition,
+} from "./tools/resolveEnsRecord.js";
 
 async function main() {
   const server = new Server(
@@ -39,6 +44,7 @@ async function main() {
       pingToolDefinition,
       diagnoseToolDefinition,
       lookupReportToolDefinition,
+      resolveEnsRecordToolDefinition,
     ],
   }));
 
@@ -57,6 +63,11 @@ async function main() {
       case "lplens.lookupReport": {
         const parsed = lookupReportInputSchema.parse(args ?? {});
         const result = await lookupReport(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.resolveEnsRecord": {
+        const parsed = resolveEnsRecordInputSchema.parse(args ?? {});
+        const result = await resolveEnsRecord(parsed);
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
       default:
