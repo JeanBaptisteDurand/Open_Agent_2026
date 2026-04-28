@@ -126,6 +126,26 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 
 ---
 
+
+## Build status — v1.0.0-rc.1
+
+**11 of 11 phases live.** No fake fallbacks in the agent's hot path; the only stubs are short-circuit paths in the storage / chain / compute / ENS adapters when a signing key is not configured (the panel labels itself `EMULATED` so the demo never silently lies about provenance).
+
+| Phase | Status | What it does |
+| --- | --- | --- |
+| 1 — Position resolution | ✅ live | Reads tokenId from Uniswap V3 subgraph; returns `VERIFIED` token / pool / tick / liquidity. |
+| 3 — IL reconstruction | ✅ live | Eq. 6.29 / 6.30 of the V3 whitepaper via `@uniswap/v3-sdk` `SqrtPriceMath`. Returns `COMPUTED`. |
+| 4 — Regime classification | ✅ live | Volatility / Hurst / linreg / toxicity / JIT proxies over 30d hourly history. Returns `ESTIMATED` with confidence. |
+| 5 — V4 hook discovery | ✅ live | V4 subgraph + 14-bit hook flag-bitmap decoding → 7 family classifier. Returns `LABELED`. |
+| 6 — V4 hook replay | ✅ live | Re-runs the pool's 30d history with the top-TVL candidate hook installed; emits simulated APR / IL / fee capture. Returns `EMULATED`. |
+| 7 — Migration preview | ✅ live | Uniswap Trading API `/quote` for the swap leg; close → swap → mint preview. Permit2 EIP-712 ready. Returns `EMULATED` with warnings. |
+| 8 — Report assembly + 0G Storage | ✅ live | Assembles the full verdict JSON, uploads to 0G Storage, returns merkle rootHash. Returns `VERIFIED` (or `EMULATED` stub if no key). |
+| 9 — 0G Chain anchor | ✅ live | Calls `LPLensReports.publishReport(tokenId, rootHash, attestation)` if `LPLENS_REPORTS_CONTRACT` is set, else self-tx with rootHash as calldata. Returns `VERIFIED` or stub. |
+| 10 — TEE verdict synthesis | ✅ live | 0G Compute broker → `qwen-2.5-7b-instruct` → 3-sentence verdict markdown. Returns `ESTIMATED` (TEE-attested) or stub. |
+| 11 — ENS identity publish | ✅ live | Writes per-position text records under the agent's parent ENS name. Returns `VERIFIED` or stub. |
+
+Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the LLM call is what writes the user-facing summary, so the agent doesn't need a separate planning pass.
+
 ## Deployed contracts
 
 | Network | Contract | Address |
@@ -133,15 +153,7 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 | 0G Newton (chainId 16602) | `LPLensReports` | _filled at submission_ |
 | 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | _filled at submission_ |
 
-Foundry sources live in `contracts/` — see [contracts/README.md](contracts/README.md) for build + deploy instructions. The
-server's `ogChain` adapter switches from raw self-tx anchoring to a
-`LPLensReports.publishReport(tokenId, rootHash, attestation)` call once
-`LPLENS_REPORTS_CONTRACT` is set in the project root `.env`.
-
-The agent's iNFT is minted by the deploy script (`Deploy.s.sol`) when
-`LPLENS_CODE_IMAGE_HASH` is provided; the resulting tokenId becomes the
-agent's permanent on-chain identity, with `memoryRoot` updated each
-diagnose cycle and `reputation` incremented per anchored report.
+Foundry sources live in `contracts/` — see [contracts/README.md](contracts/README.md). The deployment script writes addresses to `contracts/deployments/newton.json`; copy them into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` to switch the server from stub anchoring to real on-chain calls.
 
 ## Tracks applied
 
@@ -179,17 +191,6 @@ Each sample runs the full 9-phase pipeline with realistic payloads and a signed 
 
 ---
 
-## Roadmap
-
-- **D1-D2** — monorepo scaffold, subgraph ingestion, position atlas
-- **D3-D4** — IL math, regime classification, hook discovery, 0G Compute broker wiring, diagnose page skeleton
-- **D5-D6** — hook replay engine, ReactFlow diagnostic graph, MVP end-to-end
-- **D7** — Permit2 migration bundle, 0G Storage reports
-- **D8** — ERC-7857 contracts on 0G Newton, reliability acceptance tests, `FEEDBACK.md`
-- **D9** — MCP server, x402 paywall, landing polish, demo video recording
-- **D10** — submission
-
----
 
 ## Team
 
