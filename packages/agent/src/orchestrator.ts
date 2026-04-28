@@ -25,6 +25,11 @@ import type {
   HookFamily,
   Phase5Output,
 } from "./phases/05-hooks/types.js";
+import { replayHook } from "./phases/06-replay/replayHook.js";
+import type {
+  HookReplayResult,
+  Phase6Output,
+} from "./phases/06-replay/types.js";
 import {
   buildMigrationPreview,
   type Quoter,
@@ -343,6 +348,97 @@ export async function runPhase5(
     pair,
     candidates: labeled(candidates, "v4-subgraph + flag-bitmap-heuristic"),
     topFamily: labeled(topFamily, "tvl-weighted-family-vote"),
+  };
+}
+
+const REPLAY_LOOKBACK_HOURS = 30 * 24;
+
+export async function runPhase6(
+  position: Phase1Output,
+  inputs: {
+    regime: Phase4Output | null;
+    hooks: Phase5Output | null;
+    il: Phase3Output | null;
+  },
+  deps: AgentDeps,
+  emit: Emit,
+): Promise<Phase6Output | null> {
+  if (!deps.fetchPoolHourDatas) {
+    emit({
+      type: "narrative",
+      text: "Skipping hook replay — no pool history fetcher configured.",
+    });
+    return null;
+  }
+  if (!inputs.hooks || inputs.hooks.candidates.value.length === 0) {
+    emit({
+      type: "narrative",
+      text: "Skipping hook replay — no candidate hooks discovered.",
+    });
+    return null;
+  }
+  if (!inputs.regime) {
+    emit({
+      type: "narrative",
+      text: "Skipping hook replay — regime classification unavailable.",
+    });
+    return null;
+  }
+
+  const t0 = Date.now();
+  emit({ type: "phase.start", phase: 6, label: "v4 hook replay" });
+
+  // Pick the top hook by TVL — same heuristic as phase 5 narrative.
+  const candidates = inputs.hooks.candidates.value;
+  const top = candidates.reduce(
+    (best, c) => (c.tvlUsd > best.tvlUsd ? c : best),
+    candidates[0],
+  );
+
+  emit({
+    type: "tool.call",
+    tool: "replayHook",
+    input: { hook: top.hookAddress, family: top.family },
+  });
+
+  const fromUnix =
+    Math.floor(Date.now() / 1000) - REPLAY_LOOKBACK_HOURS * 3600;
+  const history = await deps.fetchPoolHourDatas(
+    position.pool.value.address,
+    fromUnix,
+  );
+
+  const baselineIlPct = inputs.il?.ilPct.value ?? 0;
+
+  const result: HookReplayResult = replayHook({
+    hook: top,
+    feeTierPpm: position.pool.value.feeTier,
+    features: inputs.regime.features.value,
+    history,
+    baselineIlPct,
+  });
+
+  emit({
+    type: "tool.result",
+    tool: "replayHook",
+    output: result,
+    latencyMs: Date.now() - t0,
+  });
+
+  emit({
+    type: "narrative",
+    text:
+      result.deltaAprPct > 0
+        ? `Replay of ${result.family.toLowerCase().replace(/_/g, "-")} hook: simulated APR ${result.simulatedAprPct.toFixed(2)}% (Δ ${result.deltaAprPct >= 0 ? "+" : ""}${result.deltaAprPct.toFixed(2)} pts vs baseline).`
+        : `Replay of ${result.family.toLowerCase().replace(/_/g, "-")} hook: APR delta is ${result.deltaAprPct.toFixed(2)} pts; this family does not improve LP economics in the current regime.`,
+  });
+  emit({ type: "phase.end", phase: 6, durationMs: Date.now() - t0 });
+
+  return {
+    result: emulated(result, [
+      "Replay is a heuristic emulation, not an EVM-state replay. Multipliers calibrated against a 30-day backtest set; treat as directional.",
+      ...result.warnings,
+    ]),
   };
 }
 
