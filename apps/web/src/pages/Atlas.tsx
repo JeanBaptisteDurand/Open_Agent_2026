@@ -1,13 +1,43 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useAccount } from "wagmi";
+import { AppHeader } from "../components/AppHeader.js";
+import { AggStat } from "../components/AggStat.js";
 import { PositionCard } from "../components/PositionCard.js";
-import { fetchPositions } from "../lib/api.js";
+import { Cap, Dot, Mono, fmt } from "../design/atoms.js";
+import { Addr } from "../design/Addr.js";
+import { fetchPositions, type V3PositionRaw } from "../lib/api.js";
+import { classifyHealth } from "../lib/health.js";
 
 const SAMPLE_ADDRESS = "0x50ec05ade8280758e2077fcbc08d878d4aef79c3";
 
+function aggregate(positions: V3PositionRaw[]) {
+  let totalDeposited = 0;
+  let totalFees = 0;
+  let bleeding = 0;
+  let drift = 0;
+  let healthy = 0;
+
+  for (const p of positions) {
+    totalDeposited +=
+      parseFloat(p.depositedToken0) + parseFloat(p.depositedToken1);
+    totalFees +=
+      parseFloat(p.collectedFeesToken0) + parseFloat(p.collectedFeesToken1);
+    const h = classifyHealth(p);
+    if (h === "red") bleeding += 1;
+    else if (h === "amber") drift += 1;
+    else healthy += 1;
+  }
+
+  return { totalDeposited, totalFees, bleeding, drift, healthy };
+}
+
 export function Atlas() {
-  const [address, setAddress] = useState("");
-  const [submitted, setSubmitted] = useState<string | null>(null);
+  const { address: connectedAddress } = useAccount();
+  const [address, setAddress] = useState(connectedAddress ?? "");
+  const [submitted, setSubmitted] = useState<string | null>(
+    connectedAddress ?? null,
+  );
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["positions", submitted],
@@ -15,34 +45,116 @@ export function Atlas() {
     enabled: !!submitted,
   });
 
-  return (
-    <div className="min-h-screen p-8">
-      <header className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-semibold tracking-tight">LPLens</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Diagnostic agent for Uniswap V3/V4 LP positions.
-        </p>
-      </header>
+  const positions = data?.positions ?? [];
+  const stats = aggregate(positions);
 
-      <section className="max-w-4xl mx-auto mt-10">
+  return (
+    <div style={{ minHeight: "100vh" }}>
+      <AppHeader />
+
+      <main
+        style={{
+          maxWidth: 1400,
+          margin: "0 auto",
+          padding: "48px 36px 120px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            marginBottom: 40,
+            gap: 24,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 10,
+              }}
+            >
+              <Dot color="cyan" pulse />
+              <Cap style={{ color: "var(--cyan)" }}>
+                ATLAS · {positions.length} POSITION
+                {positions.length === 1 ? "" : "S"} TRACKED
+              </Cap>
+            </div>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(32px, 4vw, 44px)",
+                fontWeight: 500,
+                letterSpacing: "-0.03em",
+              }}
+            >
+              Your liquidity, under the lens.
+            </h1>
+            {submitted && (
+              <div
+                style={{
+                  marginTop: 12,
+                  color: "var(--text-secondary)",
+                  fontSize: 14,
+                  display: "flex",
+                  gap: 18,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span>
+                  Wallet <Addr value={submitted} />
+                </span>
+                {!isLoading && data && (
+                  <>
+                    <span style={{ color: "var(--text-faint)" }}>·</span>
+                    <span>
+                      <Mono>{positions.length}</Mono> position
+                      {positions.length === 1 ? "" : "s"} from subgraph
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
             setSubmitted(address.trim());
           }}
-          className="flex gap-2"
+          style={{ display: "flex", gap: 8, marginBottom: 16 }}
         >
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="0x... wallet address"
-            className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded font-mono text-sm focus:border-cyan-500/40 outline-none"
+            style={{
+              flex: 1,
+              padding: "10px 14px",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              color: "var(--text)",
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              outline: "none",
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "var(--cyan)")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-medium rounded disabled:opacity-50"
             disabled={!address.trim()}
+            className="btn btn-primary"
+            style={{ padding: "10px 18px", fontSize: 13 }}
           >
             Load
           </button>
@@ -54,33 +166,122 @@ export function Atlas() {
             setAddress(SAMPLE_ADDRESS);
             setSubmitted(SAMPLE_ADDRESS);
           }}
-          className="mt-3 text-[11px] font-mono text-slate-500 hover:text-cyan-400 transition-colors"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--text-tertiary)",
+            marginBottom: 32,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--cyan)")}
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.color = "var(--text-tertiary)")
+          }
         >
           → try a sample address
         </button>
 
         {!submitted ? (
-          <p className="mt-6 text-slate-500 text-sm">
+          <p
+            style={{
+              marginTop: 8,
+              color: "var(--text-tertiary)",
+              fontSize: 13,
+            }}
+          >
             Paste a wallet address above to list LP positions.
           </p>
         ) : isLoading ? (
-          <p className="mt-6 text-slate-500 text-sm">loading…</p>
+          <p
+            style={{
+              marginTop: 8,
+              color: "var(--text-tertiary)",
+              fontSize: 13,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            loading…
+          </p>
         ) : error ? (
-          <p className="mt-6 text-rose-400 text-sm font-mono">
+          <p
+            style={{
+              marginTop: 8,
+              color: "var(--bleed)",
+              fontSize: 13,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
             error: {(error as Error).message}
           </p>
-        ) : data && data.positions.length > 0 ? (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.positions.map((p) => (
-              <PositionCard key={p.id} position={p} />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-6 text-slate-500 text-sm font-mono">
+        ) : positions.length === 0 ? (
+          <p
+            style={{
+              marginTop: 8,
+              color: "var(--text-tertiary)",
+              fontSize: 13,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
             no positions found for {submitted}
           </p>
+        ) : (
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 0,
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-lg)",
+                overflow: "hidden",
+                marginBottom: 32,
+              }}
+            >
+              <AggStat
+                label="DEPOSITED"
+                value={fmt.num(stats.totalDeposited)}
+                sub="token0 + token1"
+              />
+              <AggStat
+                label="FEES CAPTURED"
+                value={fmt.num(stats.totalFees)}
+                sub="lifetime"
+                tone={stats.totalFees > 0 ? "pos" : undefined}
+              />
+              <AggStat
+                label="HEALTHY"
+                value={String(stats.healthy)}
+                sub="in-range positions"
+                tone="pos"
+              />
+              <AggStat
+                label="DRIFTING"
+                value={String(stats.drift)}
+                sub="needs review"
+                tone="toxic"
+              />
+              <AggStat
+                label="BLEEDING"
+                value={String(stats.bleeding)}
+                sub="recommend migrate"
+                tone="bleed"
+                isLast
+              />
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+                gap: 20,
+              }}
+            >
+              {positions.map((p) => (
+                <PositionCard key={p.id} position={p} />
+              ))}
+            </div>
+          </>
         )}
-      </section>
+      </main>
     </div>
   );
 }
