@@ -10,6 +10,11 @@ import {
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ping, pingToolDefinition } from "./tools/ping.js";
+import {
+  diagnose,
+  diagnoseInputSchema,
+  diagnoseToolDefinition,
+} from "./tools/diagnose.js";
 
 async function main() {
   const server = new Server(
@@ -25,15 +30,20 @@ async function main() {
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [pingToolDefinition],
+    tools: [pingToolDefinition, diagnoseToolDefinition],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name } = request.params;
+    const { name, arguments: args } = request.params;
     switch (name) {
       case "lplens.ping": {
         const result = await ping();
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+      case "lplens.diagnose": {
+        const parsed = diagnoseInputSchema.parse(args ?? {});
+        const result = await diagnose(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
       default:
         throw new Error(`unknown tool: ${name}`);
