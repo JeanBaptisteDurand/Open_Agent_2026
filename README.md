@@ -1,12 +1,15 @@
 # LPLens
 
-AI-powered risk intelligence & autonomous migration agent for Uniswap V3/V4 liquidity providers.
+**An autonomous diagnostic agent for Uniswap V3/V4 liquidity providers, running on the full 0G stack.**
 
-LPLens is a full-stack platform that reads any Uniswap LP position, reconstructs **why** it is losing money in real time, simulates V4 hook alternatives against the real pool history, and lets the user migrate their position in one Permit2 signature.
+LPLens reads any LP position, reconstructs *why* it is losing money against a HODL baseline, replays a V4 hook against the pool's real swap history, drafts a migration plan, and ships an audit-grade signed report — in 30 seconds, with one Permit2 signature when the user decides to migrate.
 
-Every verdict is signed by a TEE on 0G Compute, stored on 0G Storage, and anchored on 0G Chain — giving LPs an audit-grade report they can share or use in disputes.
+Every numeric value carries one of five honesty labels (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so a judge can tell at a glance which claims trace back to chain-state and which are heuristics.
+
+The verdict is synthesized by a TEE-attested LLM on **0G Compute**, the report blob is pinned to **0G Storage** with a merkle rootHash, and that rootHash is anchored on **0G Chain** through the `LPLensReports` registry. The agent's identity is published as a per-position subname on **ENS**, so resolving `<tokenId>.lplens-demo.eth` returns the full provenance triple. An MCP server exposes `lplens.diagnose`, `lplens.lookupReport`, `lplens.resolveEnsRecord`, and `lplens.lookupReportOnChain` to any other agent.
 
 Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — Apr 24 → May 6 2026.
+
 
 ---
 
@@ -123,6 +126,26 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 
 ---
 
+
+## Build status — v1.0.0-rc.1
+
+**11 of 11 phases live.** No fake fallbacks in the agent's hot path; the only stubs are short-circuit paths in the storage / chain / compute / ENS adapters when a signing key is not configured (the panel labels itself `EMULATED` so the demo never silently lies about provenance).
+
+| Phase | Status | What it does |
+| --- | --- | --- |
+| 1 — Position resolution | ✅ live | Reads tokenId from Uniswap V3 subgraph; returns `VERIFIED` token / pool / tick / liquidity. |
+| 3 — IL reconstruction | ✅ live | Eq. 6.29 / 6.30 of the V3 whitepaper via `@uniswap/v3-sdk` `SqrtPriceMath`. Returns `COMPUTED`. |
+| 4 — Regime classification | ✅ live | Volatility / Hurst / linreg / toxicity / JIT proxies over 30d hourly history. Returns `ESTIMATED` with confidence. |
+| 5 — V4 hook discovery | ✅ live | V4 subgraph + 14-bit hook flag-bitmap decoding → 7 family classifier. Returns `LABELED`. |
+| 6 — V4 hook replay | ✅ live | Re-runs the pool's 30d history with the top-TVL candidate hook installed; emits simulated APR / IL / fee capture. Returns `EMULATED`. |
+| 7 — Migration preview | ✅ live | Uniswap Trading API `/quote` for the swap leg; close → swap → mint preview. Permit2 EIP-712 ready. Returns `EMULATED` with warnings. |
+| 8 — Report assembly + 0G Storage | ✅ live | Assembles the full verdict JSON, uploads to 0G Storage, returns merkle rootHash. Returns `VERIFIED` (or `EMULATED` stub if no key). |
+| 9 — 0G Chain anchor | ✅ live | Calls `LPLensReports.publishReport(tokenId, rootHash, attestation)` if `LPLENS_REPORTS_CONTRACT` is set, else self-tx with rootHash as calldata. Returns `VERIFIED` or stub. |
+| 10 — TEE verdict synthesis | ✅ live | 0G Compute broker → `qwen-2.5-7b-instruct` → 3-sentence verdict markdown. Returns `ESTIMATED` (TEE-attested) or stub. |
+| 11 — ENS identity publish | ✅ live | Writes per-position text records under the agent's parent ENS name. Returns `VERIFIED` or stub. |
+
+Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the LLM call is what writes the user-facing summary, so the agent doesn't need a separate planning pass.
+
 ## Deployed contracts
 
 | Network | Contract | Address |
@@ -130,21 +153,15 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 | 0G Newton (chainId 16602) | `LPLensReports` | _filled at submission_ |
 | 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | _filled at submission_ |
 
-Foundry sources live in `contracts/` — see [contracts/README.md](contracts/README.md) for build + deploy instructions. The
-server's `ogChain` adapter switches from raw self-tx anchoring to a
-`LPLensReports.publishReport(tokenId, rootHash, attestation)` call once
-`LPLENS_REPORTS_CONTRACT` is set in the project root `.env`.
-
-The agent's iNFT is minted by the deploy script (`Deploy.s.sol`) when
-`LPLENS_CODE_IMAGE_HASH` is provided; the resulting tokenId becomes the
-agent's permanent on-chain identity, with `memoryRoot` updated each
-diagnose cycle and `reputation` incremented per anchored report.
+Foundry sources live in `contracts/` — see [contracts/README.md](contracts/README.md). The deployment script writes addresses to `contracts/deployments/newton.json`; copy them into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` to switch the server from stub anchoring to real on-chain calls.
 
 ## Tracks applied
 
-- **0G — Best Autonomous Agents, Swarms & iNFT Innovations** ($7 500) : LPLens is published as an iNFT ERC-7857-style agent, uses 0G Compute TEE for audit-grade verdicts (`qwen-2.5-7b-instruct` on testnet), 0G Storage for the report corpus + cycle DAG, 0G Chain for the signed-report registry.
-- **Uniswap Foundation — Best Uniswap API Integration** ($5 000) : Subgraph v3 + v4 (`modifyLiquidities`, positions, ticks, fee growth), Trading API v1 for quotes + swap calldata, Permit2 `PermitSingle/PermitBatch` for the migration bundle, V4 hook flag decoding and replay. Builder feedback in [FEEDBACK.md](FEEDBACK.md).
-- **ENS — Best ENS Integration for AI Agents** ($2 500) : agent identity layer. Each LPLens diagnosis publishes its rootHash + storageUrl + anchor txHash into a per-position subname text record under `lplens-demo.eth`, so resolving the ENS name returns the full provenance triple — `<tokenId>.lplens-demo.eth` is the agent's persistent, human-readable witness.
+| Track | Prize | What we do for it |
+| --- | --- | --- |
+| **0G — Best Autonomous Agents, Swarms & iNFT Innovations** | $7 500 (1 of 5 × $1 500) | LPLens is a long-running goal-driven agent on 0G. Verdicts are TEE-attested via `0G Compute` (`qwen-2.5-7b-instruct` on testnet). Reports are pinned to `0G Storage` with merkle rootHash. The rootHash is anchored on `0G Chain` through the `LPLensReports` registry contract. The agent itself is minted as an ERC-7857-style **iNFT** via `LPLensAgent` — `memoryRoot` updates each cycle, `reputation` increments per anchored report. |
+| **Uniswap Foundation — Best Uniswap API Integration** | $5 000 (1 of 3) | Subgraph v3 + v4 (`modifyLiquidities`, positions, ticks, `Pool` discovery, `poolHourData`), Trading API v1 `/quote` for sample-notional swap pricing inside the migration preview, V4 hook flag-bitmap decoding (14 bits → 7 family heuristic), and Permit2 EIP-712 PermitSingle signature flow on the migration modal. Builder feedback in [FEEDBACK.md](FEEDBACK.md). |
+| **ENS — Most Creative Use of ENS** | $2 500 (1 of 3) | Each LPLens diagnose publishes the report's rootHash + storageUrl + anchor txHash + verdict excerpt as text records under `lplens-demo.eth`, keyed by `lplens.<tokenId>.<field>`. Resolving the parent name returns the full provenance triple for any position the agent has ever diagnosed. The MCP server exposes `lplens.resolveEnsRecord` so other agents can read the records without trusting the LPLens API. |
 
 ## Local setup
 
@@ -174,17 +191,6 @@ Each sample runs the full 9-phase pipeline with realistic payloads and a signed 
 
 ---
 
-## Roadmap
-
-- **D1-D2** — monorepo scaffold, subgraph ingestion, position atlas
-- **D3-D4** — IL math, regime classification, hook discovery, 0G Compute broker wiring, diagnose page skeleton
-- **D5-D6** — hook replay engine, ReactFlow diagnostic graph, MVP end-to-end
-- **D7** — Permit2 migration bundle, 0G Storage reports
-- **D8** — ERC-7857 contracts on 0G Newton, reliability acceptance tests, `FEEDBACK.md`
-- **D9** — MCP server, x402 paywall, landing polish, demo video recording
-- **D10** — submission
-
----
 
 ## Team
 
@@ -200,6 +206,22 @@ Past hackathon projects with the same "Lens" architecture (RAG-over-chain-data a
 
 ---
 
+---
+
+## Demo
+
+A 3-minute guided walkthrough lives in [DEMO.md](DEMO.md) — covers the
+landing prism animation, atlas with curated demo wallet, the live SSE
+diagnose flow, the Permit2 sign modal, and the permanent /report
+viewer. The same flow is the live demo recording.
+
+## MCP server
+
+The agent is callable from any MCP-aware tool (Claude Desktop, Cursor,
+autonomous agents) over stdio. See [apps/mcp-server/README.md](apps/mcp-server/README.md)
+for the desktop config and the 5 exposed tools.
+
 ## License
 
-MIT (TBD — will be finalized at submission).
+MIT — see [LICENSE](LICENSE).
+
