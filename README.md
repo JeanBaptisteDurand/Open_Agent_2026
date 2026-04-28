@@ -145,9 +145,11 @@ diagnose cycle and `reputation` incremented per anchored report.
 
 ## Tracks applied
 
-- **0G — Best Autonomous Agents, Swarms & iNFT Innovations** ($7 500) : LPLens is published as an iNFT ERC-7857-style agent, uses 0G Compute TEE for audit-grade verdicts (`qwen-2.5-7b-instruct` on testnet), 0G Storage for the report corpus + cycle DAG, 0G Chain for the signed-report registry.
-- **Uniswap Foundation — Best Uniswap API Integration** ($5 000) : Subgraph v3 + v4 (`modifyLiquidities`, positions, ticks, fee growth), Trading API v1 for quotes + swap calldata, Permit2 `PermitSingle/PermitBatch` for the migration bundle, V4 hook flag decoding and replay. Builder feedback in [FEEDBACK.md](FEEDBACK.md).
-- **ENS — Best ENS Integration for AI Agents** ($2 500) : agent identity layer. Each LPLens diagnosis publishes its rootHash + storageUrl + anchor txHash into a per-position subname text record under `lplens-demo.eth`, so resolving the ENS name returns the full provenance triple — `<tokenId>.lplens-demo.eth` is the agent's persistent, human-readable witness.
+| Track | Prize | What we do for it |
+| --- | --- | --- |
+| **0G — Best Autonomous Agents, Swarms & iNFT Innovations** | $7 500 (1 of 5 × $1 500) | LPLens is a long-running goal-driven agent on 0G. Verdicts are TEE-attested via `0G Compute` (`qwen-2.5-7b-instruct` on testnet). Reports are pinned to `0G Storage` with merkle rootHash. The rootHash is anchored on `0G Chain` through the `LPLensReports` registry contract. The agent itself is minted as an ERC-7857-style **iNFT** via `LPLensAgent` — `memoryRoot` updates each cycle, `reputation` increments per anchored report. |
+| **Uniswap Foundation — Best Uniswap API Integration** | $5 000 (1 of 3) | Subgraph v3 + v4 (`modifyLiquidities`, positions, ticks, `Pool` discovery, `poolHourData`), Trading API v1 `/quote` for sample-notional swap pricing inside the migration preview, V4 hook flag-bitmap decoding (14 bits → 7 family heuristic), and Permit2 EIP-712 PermitSingle signature flow on the migration modal. Builder feedback in [FEEDBACK.md](FEEDBACK.md). |
+| **ENS — Most Creative Use of ENS** | $2 500 (1 of 3) | Each LPLens diagnose publishes the report's rootHash + storageUrl + anchor txHash + verdict excerpt as text records under `lplens-demo.eth`, keyed by `lplens.<tokenId>.<field>`. Resolving the parent name returns the full provenance triple for any position the agent has ever diagnosed. The MCP server exposes `lplens.resolveEnsRecord` so other agents can read the records without trusting the LPLens API. |
 
 ## Local setup
 
