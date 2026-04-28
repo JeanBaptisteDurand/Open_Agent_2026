@@ -8,6 +8,8 @@ import {
   runPhase8,
   runPhase9,
   runPhase10,
+  runPhase11,
+  type EnsPublisher,
   type Quoter,
   type QuoteSummary,
   type ReportAnchorer,
@@ -22,6 +24,7 @@ import { tradingApi } from "../services/tradingApi.js";
 import { ogStorage } from "../services/ogStorage.js";
 import { ogChain } from "../services/ogChain.js";
 import { ogCompute } from "../services/ogCompute.js";
+import { ensWriter } from "../services/ensWriter.js";
 import { reportCache } from "../services/reportCache.js";
 
 export async function diagnoseHandler(
@@ -110,6 +113,18 @@ export async function diagnoseHandler(
       };
     };
 
+    const publishEns: EnsPublisher = async (args) => {
+      const result = await ensWriter.publish(args);
+      return {
+        parentName: result.parentName,
+        subnameLabel: result.subnameLabel,
+        records: result.records,
+        resolverAddress: result.resolverAddress,
+        network: result.network,
+        stub: result.stub,
+      };
+    };
+
     const deps = {
       fetchV3Position: (id: string) => subgraph.getV3PositionById(id),
       fetchPoolHourDatas: (poolId: string, from: number) =>
@@ -120,6 +135,7 @@ export async function diagnoseHandler(
       uploadReport,
       anchorReport,
       synthesizeVerdict,
+      publishEns,
     };
 
     const position = await runPhase1(tokenId, deps, (event) => sse.emit(event));
@@ -136,7 +152,13 @@ export async function diagnoseHandler(
       (event) => sse.emit(event),
     );
     const anchor = await runPhase9(storage, deps, (event) => sse.emit(event));
-    await runPhase10(storage, deps, (event) => sse.emit(event));
+    const verdict = await runPhase10(storage, deps, (event) => sse.emit(event));
+    await runPhase11(
+      position,
+      { storage, anchor, verdict },
+      deps,
+      (event) => sse.emit(event),
+    );
 
     if (storage) {
       const provenance = storage.provenance.value;
@@ -156,7 +178,8 @@ export async function diagnoseHandler(
     for await (const event of fakePhaseSequence(tokenId)) {
       if (
         (event.type === "phase.start" || event.type === "phase.end") &&
-        (event.phase === 1 ||
+        (event.phase === 11 ||
+          event.phase === 1 ||
           event.phase === 3 ||
           event.phase === 4 ||
           event.phase === 5 ||
