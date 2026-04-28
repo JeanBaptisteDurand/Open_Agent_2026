@@ -63,6 +63,11 @@ export type {
   Phase10Output,
   VerdictPayload,
 } from "./phases/10-verdict/types.js";
+export type {
+  EnsPublication,
+  EnsRecord,
+  Phase11Output,
+} from "./phases/11-ens/types.js";
 export {
   runPhase1,
   runPhase3,
@@ -72,8 +77,10 @@ export {
   runPhase8,
   runPhase9,
   runPhase10,
+  runPhase11,
   type AgentDeps,
   type Emit,
+  type EnsPublisher,
   type Phase3Output,
   type PoolHourFetcher,
   type ReportAnchorer,

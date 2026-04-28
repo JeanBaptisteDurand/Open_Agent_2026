@@ -25,6 +25,10 @@ import {
   VerdictPanel,
   type VerdictMeta,
 } from "../components/VerdictPanel.js";
+import {
+  EnsPanel,
+  type EnsPublication,
+} from "../components/EnsPanel.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
 import type { DiagnosticEvent } from "@lplens/core";
 
@@ -97,6 +101,7 @@ export function Diagnose() {
   const provenance = pickReportUploaded(events);
   const anchor = pickReportAnchored(events);
   const verdict = pickVerdict(events);
+  const ensPublication = pickToolResult<EnsPublication>(events, "publishEnsRecords");
 
   const provenanceFullyVerified =
     provenance !== null &&
@@ -132,6 +137,9 @@ export function Diagnose() {
             {verdict && (
               <LabelBadge label={verdict.stub ? "EMULATED" : "ESTIMATED"} />
             )}
+            {ensPublication && (
+              <LabelBadge label={ensPublication.stub ? "EMULATED" : "VERIFIED"} />
+            )}
           </div>
         </div>
         {error && <p className="mt-1 text-rose-400 text-sm">{error}</p>}
@@ -150,6 +158,7 @@ export function Diagnose() {
             <ReportProvenancePanel provenance={provenance} anchor={anchor} />
           )}
           {verdict && <VerdictPanel verdict={verdict} />}
+          {ensPublication && <EnsPanel publication={ensPublication} />}
         </section>
 
         <aside className="space-y-6">
