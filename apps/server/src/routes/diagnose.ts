@@ -4,6 +4,7 @@ import {
   runPhase3,
   runPhase4,
   runPhase5,
+  runPhase6,
   runPhase7,
   runPhase8,
   runPhase9,
@@ -146,6 +147,13 @@ export async function diagnoseHandler(
     const il = await runPhase3(position, (event) => sse.emit(event));
     const regime = await runPhase4(position, deps, (event) => sse.emit(event));
     const hooks = await runPhase5(position, deps, (event) => sse.emit(event));
+    const replay = await runPhase6(
+      position,
+      { regime, hooks, il },
+      deps,
+      (event) => sse.emit(event),
+    );
+    void replay;
     const migration = await runPhase7(position, hooks, deps, (event) =>
       sse.emit(event),
     );
@@ -187,6 +195,7 @@ export async function diagnoseHandler(
           event.phase === 3 ||
           event.phase === 4 ||
           event.phase === 5 ||
+          event.phase === 6 ||
           event.phase === 7 ||
           event.phase === 8 ||
           event.phase === 9 ||
