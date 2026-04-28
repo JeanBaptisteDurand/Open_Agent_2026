@@ -21,7 +21,7 @@ contract LPLensReports {
     mapping(bytes32 => Report) public reports;
 
     /// @dev tokenId → list of rootHashes (history per position).
-    mapping(uint256 => bytes32[]) public tokenIdReports;
+    mapping(uint256 => bytes32[]) private _tokenIdReports;
 
     event ReportPublished(
         bytes32 indexed rootHash,
@@ -48,12 +48,20 @@ contract LPLensReports {
             rootHash: rootHash,
             attestation: attestation
         });
-        tokenIdReports[tokenId].push(rootHash);
+        _tokenIdReports[tokenId].push(rootHash);
 
         emit ReportPublished(rootHash, tokenId, msg.sender, uint64(block.timestamp));
     }
 
     function reportCount(uint256 tokenId) external view returns (uint256) {
-        return tokenIdReports[tokenId].length;
+        return _tokenIdReports[tokenId].length;
+    }
+
+    function reportAt(uint256 tokenId, uint256 index) external view returns (bytes32) {
+        return _tokenIdReports[tokenId][index];
+    }
+
+    function reportsFor(uint256 tokenId) external view returns (bytes32[] memory) {
+        return _tokenIdReports[tokenId];
     }
 }

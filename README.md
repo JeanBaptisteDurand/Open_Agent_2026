@@ -123,6 +123,23 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 
 ---
 
+## Deployed contracts
+
+| Network | Contract | Address |
+| --- | --- | --- |
+| 0G Newton (chainId 16602) | `LPLensReports` | _filled at submission_ |
+| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | _filled at submission_ |
+
+Foundry sources live in `contracts/` — see [contracts/README.md](contracts/README.md) for build + deploy instructions. The
+server's `ogChain` adapter switches from raw self-tx anchoring to a
+`LPLensReports.publishReport(tokenId, rootHash, attestation)` call once
+`LPLENS_REPORTS_CONTRACT` is set in the project root `.env`.
+
+The agent's iNFT is minted by the deploy script (`Deploy.s.sol`) when
+`LPLENS_CODE_IMAGE_HASH` is provided; the resulting tokenId becomes the
+agent's permanent on-chain identity, with `memoryRoot` updated each
+diagnose cycle and `reputation` incremented per anchored report.
+
 ## Tracks applied
 
 - **0G — Best Autonomous Agents, Swarms & iNFT Innovations** ($7 500) : LPLens is published as an iNFT ERC-7857-style agent, uses 0G Compute TEE for audit-grade verdicts (`qwen-2.5-7b-instruct` on testnet), 0G Storage for the report corpus + cycle DAG, 0G Chain for the signed-report registry.

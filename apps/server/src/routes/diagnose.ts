@@ -91,8 +91,11 @@ export async function diagnoseHandler(
       };
     };
 
+    // Set after runPhase1 resolves so the LPLensReports contract call
+    // (when configured) can index the report by tokenId.
+    let anchorTokenId: string | undefined;
     const anchorReport: ReportAnchorer = async (rootHash) => {
-      const result = await ogChain.anchor(rootHash);
+      const result = await ogChain.anchor(rootHash, anchorTokenId);
       return {
         txHash: result.txHash,
         blockNumber: result.blockNumber,
@@ -139,6 +142,7 @@ export async function diagnoseHandler(
     };
 
     const position = await runPhase1(tokenId, deps, (event) => sse.emit(event));
+    anchorTokenId = position.tokenId;
     const il = await runPhase3(position, (event) => sse.emit(event));
     const regime = await runPhase4(position, deps, (event) => sse.emit(event));
     const hooks = await runPhase5(position, deps, (event) => sse.emit(event));

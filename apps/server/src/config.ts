@@ -20,6 +20,10 @@ const schema = z.object({
   OG_COMPUTE_MODEL: z.string().default("qwen-2.5-7b-instruct"),
   OG_CHAIN_ID: z.coerce.number().int().positive().default(16602),
 
+  LPLENS_REPORTS_CONTRACT: z.string().optional(),
+  LPLENS_AGENT_CONTRACT: z.string().optional(),
+  LPLENS_AGENT_TOKEN_ID: z.coerce.number().int().nonnegative().default(0),
+
   ENS_PARENT_NAME: z.string().default("lplens-demo.eth"),
   ENS_PARENT_PRIVATE_KEY: z.string().optional(),
   ENS_RESOLVER_ADDRESS: z.string().default("0x8FADE66B79cC9f707aB26799354482EB93a5B7dD"),
