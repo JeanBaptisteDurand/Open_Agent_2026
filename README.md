@@ -206,6 +206,22 @@ Past hackathon projects with the same "Lens" architecture (RAG-over-chain-data a
 
 ---
 
+---
+
+## Demo
+
+A 3-minute guided walkthrough lives in [DEMO.md](DEMO.md) — covers the
+landing prism animation, atlas with curated demo wallet, the live SSE
+diagnose flow, the Permit2 sign modal, and the permanent /report
+viewer. The same flow is the live demo recording.
+
+## MCP server
+
+The agent is callable from any MCP-aware tool (Claude Desktop, Cursor,
+autonomous agents) over stdio. See [apps/mcp-server/README.md](apps/mcp-server/README.md)
+for the desktop config and the 5 exposed tools.
+
 ## License
 
-MIT (TBD — will be finalized at submission).
+MIT — see [LICENSE](LICENSE).
+
