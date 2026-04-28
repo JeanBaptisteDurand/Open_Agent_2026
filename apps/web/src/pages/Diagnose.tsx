@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { AppHeader } from "../components/AppHeader.js";
 import { DiagnosticGraph } from "../components/DiagnosticGraph.js";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
 import {
@@ -118,7 +119,9 @@ export function Diagnose() {
   const token1Symbol = resolved?.pair?.split("/")?.[1] ?? "T1";
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen">
+      <AppHeader />
+      <div className="p-8">
       <header className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -208,6 +211,7 @@ export function Diagnose() {
           </section>
         </aside>
       </main>
+      </div>
     </div>
   );
 }
