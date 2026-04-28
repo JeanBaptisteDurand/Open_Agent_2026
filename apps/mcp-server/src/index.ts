@@ -15,6 +15,11 @@ import {
   diagnoseInputSchema,
   diagnoseToolDefinition,
 } from "./tools/diagnose.js";
+import {
+  lookupReport,
+  lookupReportInputSchema,
+  lookupReportToolDefinition,
+} from "./tools/lookupReport.js";
 
 async function main() {
   const server = new Server(
@@ -30,7 +35,11 @@ async function main() {
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [pingToolDefinition, diagnoseToolDefinition],
+    tools: [
+      pingToolDefinition,
+      diagnoseToolDefinition,
+      lookupReportToolDefinition,
+    ],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -43,6 +52,11 @@ async function main() {
       case "lplens.diagnose": {
         const parsed = diagnoseInputSchema.parse(args ?? {});
         const result = await diagnose(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.lookupReport": {
+        const parsed = lookupReportInputSchema.parse(args ?? {});
+        const result = await lookupReport(parsed);
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
       default:
