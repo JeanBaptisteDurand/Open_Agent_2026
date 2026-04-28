@@ -6,6 +6,7 @@ import { diagnoseHandler } from "./routes/diagnose.js";
 import { reportCache } from "./services/reportCache.js";
 import { subgraph } from "./services/subgraph.js";
 import { deriveV4Positions } from "./services/v4Aggregator.js";
+import { v4PositionManager } from "./services/v4PositionManager.js";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.get("/health", (_req: Request, res: Response) => {
     env: config.NODE_ENV,
     subgraph: subgraph.isReady() ? "ready" : "no-api-key",
     subgraphV4: subgraph.isReadyV4() ? "ready" : "no-api-key",
+    v4PositionManager: v4PositionManager.isReady() ? "ready" : "no-rpc",
   });
 });
 
@@ -59,6 +61,25 @@ app.get<{ address: string }>(
       );
       res.status(502).json({ error: "subgraph v4 unavailable" });
     }
+  },
+);
+
+app.get<{ tokenId: string }>(
+  "/api/positions/v4/:tokenId/info",
+  async (req, res) => {
+    const { tokenId } = req.params;
+    if (!v4PositionManager.isReady()) {
+      res.status(503).json({
+        error: "v4 position manager not configured (set MAINNET_RPC)",
+      });
+      return;
+    }
+    const result = await v4PositionManager.fetch(tokenId);
+    if ("error" in result) {
+      res.status(502).json(result);
+      return;
+    }
+    res.json(result);
   },
 );
 
