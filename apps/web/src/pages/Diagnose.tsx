@@ -1,6 +1,5 @@
 import { useParams } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader.js";
-import { DiagnosticGraph } from "../components/DiagnosticGraph.js";
 import { ILPanel, type ILBreakdown } from "../components/ILPanel.js";
 import {
   HooksPanel,
@@ -155,7 +154,6 @@ export function Diagnose() {
 
       <main className="max-w-6xl mx-auto mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 space-y-6">
-          <DiagnosticGraph events={events} />
           {ilBreakdown && (
             <ILPanel breakdown={ilBreakdown} token1Symbol={token1Symbol} />
           )}
