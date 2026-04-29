@@ -34,8 +34,13 @@ function fmtPct(n: number, withSign = false): string {
   return withSign && n > 0 ? `+${v}%` : `${v}%`;
 }
 
+function fmtMult(n: number): string {
+  return `×${n.toFixed(2)}`;
+}
+
 export function HookScoringPanel({ result }: Props) {
   const better = result.deltaAprPct > 0;
+  const m = result.multipliers;
   return (
     <section className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
       <header className="flex items-center justify-between gap-2">
@@ -96,8 +101,32 @@ export function HookScoringPanel({ result }: Props) {
         </div>
       </div>
 
+      <div className="mt-4 pt-3 border-t border-slate-800">
+        <h3 className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">
+          assumption surface — family multipliers
+        </h3>
+        <div className="grid grid-cols-4 gap-2 text-[11px] font-mono">
+          <div>
+            <div className="text-slate-500">fee apr</div>
+            <div className="text-slate-200">{fmtMult(m.feeApr)}</div>
+          </div>
+          <div>
+            <div className="text-slate-500">volume</div>
+            <div className="text-slate-200">{fmtMult(m.volume)}</div>
+          </div>
+          <div>
+            <div className="text-slate-500">il impact</div>
+            <div className="text-slate-200">{fmtMult(m.ilImpact)}</div>
+          </div>
+          <div>
+            <div className="text-slate-500">retention</div>
+            <div className="text-slate-200">{fmtMult(m.retention)}</div>
+          </div>
+        </div>
+      </div>
+
       <p className="mt-3 text-[11px] text-slate-300 leading-relaxed">
-        {result.multipliers.rationale}
+        {m.rationale}
       </p>
 
       {result.warnings.length > 0 && (
