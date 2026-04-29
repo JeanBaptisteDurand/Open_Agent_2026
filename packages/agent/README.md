@@ -15,7 +15,7 @@ produces a signed report.
 | 3 — IL reconstruction | TODO | whitepaper eq. 6.29/6.30 via @uniswap/v3-sdk |
 | 4 — regime classification | TODO | mean-reverting / trending / toxic / JIT-dominated |
 | 5 — V4 hook discovery | TODO | dedupe Pool.hooks + curated registry |
-| 6 — hook replay | TODO | the moat — emulated by family |
+| 6 — hook scoring | **implemented** | family-multiplier scoring against pool history (heuristic, not EVM-state replay) |
 | 7 — migration plan | TODO | Permit2 bundle via Trading API |
 | 8 — verdict | TODO | LLM markdown + hallucination validator |
 | 9 — report signing | TODO | TEE signature + 0G Storage upload |
@@ -24,4 +24,6 @@ produces a signed report.
 
 Every numeric value the agent emits is wrapped in `Labeled<T>` with a label
 of `VERIFIED | COMPUTED | ESTIMATED | EMULATED | LABELED`. Phase 6 results
-are always `EMULATED` and carry a non-empty `warnings[]`.
+are always `EMULATED` and carry a non-empty `warnings[]`. The scoring
+engine surfaces its assumption surface (family multipliers) on every
+result so the panel can render the calibration that produced the score.

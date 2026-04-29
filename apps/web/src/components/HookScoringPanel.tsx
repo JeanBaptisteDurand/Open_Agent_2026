@@ -1,6 +1,6 @@
 import { LabelBadge } from "./LabelBadge.js";
 
-export interface HookReplayResult {
+export interface HookScoringResult {
   hookAddress: string;
   family: string;
   baselineAprPct: number;
@@ -17,12 +17,12 @@ export interface HookReplayResult {
     retention: number;
     rationale: string;
   };
-  hoursReplayed: number;
+  hoursScored: number;
   warnings: string[];
 }
 
 interface Props {
-  result: HookReplayResult;
+  result: HookScoringResult;
 }
 
 function shortAddr(addr: string): string {
@@ -34,7 +34,7 @@ function fmtPct(n: number, withSign = false): string {
   return withSign && n > 0 ? `+${v}%` : `${v}%`;
 }
 
-export function ReplayPanel({ result }: Props) {
+export function HookScoringPanel({ result }: Props) {
   const better = result.deltaAprPct > 0;
   return (
     <section className="p-4 rounded-lg border border-slate-700 bg-slate-900/50">
@@ -56,7 +56,7 @@ export function ReplayPanel({ result }: Props) {
         </span>{" "}
         against{" "}
         <span className="font-mono text-slate-300">
-          {result.hoursReplayed}h
+          {result.hoursScored}h
         </span>{" "}
         of pool history with calibrated family multipliers — not an EVM-state
         replay.

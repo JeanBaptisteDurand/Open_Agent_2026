@@ -37,12 +37,12 @@ export type {
   HookFamily,
   Phase5Output,
 } from "./phases/05-hooks/types.js";
-export { replayHook } from "./phases/06-replay/replayHook.js";
+export { scoreHook } from "./phases/06-scoring/scoreHook.js";
 export type {
-  HookReplayMultipliers,
-  HookReplayResult,
+  HookScoringMultipliers,
+  HookScoringResult,
   Phase6Output,
-} from "./phases/06-replay/types.js";
+} from "./phases/06-scoring/types.js";
 export {
   buildMigrationPreview,
   type Quoter,

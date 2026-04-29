@@ -146,13 +146,13 @@ export async function diagnoseHandler(
     const il = await runPhase3(position, (event) => sse.emit(event));
     const regime = await runPhase4(position, deps, (event) => sse.emit(event));
     const hooks = await runPhase5(position, deps, (event) => sse.emit(event));
-    const replay = await runPhase6(
+    const scoring = await runPhase6(
       position,
       { regime, hooks, il },
       deps,
       (event) => sse.emit(event),
     );
-    void replay;
+    void scoring;
     const migration = await runPhase7(position, hooks, deps, (event) =>
       sse.emit(event),
     );
