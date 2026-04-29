@@ -2,11 +2,11 @@
 
 **An autonomous diagnostic agent for Uniswap V3/V4 liquidity providers, running on the full 0G stack.**
 
-LPLens reads any LP position, reconstructs *why* it is losing money against a HODL baseline, replays a V4 hook against the pool's real swap history, drafts a migration plan, and ships an audit-grade signed report — in 30 seconds, with one Permit2 signature when the user decides to migrate.
+LPLens reads any LP position, reconstructs *why* it is losing money against a HODL baseline, scores each candidate V4 hook against the pool's recent history with calibrated family multipliers, drafts a migration plan, and ships an audit-grade signed report — in 30 seconds, with one Permit2 signature when the user decides to migrate.
 
 Every numeric value carries one of five honesty labels (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so a judge can tell at a glance which claims trace back to chain-state and which are heuristics.
 
-The verdict is synthesized by a TEE-attested LLM on **0G Compute**, the report blob is pinned to **0G Storage** with a merkle rootHash, and that rootHash is anchored on **0G Chain** through the `LPLensReports` registry. The agent's identity is published as a per-position subname on **ENS**, so resolving `<tokenId>.lplens-demo.eth` returns the full provenance triple. An MCP server exposes `lplens.diagnose`, `lplens.lookupReport`, `lplens.resolveEnsRecord`, and `lplens.lookupReportOnChain` to any other agent.
+The verdict is synthesized by an LLM on **0G Compute** (provider-attested via the broker's request signature), the report blob is pinned to **0G Storage** with a merkle rootHash, and that rootHash is anchored on **0G Chain** through the `LPLensReports` registry. The agent's identity is published as text records under a parent name on **ENS** — resolving `lplens.<tokenId>.<field>` keys on `lplens-demo.eth` returns the full provenance triple (rootHash, storage URL, anchor txHash, verdict excerpt). An MCP server exposes `lplens.diagnose`, `lplens.preflight`, `lplens.migrate`, `lplens.lookupReport`, `lplens.lookupReportOnChain`, and `lplens.resolveEnsRecord` to any other agent.
 
 Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — Apr 24 → May 6 2026.
 
@@ -18,12 +18,12 @@ Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — A
 | Feature | Description |
 | --- | --- |
 | Position Atlas | Connect wallet → list every V3/V4 LP position with a green/amber/red health indicator (percent in-range + IL direction) |
-| LP Diagnostic Agent | Multi-phase AI agent that streams 9 phases of analysis over SSE : position resolution, pool RAG, IL decomposition, regime classification, hook discovery, hook replay, migration plan, verdict, signed report |
-| Hook Replay Simulation | Re-plays the 10 000 last swaps of a pool **through each candidate V4 hook** and returns simulated APR + IL for our config. Not actual on-chain exec — emulation per hook family (dynamic-fee / JIT-protected / LVR-resistant / etc.) with explicit warnings |
+| LP Diagnostic Agent | Multi-phase agent that streams 9 phases of analysis over SSE : position resolution, IL decomposition, regime classification, hook discovery, hook scoring, migration plan, report assembly, on-chain anchor, verdict, ENS publish |
+| Hook Scoring Engine | Scores each candidate V4 hook against the pool's last 30 days of hourly volume + tier with family-conditional multipliers (dynamic-fee / gated-swap / swap-delta-cut / royalty / init-gate / lifecycle / unknown). Heuristic — not a swap-by-swap EVM replay. The panel renders the multiplier table as the explicit assumption surface |
 | One-click Permit2 Migration | Generates an atomic `close V3 → swap → mint V4` bundle signable in a single Permit2 signature |
 | Signed Report | Report JSON pinned to 0G Storage (merkle rootHash), signed by TEE oracle, anchored on 0G Chain registry — verifiable offline with the CLI |
 | iNFT Agent Identity | LPLens agent is minted as an ERC-7857-style iNFT on 0G Chain with persistent memory DAG + reputation counter |
-| MCP Server | Exposes `lplens.diagnose`, `lplens.preflight`, `lplens.migrate`, `lplens.verify` — callable by other autonomous agents, paywalled via x402 USDC |
+| MCP Server | Exposes `lplens.diagnose`, `lplens.preflight`, `lplens.migrate`, `lplens.lookupReport`, `lplens.lookupReportOnChain`, `lplens.resolveEnsRecord` — callable by other autonomous agents over stdio |
 
 ---
 
@@ -66,7 +66,7 @@ LPLens does exactly that.
    - Phase 3 — IL reconstruction (COMPUTED from whitepaper eq. 6.29/6.30 via `@uniswap/v3-sdk` SqrtPriceMath)
    - Phase 4 — regime classification (ESTIMATED — mean-reverting / trending / high-toxic / JIT-dominated, with confidence scores)
    - Phase 5 — V4 hook discovery (VERIFIED addresses + LABELED families via our curated registry)
-   - Phase 6 — hook replay simulation (EMULATED — replays 10 k historical swaps through a hypothetical hook using `SwapMath.computeSwapStep`)
+   - Phase 6 — hook scoring (EMULATED — applies family-conditional multipliers to the pool's last 30 days of hourly volume + tier; surfaces the multiplier table as the assumption surface)
    - Phase 7 — migration plan (builds the Permit2 bundle calldata via Uniswap Trading API)
    - Phase 8 — verdict writer (GENERATED — LLM writes markdown narrative, offline hallucination validator checks every number traces to input JSON)
    - Phase 9 — report assembly + TEE sign + upload to 0G Storage + anchor on 0G Chain
@@ -107,7 +107,7 @@ Every numeric value in a LPLens report is **labeled** — we never present an es
 | 🟠 **EMULATED** | Result of a simulation of something that did not actually run on-chain | `simulated_apr_in_dynamic_fee_hook = +18.6 %` (with `warnings[]`) |
 | 🏷️ **LABELED** | Manual curation by us | `hook_family = "JIT_PROTECTED"` |
 
-Phase 6 (hook replay) is always EMULATED — the report explicitly discloses that the simulation uses family-level emulation of hook behavior and cannot guarantee on-chain execution would match.
+Phase 6 (hook scoring) is always EMULATED — the report explicitly discloses that the simulation uses family-level multipliers and cannot guarantee on-chain execution would match.
 
 ---
 
@@ -115,12 +115,12 @@ Phase 6 (hook replay) is always EMULATED — the report explicitly discloses tha
 
 Six blocking acceptance tests must pass before any signed report is published :
 
-- **AT-1 IL calibration** — our IL reconstruction matches Revert Finance to ±1 % on three golden V3 positions
-- **AT-2 no-hook replay drift** — replay 1 000 mainnet swaps without a hook, final `sqrtPriceX96` matches actual on-chain state to < 10 bps
-- **AT-4 LLM no-hallucination** — every number in the final verdict markdown traces back to the input JSON (offline validator)
-- **AT-5 TEE signature round-trip** — download report from 0G Storage via rootHash, re-hash, verify TEE signature offline
-- **AT-8 V4 PositionInfo decode** — TypeScript decoder of the packed `uint256` matches the Solidity library byte-exact
-- **AT-9 V4 hook flag decoding** — flag bitmask decoded from hook address matches the masking expected by the PoolManager
+- **AT-1 IL invariants** — three properties of `computeIL` (zero-in/zero-out, deposit-price equals current-price → IL=0, fees offset IL one-for-one) and one calibration fixture (one V3 position, hand-checked expected IL) hold within 1 %.
+- **AT-2 no-hook replay drift** — designed: replay 1 000 mainnet swaps without a hook, final `sqrtPriceX96` matches actual on-chain state to < 10 bps. Not yet wired (phase 6 is heuristic scoring, not swap-by-swap replay; AT-2 is the proof that would justify a future replay engine).
+- **AT-4 LLM no-hallucination** — every number in the final verdict markdown traces back to the input JSON (offline validator). Wired inline on phase 10.
+- **AT-5 TEE signature round-trip** — designed: download report from 0G Storage via rootHash, re-hash, verify TEE signature offline.
+- **AT-6 Permit2 EIP-712 signature** — signs synthetic `PermitSingle` typed data and recovers the signer offline via `viem`.
+- **AT-9 V4 hook flag decoding** — flag bitmask decoded from hook address matches the masking expected by the PoolManager (fixture-based).
 
 Four additional tuning tests cover directionality of hook family emulation, sandwich detection false-positive rate, regime classifier sanity, and end-to-end perf (≤ 60 s).
 
@@ -151,16 +151,18 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 
 ## Acceptance tests (`data/reliability-tests.md`)
 
-- **AT-1 IL invariants** — covered by `packages/agent/test/IL.invariants.test.ts`. CI runs them on every PR.
+- **AT-1 IL invariants + calibration fixture** — covered by `packages/agent/test/IL.invariants.test.ts` (six invariant cases) and `packages/agent/test/IL.calibration.test.ts` (one V3 position with hand-checked expected IL within 1 %). CI runs both on every PR.
 - **AT-4 LLM hallucination guard** — covered inline by `validateVerdict` (phase 10). Unsupported claims are masked + warned, not silently shipped.
-- AT-2, AT-3, AT-5, AT-6, AT-7, AT-8, AT-9, AT-10 — designed but not yet wired as test harnesses. Tracking issues will follow the submission.
+- **AT-6 Permit2 EIP-712 signature** — covered by `apps/web/test/permit2.eip712.test.ts`. Signs synthetic typed data, recovers the signer with `viem`.
+- **AT-9 V4 hook flag decoding** — covered by `packages/agent/test/hookFlags.fixture.test.ts`. Fixture asserts the 14-bit bitmap → 7-family classifier on a known mainnet hook.
+- AT-2, AT-3, AT-5, AT-7, AT-8, AT-10 — designed in `data/reliability-tests.md`; not yet wired as harnesses. Tracking issues follow the submission.
 
 ## Known limitations
 
-- Phase 6 is heuristic, not a swap-by-swap EVM-state replay. The README and panel both say so explicitly. A full `SwapMath.computeSwapStep` replay is a follow-up, not a hackathon ask.
-- The sample address used in DEMO.md depends on real-time chain state — its exact health-state distribution is not pinned. Judges paste their own wallet for an authoritative run.
+- Phase 6 is a family-multiplier scoring engine, not a swap-by-swap EVM-state replay. The README, panel, and tool name (`scoreHook`) all say so explicitly. A full `SwapMath.computeSwapStep` replay would back AT-2 and is the documented follow-up.
+- Atlas exposes three curated demo wallets as one-click buttons. Each is labeled clearly (live wallet vs curated fixture) so the health-state distribution is pinned for the demo run; judges can paste their own wallet for an authoritative run.
 - Regime classifier weights are heuristic and not back-tested against a labeled dataset; the panel surfaces the raw features so a reviewer can sanity-check.
-- ENS publish writes structured records under a single parent name keyed by tokenId. The "subname per position" pattern from the design doc would require parent-name ownership + NameWrapper writes, which is a follow-up.
+- ENS publication writes structured text records under a single parent name (`lplens-demo.eth`) keyed by `lplens.<tokenId>.<field>` — the records resolve through any ENS frontend or via `lplens.resolveEnsRecord` over MCP. A genuine subname-per-position pattern (NameWrapper writes against an owned parent) is the documented follow-up.
 
 ## Deployed contracts
 
