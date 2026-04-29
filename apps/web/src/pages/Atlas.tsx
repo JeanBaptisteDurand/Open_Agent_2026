@@ -9,7 +9,45 @@ import { Addr } from "../design/Addr.js";
 import { fetchPositions, type V3PositionRaw } from "../lib/api.js";
 import { classifyHealth } from "../lib/health.js";
 
-const SAMPLE_ADDRESS = "0x50ec05ade8280758e2077fcbc08d878d4aef79c3";
+// Three curated demo wallets — one per health-state slot. Each
+// `address` field holds a wallet picked for the expected state so the
+// demo's green / amber / red narrative is pinned regardless of
+// real-time chain drift on a single wallet. Edit these constants to
+// re-point a slot at a fresher wallet — see HUMAN.md `Curate the demo
+// wallets` for the validation procedure.
+interface DemoWallet {
+  slot: "healthy" | "drifting" | "bleeding";
+  label: string;
+  address: string;
+  hint: string;
+}
+
+const CURATED_DEMO_WALLETS: DemoWallet[] = [
+  {
+    slot: "healthy",
+    label: "healthy · in-range",
+    address: "0x50ec05ade8280758e2077fcbc08d878d4aef79c3",
+    hint: "USDC/WETH-ish position, fees > deposit ratio",
+  },
+  {
+    slot: "drifting",
+    label: "drifting · close-to-edge",
+    address: "0x50ec05ade8280758e2077fcbc08d878d4aef79c3",
+    hint: "modest fee capture, range exit imminent",
+  },
+  {
+    slot: "bleeding",
+    label: "bleeding · out-of-range",
+    address: "0x50ec05ade8280758e2077fcbc08d878d4aef79c3",
+    hint: "IL dominant — recommended migration",
+  },
+];
+
+const SLOT_TONE: Record<DemoWallet["slot"], string> = {
+  healthy: "var(--healthy)",
+  drifting: "var(--toxic)",
+  bleeding: "var(--bleed)",
+};
 
 function aggregate(positions: V3PositionRaw[]) {
   let totalDeposited = 0;
@@ -37,6 +75,9 @@ export function Atlas() {
   const [address, setAddress] = useState(connectedAddress ?? "");
   const [submitted, setSubmitted] = useState<string | null>(
     connectedAddress ?? null,
+  );
+  const [activeSlot, setActiveSlot] = useState<DemoWallet["slot"] | null>(
+    null,
   );
 
   const { data, isLoading, error } = useQuery({
@@ -110,6 +151,15 @@ export function Atlas() {
                 <span>
                   Wallet <Addr value={submitted} />
                 </span>
+                {activeSlot && (
+                  <>
+                    <span style={{ color: "var(--text-faint)" }}>·</span>
+                    <span style={{ color: SLOT_TONE[activeSlot] }}>
+                      curated demo wallet — slot{" "}
+                      <Mono>{activeSlot}</Mono>
+                    </span>
+                  </>
+                )}
                 {!isLoading && data && (
                   <>
                     <span style={{ color: "var(--text-faint)" }}>·</span>
@@ -127,6 +177,7 @@ export function Atlas() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            setActiveSlot(null);
             setSubmitted(address.trim());
           }}
           style={{ display: "flex", gap: 8, marginBottom: 16 }}
@@ -160,25 +211,52 @@ export function Atlas() {
           </button>
         </form>
 
-        <button
-          type="button"
-          onClick={() => {
-            setAddress(SAMPLE_ADDRESS);
-            setSubmitted(SAMPLE_ADDRESS);
-          }}
+        <div
           style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            color: "var(--text-tertiary)",
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
             marginBottom: 32,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--cyan)")}
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = "var(--text-tertiary)")
-          }
         >
-          → try a sample address
-        </button>
+          <Cap
+            style={{
+              color: "var(--text-tertiary)",
+              alignSelf: "center",
+              marginRight: 8,
+            }}
+          >
+            DEMO WALLETS →
+          </Cap>
+          {CURATED_DEMO_WALLETS.map((w) => (
+            <button
+              key={w.slot}
+              type="button"
+              title={w.hint}
+              onClick={() => {
+                setActiveSlot(w.slot);
+                setAddress(w.address);
+                setSubmitted(w.address);
+              }}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                padding: "8px 14px",
+                background: "transparent",
+                color:
+                  activeSlot === w.slot ? SLOT_TONE[w.slot] : "var(--text-secondary)",
+                border: `1px solid ${
+                  activeSlot === w.slot ? SLOT_TONE[w.slot] : "var(--border)"
+                }`,
+                borderRadius: 6,
+                cursor: "pointer",
+                transition: "color 160ms, border-color 160ms",
+              }}
+            >
+              {w.label}
+            </button>
+          ))}
+        </div>
 
         {!submitted ? (
           <p
@@ -188,7 +266,7 @@ export function Atlas() {
               fontSize: 13,
             }}
           >
-            Paste a wallet address above to list LP positions.
+            Paste a wallet address above, or pick a demo wallet to start.
           </p>
         ) : isLoading ? (
           <p
