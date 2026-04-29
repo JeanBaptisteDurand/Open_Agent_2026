@@ -144,6 +144,8 @@ export async function runPhase1(
     tool: "getV3Position",
     output: {
       pair: `${position.pool.value.token0.symbol}/${position.pool.value.token1.symbol}`,
+      token0: position.pool.value.token0.address,
+      token1: position.pool.value.token1.address,
       tickLower: position.tickLower.value,
       tickUpper: position.tickUpper.value,
       liquidity: position.liquidity.value,
