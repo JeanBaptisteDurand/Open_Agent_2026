@@ -3,11 +3,14 @@ import type { PoolHourPoint, RegimeFeatures } from "../04-regime/types.js";
 import type { HookScoringMultipliers, HookScoringResult } from "./types.js";
 
 // Family-conditional multipliers. The feeApr / volume / ilImpact /
-// retention values were calibrated against the regime-feature pool
-// statistics from a curated 30-day backtest set (top 50 V3 pools, same
-// pair distribution). They are deliberately conservative — readers
-// should treat the simulated APR as a directional estimate, not a
-// number to bet against.
+// retention values are heuristic family weights informed by the
+// design intent of each hook category (dynamic-fee, gated-swap,
+// swap-delta-cut, royalty, init-gate, lifecycle) and gated by the
+// pool's regime features (realized vol, toxicity proxy). They are
+// NOT calibrated against a measured backtest dataset — readers
+// should treat the simulated APR as a directional estimate informed
+// by hook semantics, not a number to bet against. A full empirical
+// calibration is documented in the AT-2 follow-up.
 
 function multipliersFor(
   family: HookFamily,
