@@ -26,20 +26,20 @@ const CURATED_DEMO_WALLETS: DemoWallet[] = [
   {
     slot: "healthy",
     label: "healthy · in-range",
-    address: "0x50ec05ade8280758e2077fcbc08d878d4aef79c3",
-    hint: "USDC/WETH-ish position, fees > deposit ratio",
+    address: "0x30c35950f2a8b8b76338bcd0b4d6fe67c98d2439",
+    hint: "USDC/WETH 0.05% — current tick at ~25% of range, fees compounding",
   },
   {
     slot: "drifting",
     label: "drifting · close-to-edge",
-    address: "0x50ec05ade8280758e2077fcbc08d878d4aef79c3",
-    hint: "modest fee capture, range exit imminent",
+    address: "0x4ec9073ce27ea985c77b13d1cbf03033789de3f1",
+    hint: "USDC/WETH 0.05% — current tick at ~87% of range, exit imminent",
   },
   {
     slot: "bleeding",
     label: "bleeding · out-of-range",
-    address: "0x50ec05ade8280758e2077fcbc08d878d4aef79c3",
-    hint: "IL dominant — recommended migration",
+    address: "0x76809bbfefb88547333466fc62985dfe19cd90f7",
+    hint: "USDC/WETH 0.05% — way above range, IL dominant — migrate",
   },
 ];
 
