@@ -268,12 +268,12 @@ export function Landing() {
           }}
         >
           <Cap style={{ color: "var(--text-tertiary)" }}>INSTRUMENT STACK</Cap>
-          <TrustItem name="0G Compute TEE" sub="SGX · attested" />
-          <TrustItem name="Uniswap V3 / V4" sub="mainnet · arbitrum" />
-          <TrustItem name="Permit2" sub="bundled signatures" />
-          <TrustItem name="MCP" sub="agent-callable" />
-          <TrustItem name="ERC-7857" sub="iNFT agent profile" />
-          <TrustItem name="x402" sub="USDC billing" />
+          <TrustItem name="0G Compute" sub="TDX · provider-attested" />
+          <TrustItem name="Uniswap V3 / V4" sub="mainnet · sepolia" />
+          <TrustItem name="Permit2" sub="EIP-712 signed bundle" />
+          <TrustItem name="MCP" sub="6 tools · agent-callable" />
+          <TrustItem name="ERC-7857" sub="iNFT agent identity" />
+          <TrustItem name="ENS" sub="provenance text records" />
         </div>
       </section>
 
