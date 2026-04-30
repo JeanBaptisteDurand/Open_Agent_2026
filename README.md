@@ -18,7 +18,7 @@ Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — A
 | Feature | Description |
 | --- | --- |
 | Position Atlas | Connect wallet → list every V3/V4 LP position with a green/amber/red health indicator (percent in-range + IL direction) |
-| LP Diagnostic Agent | Multi-phase agent that streams 9 phases of analysis over SSE : position resolution, IL decomposition, regime classification, hook discovery, hook scoring, migration plan, report assembly, on-chain anchor, verdict, ENS publish |
+| LP Diagnostic Agent | Multi-phase agent that streams analysis over SSE : position resolution → IL decomposition → regime classification → hook discovery → hook scoring → migration preview → verdict (TEE) → report assembly → 0G Chain anchor → ENS publish |
 | Hook Scoring Engine | Scores each candidate V4 hook against the pool's last 30 days of hourly volume + tier with family-conditional multipliers (dynamic-fee / gated-swap / swap-delta-cut / royalty / init-gate / lifecycle / unknown). Heuristic — not a swap-by-swap EVM replay. The panel renders the multiplier table as the explicit assumption surface |
 | One-click Permit2 Migration | Generates an atomic `close V3 → swap → mint V4` bundle signable in a single Permit2 signature |
 | Signed Report | Report JSON pinned to 0G Storage (merkle rootHash), signed by TEE oracle, anchored on 0G Chain registry — verifiable offline with the CLI |
@@ -59,18 +59,18 @@ LPLens does exactly that.
 
 1. User connects wallet → frontend fetches positions list from the v3/v4 subgraphs. V4 positions are merged from the thin `Position` entity + `ModifyLiquidity` events + on-chain reads on the V4 `PositionManager` contract.
 2. User clicks a position. The frontend opens a typed SSE stream to `/api/diagnose/:tokenId`. Express enqueues a BullMQ job.
-3. A worker runs the **9-phase agent** :
-   - Phase 1 — position resolution (VERIFIED data from chain)
-   - Phase 1.5 — pool RAG lookup (pgvector over historical regime notes)
-   - Phase 2 — AI planning via 0G Compute TEE (`gpt-oss-120b` on mainnet, `qwen-2.5-7b-instruct` on testnet)
+3. A worker runs the **multi-phase agent** in this order:
+   - Phase 1 — V3 position resolution (VERIFIED — subgraph + on-chain RPC reads on the V4 `PositionManager` for V4 positions)
    - Phase 3 — IL reconstruction (COMPUTED from whitepaper eq. 6.29/6.30 via `@uniswap/v3-sdk` SqrtPriceMath)
    - Phase 4 — regime classification (ESTIMATED — mean-reverting / trending / high-toxic / JIT-dominated, with confidence scores)
-   - Phase 5 — V4 hook discovery (VERIFIED addresses + LABELED families via our curated registry)
+   - Phase 5 — V4 hook discovery (VERIFIED addresses + LABELED families via 14-bit flag-bitmap classifier)
    - Phase 6 — hook scoring (EMULATED — applies family-conditional multipliers to the pool's last 30 days of hourly volume + tier; surfaces the multiplier table as the assumption surface)
-   - Phase 7 — migration plan (builds the Permit2 bundle calldata via Uniswap Trading API)
-   - Phase 8 — verdict writer (GENERATED — LLM writes markdown narrative, offline hallucination validator checks every number traces to input JSON)
-   - Phase 9 — report assembly + TEE sign + upload to 0G Storage + anchor on 0G Chain
-4. Each phase emits typed `DiagnosticEvent`s over SSE — the React Flow graph builds itself live (Position node → Pool History nodes → Hook candidates → Migration path), narrative text streams in a typewriter.
+   - Phase 7 — migration preview (builds the Permit2 EIP-712 typed data via Uniswap Trading API `/quote` for the swap leg)
+   - Phase 10 — verdict synthesis (LLM via 0G Compute, broker-attested; AT-4 hallucination guard masks unsupported claims with `[unsupported]`) **runs before phase 8 so the broker attestation lands inside the report payload**
+   - Phase 8 — report assembly + 0G Storage upload (returns merkle rootHash)
+   - Phase 9 — 0G Chain anchor (calls `LPLensReports.publishReport(tokenId, rootHash, attestation)` on the deployed registry)
+   - Phase 11 — ENS publication (writes 5 text records under [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) on Sepolia)
+4. Each phase emits typed `DiagnosticEvent`s over SSE — panels populate live, narrative text streams in a typewriter.
 5. User clicks "Migrate" → modal shows the 3-step Permit2 bundle → single signature → tx on mainnet / Sepolia testnet.
 
 ---
@@ -169,7 +169,7 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 | Network | Contract | Address |
 | --- | --- | --- |
 | 0G Newton (chainId 16602) | `LPLensReports` | [`0x05B4140683579dcbD1feC5965E7ADC77f210E53A`](https://chainscan-newton.0g.ai/address/0x05B4140683579dcbD1feC5965E7ADC77f210E53A) |
-| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | [`0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141`](https://chainscan-newton.0g.ai/address/0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141) |
+| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | [`0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141`](https://chainscan-newton.0g.ai/address/0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141) — agent token `tokenId 1`, owner `0x95eEe5d9d8d7D734EB29613E7Fd8e2875349b344`, codeImageHash `0x3c89cd0bad030975cc7d4e5dbda1973a808bb38d67df6d460f931914ff039a7c` |
 | Sepolia (chainId 11155111) | ENS parent name | [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — owner `0x95eEe5d9d8d7D734EB29613E7Fd8e2875349b344`, resolver `0x8FADE66B79cC9f707aB26799354482EB93a5B7dD` |
 
 See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. After deploy, copy the addresses into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` — the server's `ogChain` adapter switches from raw self-tx anchoring to a real `publishReport(...)` call automatically.
@@ -231,7 +231,7 @@ Three curated sample positions (committed as mock data) let a judge test without
 - **Amber** — WBTC/WETH 0.3 % drifting close to upper bound
 - **Red** — PEPE/WETH 1 % heavy IL, 52 % time in-range, recommended migration to `JITGuard`
 
-Each sample runs the full 9-phase pipeline with realistic payloads and a signed report on the 0G Newton testnet.
+Each sample runs the full pipeline with real chain reads, real 0G Storage upload, real 0G Chain anchor on the deployed `LPLensReports` registry, real broker-attested verdict via 0G Compute, and real Sepolia ENS text-record writes under `lplensagent.eth`.
 
 ---
 

@@ -1,8 +1,10 @@
 # @lplens/agent
 
-The 9-phase diagnostic pipeline. Each phase is a small, isolated step that
-emits typed `DiagnosticEvent`s; the orchestrator runs them in sequence and
-produces a signed report.
+The diagnostic pipeline. Each phase is a small, isolated step that emits
+typed `DiagnosticEvent`s; the route runs them in this order: 1, 3, 4, 5,
+6, 7, **10 (verdict)**, 8 (report assembly + storage), 9 (chain anchor),
+11 (ENS publish). Phase 10 runs before 8 so the broker attestation is
+embedded in the rootHash-anchored report payload.
 
 ## Status
 
