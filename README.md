@@ -6,7 +6,7 @@ LPLens reads any LP position, reconstructs *why* it is losing money against a HO
 
 Every numeric value carries one of five honesty labels (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so a judge can tell at a glance which claims trace back to chain-state and which are heuristics.
 
-The verdict is synthesized by an LLM on **0G Compute** (provider-attested via the broker's request signature), the report blob is pinned to **0G Storage** with a merkle rootHash, and that rootHash is anchored on **0G Chain** through the `LPLensReports` registry. The agent's identity is published as text records under a parent name on **ENS** — resolving `lplens.<tokenId>.<field>` keys on `lplens-demo.eth` returns the full provenance triple (rootHash, storage URL, anchor txHash, verdict excerpt). An MCP server exposes `lplens.diagnose`, `lplens.preflight`, `lplens.migrate`, `lplens.lookupReport`, `lplens.lookupReportOnChain`, and `lplens.resolveEnsRecord` to any other agent.
+The verdict is synthesized by an LLM on **0G Compute** (provider-attested via the broker's request signature), the report blob is pinned to **0G Storage** with a merkle rootHash, and that rootHash is anchored on **0G Chain** through the `LPLensReports` registry. An MCP server exposes `lplens.diagnose`, `lplens.preflight`, `lplens.migrate`, `lplens.lookupReport`, `lplens.lookupReportOnChain`, and `lplens.resolveEnsRecord` to any other agent — `lookupReportOnChain` reads the registry independently of the LPLens API, which is the headline composability beat.
 
 Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — Apr 24 → May 6 2026.
 
@@ -177,9 +177,8 @@ See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. 
 
 | Track | Prize | What we do for it |
 | --- | --- | --- |
-| **0G — Best Autonomous Agents, Swarms & iNFT Innovations** | $7 500 (1 of 5 × $1 500) | LPLens is a long-running goal-driven agent on 0G. Verdicts are TEE-attested via `0G Compute` (`qwen-2.5-7b-instruct` on testnet). Reports are pinned to `0G Storage` with merkle rootHash. The rootHash is anchored on `0G Chain` through the `LPLensReports` registry contract. The agent itself is minted as an ERC-7857-style **iNFT** via `LPLensAgent` — `memoryRoot` updates each cycle, `reputation` increments per anchored report. |
+| **0G — Best Autonomous Agents, Swarms & iNFT Innovations** | $7 500 (1 of 5 × $1 500) | LPLens is a long-running goal-driven agent on 0G. Verdicts are TEE-attested via `0G Compute` (`qwen/qwen-2.5-7b-instruct` on testnet, provider-attested via the broker's request signature). Reports are pinned to `0G Storage` with merkle rootHash. The rootHash is anchored on `0G Chain` through the `LPLensReports` registry contract. The agent itself is minted as an ERC-7857-style **iNFT** via `LPLensAgent` — `memoryRoot` updates each cycle, `reputation` increments per anchored report. |
 | **Uniswap Foundation — Best Uniswap API Integration** | $5 000 (1 of 3) | Subgraph v3 + v4 (`modifyLiquidities`, positions, ticks, `Pool` discovery, `poolHourData`), Trading API v1 `/quote` for sample-notional swap pricing inside the migration preview, V4 hook flag-bitmap decoding (14 bits → 7 family heuristic), and Permit2 EIP-712 PermitSingle signature flow on the migration modal. Builder feedback in [FEEDBACK.md](FEEDBACK.md). |
-| **ENS — Most Creative Use of ENS** | $2 500 (1 of 3) | Each LPLens diagnose publishes the report's rootHash + storageUrl + anchor txHash + verdict excerpt as text records under `lplens-demo.eth`, keyed by `lplens.<tokenId>.<field>`. Resolving the parent name returns the full provenance triple for any position the agent has ever diagnosed. The MCP server exposes `lplens.resolveEnsRecord` so other agents can read the records without trusting the LPLens API. |
 
 ## Local setup
 
