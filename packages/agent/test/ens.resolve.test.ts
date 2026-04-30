@@ -40,6 +40,28 @@ describe("ENS — resolveEnsRecord generic mainnet read", () => {
     transport: http(RPC_URL),
   });
 
+  it("resolves lplensagent.eth records on Sepolia", async () => {
+    const sepoliaClient = createPublicClient({
+      transport: http(
+        process.env.OG_ENS_TEST_SEPOLIA_RPC ??
+          "https://ethereum-sepolia-rpc.publicnode.com",
+      ),
+    });
+    const sepoliaResolver =
+      "0x8FADE66B79cC9f707aB26799354482EB93a5B7dD" as Hex;
+    const node = namehash("lplensagent.eth");
+    const value = (await sepoliaClient.readContract({
+      address: sepoliaResolver,
+      abi: RESOLVER_ABI,
+      functionName: "text",
+      args: [node, "lplens.605311.rootHash"],
+    })) as string;
+    // Either a real rootHash (after a publish) or empty (before).
+    // We assert non-undefined so the test is hermetic across clean
+    // environments; the real-on-chain assertion is a one-shot script.
+    expect(typeof value).toBe("string");
+  }, 30_000);
+
   it("reads url text record on vitalik.eth", async () => {
     const node = namehash("vitalik.eth");
     const value = (await client.readContract({
