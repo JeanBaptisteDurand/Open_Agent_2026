@@ -10,6 +10,18 @@ The verdict is synthesized by an LLM on **0G Compute** (provider-attested via th
 
 Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — Apr 24 → May 6 2026.
 
+---
+
+## 30-second tour (for judges)
+
+If you only have a minute, here's the path that proves every claim in this README:
+
+1. **Watch a real diagnose run** — open `/atlas`, click the **bleeding** demo wallet button, click the bleeding USDC/WETH card, watch every panel populate. ~25 s.
+2. **Read the live demo run section below** — real rootHash + anchor tx + ENS records you can verify yourself with two `cast call` commands.
+3. **Run the verification yourself**: copy a `cast call` from the *Live demo run* section, paste it into your shell, see the same `LPLensReports` registry return the report metadata or the same ENS resolver return the rootHash. Three independent verification paths (LPLens API, 0G Chain registry, Sepolia ENS) all return the same hash. No LPLens server in the trust path.
+4. **Try a different position** — paste any wallet address with V3 LP positions, or use the `healthy` / `drifting` demo buttons.
+
+Detailed walkthrough in [DEMO.md](DEMO.md).
 
 ---
 
