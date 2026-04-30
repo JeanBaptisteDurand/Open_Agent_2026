@@ -40,3 +40,13 @@ AI_ATTRIBUTION.md
 
 # TS incremental build info
 *.tsbuildinfo
+
+# Playwright test artifacts (per-run output, not source-of-truth)
+apps/web/test-results/
+apps/web/playwright-report/
+
+# Foundry — installed deps (forge install adds these as submodules; we
+# don't track them, contributors run forge install themselves).
+.gitmodules
+contracts/lib/
+contracts/foundry.lock

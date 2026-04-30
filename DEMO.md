@@ -21,94 +21,102 @@ intact and is honest about what hit the network.
 
 ## Walkthrough — 5 beats, ~3 minutes
 
-### 1. Landing — the prism
+### Beat 1 — Atlas → bleeding position card (0:00–0:30)
 
-Open `http://localhost:3100/`. The hero animates a 14s six-beat prism
-sequence (idle → pilot beam → refraction → fan → crystallize → sign).
-Each ray crystallizes into a labeled data node — IL, REGIME, FEES,
-TOXIC, HOOK. This is the agent's "what does it analyze" pictured.
+Open `http://localhost:3100/atlas`. Three demo wallet buttons sit at
+the top — `healthy`, `drifting`, `bleeding`. Click **bleeding** —
+loads a curated fixture wallet whose top position is far out of range
+with dominant IL, labeled `EMULATED — curated demo fixture` on the
+PositionCard so the source is unambiguous.
 
-Click **Connect wallet** (top-right) → opens the wallet modal. For the
-demo we use a sample address shortcut on the next page, so this can
-be skipped.
+The aggregate strip shows: total deposited, fees captured, healthy /
+drifting / bleeding counts. The bleeding card sweeps a soft red
+gradient — the visual cue that frames the rest of the demo.
 
-### 2. Atlas — your liquidity, under the lens
+Click the bleeding card → enters the diagnose flow.
 
-Navigate to `/atlas`. Click **try a sample address** to load the
-curated demo wallet (`0x50ec…79c3`). The page renders:
+### Beat 2 — Diagnose: live IL math + regime + hook scoring (0:30–1:30)
 
-- The aggregate strip — total deposited, fees captured, healthy /
-  drifting / bleeding counts.
-- One PositionCard per LP position with a status accent (green /
-  amber / red), token-pair glyph, deposited / fees / liquidity stats,
-  and a "DIAGNOSE →" CTA.
-- Bleeding positions sweep a soft red gradient across the card to
-  draw attention.
+The page opens an SSE stream to `/api/diagnose/:tokenId`. Phase
+progress strips at the top of the page tick from phase 1 → 11 as the
+agent runs. Each panel renders the moment its phase emits.
 
-Click any card to enter the diagnose flow.
-
-### 3. Diagnose — the live pipeline
-
-The page opens an SSE stream to `/api/diagnose/:tokenId` and the
-panels populate as each phase emits. Watch:
-
-1. **DiagnosticGraph** — ReactFlow nodes appear as phases start.
-2. **ILPanel** (COMPUTED, eq. 6.29 / 6.30) — HODL value vs LP value
-   vs fees, all in token1 units.
-3. **RegimePanel** (ESTIMATED) — top regime label + confidence.
-4. **HooksPanel** (LABELED) — candidate v4 hooks with family color
+1. **ILPanel** (COMPUTED, eq. 6.29 / 6.30) — HODL value vs LP value
+   vs fees, all in token1 units. Numbers are deterministic given the
+   chain reads.
+2. **RegimePanel** (ESTIMATED) — top regime label + confidence + the
+   raw features (realized vol, Hurst, sandwich-spike proxy, JIT
+   proxy) so the assumption surface is auditable.
+3. **HooksPanel** (LABELED) — candidate v4 hooks with family color
    coding; each row expandable to show the 14-bit flag bitmap.
-5. **ReplayPanel** (EMULATED) — top hook replayed against 30d of
-   pool history; baseline APR vs simulated APR with delta.
-6. **MigrationPanel** (EMULATED) — close v3 → swap → mint v4 plan
-   with the Trading API quote. **Migrate** button opens the modal.
-7. **ReportProvenancePanel** (VERIFIED when keys set, else EMULATED)
-   — rootHash + storage URL + 0G Chain anchor txHash + view-report
-   link.
-8. **VerdictPanel** (ESTIMATED, TEE-attested) — 3-sentence verdict
-   from 0G Compute. Streams in markdown with a typewriter effect.
-9. **EnsPanel** (VERIFIED when keys set, else EMULATED) — per-position
-   text records under `lplens-demo.eth`.
+4. **HookScoringPanel** (EMULATED) — top hook scored against 30d of
+   pool history; baseline APR vs simulated APR with delta. The
+   panel renders the **multiplier table** explicitly (feeApr,
+   volume, ilImpact, retention) — the assumption surface, not a
+   black box.
 
-Each panel's label badge tells the truth about its trust level. A
-fully-signed run shows VERIFIED + COMPUTED + ESTIMATED + LABELED +
-EMULATED + VERIFIED + ESTIMATED + VERIFIED in the header.
+### Beat 3 — Migration: Permit2 in one signature (1:30–2:15)
 
-### 4. Migration — Permit2 in one signature
+Scroll to the **MigrationPanel** (EMULATED). Shows the close v3 →
+swap → mint v4 plan with a real Trading API quote. Click **Migrate
+→** opens the modal: 3-step bundle, Permit2 EIP-712 typed data
+preview (verifying contract, spender, sigDeadline). Click **Sign
+Permit2** → the wallet asks for an EIP-712 signature on the
+`PermitSingle` struct. After signing, the modal shows the captured
+signature. **The agent never executes — the user stays in custody.**
 
-Click **Migrate →** on the MigrationPanel. The modal shows the
-3-step bundle, the Permit2 EIP-712 typed data preview (verifying
-contract, spender, sigDeadline). Click **Sign Permit2** → the wallet
-asks for an EIP-712 signature on the PermitSingle struct. After signing,
-the modal shows the captured signature ready for the agent's relayer
-to submit. The agent never executes — the user stays in custody.
+### Beat 4 — Report + on-chain verification (2:15–2:45)
 
-### 5. Report — the permanent witness
+Scroll to **ReportProvenancePanel** (VERIFIED when keys set, else
+EMULATED). Shows the rootHash + 0G Storage URL + 0G Chain anchor
+txHash + view-report link. Click **view report →** lands at
+`/report/<rootHash>` — every section the agent emitted (provenance,
+position, IL, regime, hooks, scoring, migration) read-only with
+honesty labels intact.
 
-Click **view report →** on the ReportProvenancePanel. Lands at
-`/report/<rootHash>`. The page renders every section the agent
-emitted (provenance, position, IL, regime, hooks, migration) read-
-only with the same honesty labels. This URL is shareable — anyone
-with the link sees exactly what was committed.
-
-For the on-chain verification path: copy the rootHash, open the MCP
-server in Claude Desktop, call `lplens.lookupReportOnChain` with the
+For the on-chain verification path (this is the headline composability
+beat): copy the rootHash, open Claude Desktop with the LPLens MCP
+server configured, call `lplens.lookupReportOnChain` with the
 rootHash. The contract returns the publisher + timestamp + tokenId
-straight from `LPLensReports` — no LPLens API trust required.
+straight from `LPLensReports` — no LPLens API trust required, the
+verification is a pure on-chain read from a separate process.
 
-For the ENS verification path: call `lplens.resolveEnsRecord` with
-`name: lplens-demo.eth, key: lplens.<tokenId>.rootHash`. The on-chain
-text record returns the same hash.
+### Beat 5 — Verdict + ENS (2:45–3:00)
 
-## Sample positions (curated wallet)
+Back on the diagnose page, the **VerdictPanel** (ESTIMATED,
+provider-attested via 0G Compute) streams a 3-sentence markdown
+verdict. The AT-4 hallucination guard runs inline — every `$` / `%` /
+hex claim in the verdict is regex-extracted and checked (within ±2 %)
+against the report payload; unsupported claims are masked with
+`[unsupported]` and the panel surfaces the mismatch list as a warning.
 
-The sample address `0x50ec05ade8280758e2077fcbc08d878d4aef79c3` has
-LP positions across the three health states so a single demo run
-covers all three CTA narratives:
+The **EnsPanel** shows the per-position text records published under
+[`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth)
+on Sepolia, keyed `lplens.<tokenId>.rootHash`,
+`lplens.<tokenId>.storageUrl`, etc. Resolves through any ENS
+frontend; the MCP `lplens.resolveEnsRecord` tool reads them
+independently of the LPLens API. To prove it from the cli:
 
-- **healthy** — in-range USDC/WETH-ish position, fees > deposit ratio
-- **drifting** — close-to-edge, modest fee capture
-- **bleeding** — far out of range, IL dominant
+```bash
+cast call 0x8FADE66B79cC9f707aB26799354482EB93a5B7dD \
+  "text(bytes32,string)(string)" \
+  $(cast namehash lplensagent.eth) \
+  "lplens.<tokenId>.rootHash" \
+  --rpc-url https://ethereum-sepolia-rpc.publicnode.com
+```
 
-The curated set lets a judge run through the full flow without
-needing their own wallet.
+## Demo wallets (three buttons, three health states)
+
+The three demo wallet buttons load curated fixtures so the demo's
+green / amber / red narrative is pinned regardless of real-time chain
+state:
+
+- **healthy** — in-range USDC/WETH-ish position, fees > deposit ratio.
+- **drifting** — close-to-edge position, modest fee capture.
+- **bleeding** — far out of range, IL dominant, recommended migration
+  to a `GATED_SWAP` family hook.
+
+Each fixture position is rendered with the `EMULATED — curated demo
+fixture` label so the source is explicit. Judges who want a live read
+can paste their own wallet address into the search bar above the
+buttons.

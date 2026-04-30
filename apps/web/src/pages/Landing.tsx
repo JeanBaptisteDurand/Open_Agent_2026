@@ -236,7 +236,7 @@ export function Landing() {
           <HowCard
             n="02"
             label="SIMULATE"
-            title="Replay every V4 hook, in a sealed enclave."
+            title="Score every V4 hook, in a sealed enclave."
             desc="Candidate hooks are executed against the exact swap stream your pool experienced. Counterfactual P&L, fee capture, and LVR are measured."
           />
           <HowCard

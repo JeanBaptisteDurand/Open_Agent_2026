@@ -25,11 +25,11 @@ import type {
   HookFamily,
   Phase5Output,
 } from "./phases/05-hooks/types.js";
-import { replayHook } from "./phases/06-replay/replayHook.js";
+import { scoreHook } from "./phases/06-scoring/scoreHook.js";
 import type {
-  HookReplayResult,
+  HookScoringResult,
   Phase6Output,
-} from "./phases/06-replay/types.js";
+} from "./phases/06-scoring/types.js";
 import {
   buildMigrationPreview,
   type Quoter,
@@ -144,6 +144,8 @@ export async function runPhase1(
     tool: "getV3Position",
     output: {
       pair: `${position.pool.value.token0.symbol}/${position.pool.value.token1.symbol}`,
+      token0: position.pool.value.token0.address,
+      token1: position.pool.value.token1.address,
       tickLower: position.tickLower.value,
       tickUpper: position.tickUpper.value,
       liquidity: position.liquidity.value,
@@ -352,7 +354,7 @@ export async function runPhase5(
   };
 }
 
-const REPLAY_LOOKBACK_HOURS = 30 * 24;
+const SCORING_LOOKBACK_HOURS = 30 * 24;
 
 export async function runPhase6(
   position: Phase1Output,
@@ -390,6 +392,9 @@ export async function runPhase6(
   emit({ type: "phase.start", phase: 6, label: "v4 hook scoring" });
 
   // Pick the top hook by TVL — same heuristic as phase 5 narrative.
+  // Note: phase 6 is "scoring" (family multipliers), not "replay"
+  // (swap-by-swap EVM state). The naming was deliberately tightened —
+  // every claim downstream traces back to multipliers + history vol/tier.
   const candidates = inputs.hooks.candidates.value;
   const top = candidates.reduce(
     (best, c) => (c.tvlUsd > best.tvlUsd ? c : best),
@@ -398,12 +403,12 @@ export async function runPhase6(
 
   emit({
     type: "tool.call",
-    tool: "replayHook",
+    tool: "scoreHook",
     input: { hook: top.hookAddress, family: top.family },
   });
 
   const fromUnix =
-    Math.floor(Date.now() / 1000) - REPLAY_LOOKBACK_HOURS * 3600;
+    Math.floor(Date.now() / 1000) - SCORING_LOOKBACK_HOURS * 3600;
   const history = await deps.fetchPoolHourDatas(
     position.pool.value.address,
     fromUnix,
@@ -411,7 +416,7 @@ export async function runPhase6(
 
   const baselineIlPct = inputs.il?.ilPct.value ?? 0;
 
-  const result: HookReplayResult = replayHook({
+  const result: HookScoringResult = scoreHook({
     hook: top,
     feeTierPpm: position.pool.value.feeTier,
     features: inputs.regime.features.value,
@@ -421,7 +426,7 @@ export async function runPhase6(
 
   emit({
     type: "tool.result",
-    tool: "replayHook",
+    tool: "scoreHook",
     output: result,
     latencyMs: Date.now() - t0,
   });
@@ -430,7 +435,7 @@ export async function runPhase6(
     type: "narrative",
     text:
       result.deltaAprPct > 0
-        ? `Scored ${result.family.toLowerCase().replace(/_/g, "-")} hook against ${result.hoursReplayed}h of pool data: heuristic APR ${result.simulatedAprPct.toFixed(2)}% (Δ ${result.deltaAprPct >= 0 ? "+" : ""}${result.deltaAprPct.toFixed(2)} pts vs baseline).`
+        ? `Scored ${result.family.toLowerCase().replace(/_/g, "-")} hook against ${result.hoursScored}h of pool data: heuristic APR ${result.simulatedAprPct.toFixed(2)}% (Δ ${result.deltaAprPct >= 0 ? "+" : ""}${result.deltaAprPct.toFixed(2)} pts vs baseline).`
         : `Scored ${result.family.toLowerCase().replace(/_/g, "-")} hook: APR delta is ${result.deltaAprPct.toFixed(2)} pts; this family is not predicted to improve LP economics in the current regime.`,
   });
   emit({ type: "phase.end", phase: 6, durationMs: Date.now() - t0 });
@@ -504,6 +509,7 @@ export async function runPhase8(
     regime: Phase4Output | null;
     hooks: Phase5Output | null;
     migration: Phase7Output | null;
+    verdict?: Phase10Output | null;
   },
   deps: AgentDeps,
   emit: Emit,
@@ -530,6 +536,7 @@ export async function runPhase8(
     regime: outputs.regime,
     hooks: outputs.hooks,
     migration: outputs.migration,
+    verdict: outputs.verdict,
   });
 
   emit({
@@ -648,11 +655,11 @@ export async function runPhase9(
 }
 
 export async function runPhase10(
-  storageResult: Phase8Output | null,
+  draftReport: AssembledReport | null,
   deps: AgentDeps,
   emit: Emit,
 ): Promise<Phase10Output | null> {
-  if (!storageResult) {
+  if (!draftReport) {
     emit({
       type: "narrative",
       text: "Skipping verdict synthesis — no report to summarize.",
@@ -672,10 +679,10 @@ export async function runPhase10(
   emit({
     type: "tool.call",
     tool: "synthesizeVerdict",
-    input: { schemaVersion: storageResult.report.value.schemaVersion },
+    input: { schemaVersion: draftReport.schemaVersion },
   });
 
-  const prompt = buildVerdictPrompt(storageResult.report.value);
+  const prompt = buildVerdictPrompt(draftReport);
   const partial = await deps.synthesizeVerdict(prompt);
 
   // AT-4 hallucination guard: every numeric / hex claim in the verdict
@@ -683,7 +690,7 @@ export async function runPhase10(
   // Unsupported claims are masked with `[unsupported]` and the
   // mismatches are pushed into the warnings array attached to the
   // EMULATED label downstream.
-  const validation = validateVerdict(partial.markdown, storageResult.report.value);
+  const validation = validateVerdict(partial.markdown, draftReport);
 
   const payload: VerdictPayload = {
     ...partial,

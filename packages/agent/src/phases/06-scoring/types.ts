@@ -1,7 +1,8 @@
-// Phase 6 — V4 Hook Replay.
-// Counterfactual simulation: re-runs the same pool's history with a
-// candidate v4 hook installed, returns simulated 30-day APR, fee
-// capture, IL impact, and delta vs the current (hookless) baseline.
+// Phase 6 — V4 Hook Scoring (heuristic).
+// Counterfactual simulation that scores each candidate v4 hook against
+// the pool's recent history with family-conditional multipliers, and
+// returns simulated 30-day APR, fee capture, IL impact, and delta vs
+// the current (hookless) baseline.
 //
 // This is EMULATED — not a chain-state replay. Each family is modeled
 // by a small set of multipliers calibrated against the volatility +
@@ -12,7 +13,7 @@
 import type { Labeled } from "@lplens/core";
 import type { HookFamily } from "../05-hooks/types.js";
 
-export interface HookReplayMultipliers {
+export interface HookScoringMultipliers {
   feeApr: number;          // multiplier on baseline fee APR (1.0 = no change)
   volume: number;          // multiplier on baseline volume (lower = filtered toxic flow)
   ilImpact: number;        // multiplier on baseline IL (lower = mitigated)
@@ -20,7 +21,7 @@ export interface HookReplayMultipliers {
   rationale: string;       // why these multipliers, in plain English
 }
 
-export interface HookReplayResult {
+export interface HookScoringResult {
   hookAddress: string;
   family: HookFamily;
   baselineAprPct: number;
@@ -30,11 +31,11 @@ export interface HookReplayResult {
   simulatedIlPct: number;
   deltaIlPct: number;
   feeCapturePct: number;
-  multipliers: HookReplayMultipliers;
-  hoursReplayed: number;
+  multipliers: HookScoringMultipliers;
+  hoursScored: number;
   warnings: string[];
 }
 
 export interface Phase6Output {
-  result: Labeled<HookReplayResult>;
+  result: Labeled<HookScoringResult>;
 }

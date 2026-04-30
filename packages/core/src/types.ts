@@ -61,8 +61,8 @@ export interface HookInfo {
   volumeUsd?: string;
 }
 
-// Diagnostic SSE event stream — typed events emitted by the 9-phase agent and
-// consumed by the React Flow graph / typewriter narrative.
+// Diagnostic SSE event stream — typed events emitted by the agent's
+// phase pipeline and consumed by the panel renderers / typewriter narrative.
 export type DiagnosticEvent =
   | { type: "phase.start"; phase: number; label: string }
   | { type: "phase.end"; phase: number; durationMs: number }

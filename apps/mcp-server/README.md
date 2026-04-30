@@ -9,7 +9,9 @@ framework — call the LPLens diagnostic pipeline as a typed tool.
 | Name | What it does |
 | --- | --- |
 | `lplens.ping` | Liveness check — returns `{ pong: true, at: <ISO timestamp> }`. Useful to confirm the MCP transport is wired up. |
-| `lplens.diagnose` | Runs the full 11-phase diagnostic on a Uniswap V3 LP position. Streams SSE from the LPLens server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict. |
+| `lplens.diagnose` | Runs the full diagnostic on a Uniswap V3 LP position. Streams SSE from the LPLens server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict. |
+| `lplens.preflight` | Lightweight migration preview — close→swap→mint plan + Trading API quote + target V4 hook. Stops the upstream stream as soon as the migration field lands so the caller doesn't pay for a full diagnostic. |
+| `lplens.migrate` | Builds the EIP-712 PermitSingle typed data ready for the user's wallet to sign. Does not execute — the calling agent is responsible for surfacing the signature flow to the user. |
 | `lplens.lookupReport` | Fetches a permanent report by its 0G Storage rootHash, served from the LPLens server cache. |
 | `lplens.resolveEnsRecord` | Reads a single ENS text record (`lplens.<tokenId>.rootHash` etc.) — pure on-chain view, no signing. |
 | `lplens.lookupReportOnChain` | Reads the LPLensReports registry directly on 0G Chain. Independent verification path that doesn't trust the LPLens API. |
@@ -44,7 +46,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`
 }
 ```
 
-Then restart Claude Desktop. The 5 tools appear under the
+Then restart Claude Desktop. The 7 tools appear under the
 `lplens-mcp` server. Run the LPLens API server in another terminal
 (`pnpm --filter @lplens/server dev`) so `lplens.diagnose` has somewhere
 to stream from.
@@ -70,7 +72,7 @@ Cursor reads `~/.cursor/mcp.json` (same shape as Claude Desktop):
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | pnpm --filter @lplens/mcp-server exec lplens-mcp
 ```
 
-Should print a JSON-RPC response listing all 5 tools.
+Should print a JSON-RPC response listing all 7 tools.
 
 ## Programmatic sample (autonomous agents)
 

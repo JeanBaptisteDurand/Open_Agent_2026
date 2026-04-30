@@ -16,6 +16,16 @@ import {
   diagnoseToolDefinition,
 } from "./tools/diagnose.js";
 import {
+  preflight,
+  preflightInputSchema,
+  preflightToolDefinition,
+} from "./tools/preflight.js";
+import {
+  migrate,
+  migrateInputSchema,
+  migrateToolDefinition,
+} from "./tools/migrate.js";
+import {
   lookupReport,
   lookupReportInputSchema,
   lookupReportToolDefinition,
@@ -48,6 +58,8 @@ async function main() {
     tools: [
       pingToolDefinition,
       diagnoseToolDefinition,
+      preflightToolDefinition,
+      migrateToolDefinition,
       lookupReportToolDefinition,
       resolveEnsRecordToolDefinition,
       lookupReportOnChainToolDefinition,
@@ -64,6 +76,16 @@ async function main() {
       case "lplens.diagnose": {
         const parsed = diagnoseInputSchema.parse(args ?? {});
         const result = await diagnose(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.preflight": {
+        const parsed = preflightInputSchema.parse(args ?? {});
+        const result = await preflight(parsed);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      }
+      case "lplens.migrate": {
+        const parsed = migrateInputSchema.parse(args ?? {});
+        const result = await migrate(parsed);
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
       case "lplens.lookupReport": {

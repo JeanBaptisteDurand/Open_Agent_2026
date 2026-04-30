@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import {
+  assembleReport,
   runPhase1,
   runPhase3,
   runPhase4,
@@ -146,24 +147,39 @@ export async function diagnoseHandler(
     const il = await runPhase3(position, (event) => sse.emit(event));
     const regime = await runPhase4(position, deps, (event) => sse.emit(event));
     const hooks = await runPhase5(position, deps, (event) => sse.emit(event));
-    const replay = await runPhase6(
+    const scoring = await runPhase6(
       position,
       { regime, hooks, il },
       deps,
       (event) => sse.emit(event),
     );
-    void replay;
+    void scoring;
     const migration = await runPhase7(position, hooks, deps, (event) =>
+      sse.emit(event),
+    );
+
+    // Phase 10 runs BEFORE phase 8 so the verdict's TEE attestation
+    // (provider, model, broker signature) lands inside the report
+    // payload that phase 8 uploads to 0G Storage. The draft report has
+    // every structured field except provenance + attestation; phase 10
+    // only reads the structured data, so building it twice is cheap.
+    const draftReport = assembleReport({
+      position,
+      il,
+      regime,
+      hooks,
+      migration,
+    });
+    const verdict = await runPhase10(draftReport, deps, (event) =>
       sse.emit(event),
     );
     const storage = await runPhase8(
       position,
-      { il, regime, hooks, migration },
+      { il, regime, hooks, migration, verdict },
       deps,
       (event) => sse.emit(event),
     );
     const anchor = await runPhase9(storage, deps, (event) => sse.emit(event));
-    const verdict = await runPhase10(storage, deps, (event) => sse.emit(event));
     await runPhase11(
       position,
       { storage, anchor, verdict },

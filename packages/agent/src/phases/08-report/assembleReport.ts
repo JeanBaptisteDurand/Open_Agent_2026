@@ -2,8 +2,9 @@ import type { Phase1Output } from "../01-resolution/types.js";
 import type { Phase4Output } from "../04-regime/types.js";
 import type { Phase5Output } from "../05-hooks/types.js";
 import type { Phase7Output } from "../07-migration/types.js";
+import type { Phase10Output } from "../10-verdict/types.js";
 import type { Phase3Output } from "../../orchestrator.js";
-import type { AssembledReport } from "./types.js";
+import type { AssembledReport, VerdictAttestation } from "./types.js";
 
 const AGENT_VERSION = "0.7.0-storage";
 
@@ -13,6 +14,7 @@ export function assembleReport(args: {
   regime: Phase4Output | null;
   hooks: Phase5Output | null;
   migration: Phase7Output | null;
+  verdict?: Phase10Output | null;
 }): AssembledReport {
   const pool = args.position.pool.value;
   const pair = `${pool.token0.symbol}/${pool.token1.symbol}`;
@@ -65,6 +67,18 @@ export function assembleReport(args: {
         : undefined,
       warnings: preview.warnings,
     };
+  }
+
+  if (args.verdict) {
+    const v = args.verdict.verdict.value;
+    const attestation: VerdictAttestation = {
+      type: "0g-compute-broker-signature",
+      provider: v.providerAddress ?? "stub",
+      model: v.model,
+      generatedAt: v.generatedAt,
+      stub: v.stub,
+    };
+    report.attestation = attestation;
   }
 
   return report;

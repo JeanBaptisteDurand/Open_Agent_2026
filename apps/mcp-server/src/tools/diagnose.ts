@@ -1,4 +1,4 @@
-// lplens.diagnose — runs the full 11-phase diagnostic pipeline on a
+// lplens.diagnose — runs the full diagnostic pipeline on a
 // Uniswap LP position. Wraps the server's SSE stream and accumulates
 // every event into a structured summary the calling agent can reason
 // over: position, IL breakdown, regime, candidate hooks, migration
@@ -185,7 +185,7 @@ function applyEvent(s: DiagnoseSummary, ev: Event): void {
 export const diagnoseToolDefinition = {
   name: "lplens.diagnose",
   description:
-    "Run the full LPLens 11-phase diagnostic on a Uniswap V3 LP position. Streams SSE from the server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict.",
+    "Run the full LPLens diagnostic on a Uniswap V3 LP position. Streams SSE from the server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict.",
   inputSchema: {
     type: "object",
     properties: {

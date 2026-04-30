@@ -1,4 +1,6 @@
-// @lplens/agent — orchestrates the 9-phase diagnostic pipeline.
+// @lplens/agent — orchestrates the diagnostic pipeline (phases 1, 3,
+// 4, 5, 6, 7, 10, 8, 9, 11 — phase 10 runs before 8 so the broker
+// attestation is embedded in the report payload that 8 uploads).
 
 export type { DiagnosticEvent } from "@lplens/core";
 export {
@@ -37,12 +39,12 @@ export type {
   HookFamily,
   Phase5Output,
 } from "./phases/05-hooks/types.js";
-export { replayHook } from "./phases/06-replay/replayHook.js";
+export { scoreHook } from "./phases/06-scoring/scoreHook.js";
 export type {
-  HookReplayMultipliers,
-  HookReplayResult,
+  HookScoringMultipliers,
+  HookScoringResult,
   Phase6Output,
-} from "./phases/06-replay/types.js";
+} from "./phases/06-scoring/types.js";
 export {
   buildMigrationPreview,
   type Quoter,

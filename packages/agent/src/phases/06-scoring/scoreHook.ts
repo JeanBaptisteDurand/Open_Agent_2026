@@ -1,6 +1,6 @@
 import type { HookCandidate, HookFamily } from "../05-hooks/types.js";
 import type { PoolHourPoint, RegimeFeatures } from "../04-regime/types.js";
-import type { HookReplayMultipliers, HookReplayResult } from "./types.js";
+import type { HookScoringMultipliers, HookScoringResult } from "./types.js";
 
 // Family-conditional multipliers. The feeApr / volume / ilImpact /
 // retention values were calibrated against the regime-feature pool
@@ -12,7 +12,7 @@ import type { HookReplayMultipliers, HookReplayResult } from "./types.js";
 function multipliersFor(
   family: HookFamily,
   features: RegimeFeatures,
-): HookReplayMultipliers {
+): HookScoringMultipliers {
   const elevatedVol = features.volRealized > 0.04;
   const toxic = features.toxicityProxy > 0.6;
 
@@ -71,7 +71,7 @@ function multipliersFor(
         ilImpact: 1.0,
         retention: 1.0,
         rationale:
-          "Custom lifecycle hooks vary by implementation; not modeled by the generic replay engine.",
+          "Custom lifecycle hooks vary by implementation; not modeled by the generic scoring engine.",
       };
     case "UNKNOWN":
     default:
@@ -81,7 +81,7 @@ function multipliersFor(
         ilImpact: 1.0,
         retention: 1.0,
         rationale:
-          "Unknown hook family — replay engine returns the baseline pass-through.",
+          "Unknown hook family — scoring engine returns the baseline pass-through.",
       };
   }
 }
@@ -118,17 +118,17 @@ function estimateBaselineApr(
   return (periodFees / Math.max(1, tvlProxy)) * annualizationFactor * 100;
 }
 
-export function replayHook(args: {
+export function scoreHook(args: {
   hook: HookCandidate;
   feeTierPpm: number;
   features: RegimeFeatures;
   history: PoolHourPoint[];
   baselineIlPct: number;
-}): HookReplayResult {
+}): HookScoringResult {
   const warnings: string[] = [];
   if (args.history.length < 24) {
     warnings.push(
-      "Replay history < 24 hourly points — APR estimate has wide error bars.",
+      "Scoring history < 24 hourly points — APR estimate has wide error bars.",
     );
   }
 
@@ -149,7 +149,7 @@ export function replayHook(args: {
     deltaIlPct: round((simulatedIl - args.baselineIlPct) * 100, 3),
     feeCapturePct: round(multipliers.retention * 100, 1),
     multipliers,
-    hoursReplayed: args.history.length,
+    hoursScored: args.history.length,
     warnings,
   };
 }
