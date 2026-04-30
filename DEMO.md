@@ -91,10 +91,19 @@ against the report payload; unsupported claims are masked with
 `[unsupported]` and the panel surfaces the mismatch list as a warning.
 
 The **EnsPanel** shows the per-position text records published under
-`lplens-demo.eth`, keyed `lplens.<tokenId>.rootHash`,
+[`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth)
+on Sepolia, keyed `lplens.<tokenId>.rootHash`,
 `lplens.<tokenId>.storageUrl`, etc. Resolves through any ENS
 frontend; the MCP `lplens.resolveEnsRecord` tool reads them
-independently of the LPLens API.
+independently of the LPLens API. To prove it from the cli:
+
+```bash
+cast call 0x8FADE66B79cC9f707aB26799354482EB93a5B7dD \
+  "text(bytes32,string)(string)" \
+  $(cast namehash lplensagent.eth) \
+  "lplens.<tokenId>.rootHash" \
+  --rpc-url https://ethereum-sepolia-rpc.publicnode.com
+```
 
 ## Demo wallets (three buttons, three health states)
 
