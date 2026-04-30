@@ -116,7 +116,7 @@ Phase 6 (hook scoring) is always EMULATED — the report explicitly discloses th
 Six blocking acceptance tests must pass before any signed report is published :
 
 - **AT-1 IL invariants** — three properties of `computeIL` (zero-in/zero-out, deposit-price equals current-price → IL=0, fees offset IL one-for-one) and one calibration fixture (one V3 position, hand-checked expected IL) hold within 1 %.
-- **AT-2 no-hook replay drift** — designed: replay 1 000 mainnet swaps without a hook, final `sqrtPriceX96` matches actual on-chain state to < 10 bps. Not yet wired (phase 6 is heuristic scoring, not swap-by-swap replay; AT-2 is the proof that would justify a future replay engine).
+- **AT-2 no-hook replay drift** — full replay (1 000 mainnet swaps without a hook, final `sqrtPriceX96` within 10 bps of actual) is designed but not yet wired; phase 6 is heuristic scoring, not swap-by-swap replay. We do ship the **building-block test** (`packages/agent/test/at2.swapmath.test.ts`) that pins the per-step primitive (`SwapMath.computeSwapStep` from `@uniswap/v3-sdk`) so the future replay engine has a hermetic regression guard.
 - **AT-4 LLM no-hallucination** — every number in the final verdict markdown traces back to the input JSON (offline validator). Wired inline on phase 10.
 - **AT-5 TEE signature round-trip** — designed: download report from 0G Storage via rootHash, re-hash, verify TEE signature offline.
 - **AT-6 Permit2 EIP-712 signature** — signs synthetic `PermitSingle` typed data and recovers the signer offline via `viem`.
@@ -155,7 +155,10 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 - **AT-4 LLM hallucination guard** — covered inline by `validateVerdict` (phase 10). Unsupported claims are masked + warned, not silently shipped.
 - **AT-6 Permit2 EIP-712 signature** — covered by `apps/web/test/permit2.eip712.test.ts`. Signs synthetic typed data, recovers the signer with `viem`.
 - **AT-9 V4 hook flag decoding** — covered by `packages/agent/test/hookFlags.fixture.test.ts`. Fixture asserts the 14-bit bitmap → 7-family classifier on a known mainnet hook.
-- AT-2, AT-3, AT-5, AT-7, AT-8, AT-10 — designed in `data/reliability-tests.md`; not yet wired as harnesses. Tracking issues follow the submission.
+- **AT-2 building block** — covered by `packages/agent/test/at2.swapmath.test.ts` (per-step primitive). Full 1 000-swap replay engine is designed-not-wired.
+- **AT-3 regime classifier directionality** — covered by `packages/agent/test/regime.fixture.test.ts` on three synthetic fixtures (mean-reverting / trending / JIT-dominated).
+- **AT-5 on-chain anchor round-trip** — covered by `packages/agent/test/at5.onchain-roundtrip.test.ts` against the deployed `LPLensReports` registry on 0G Newton.
+- AT-7, AT-8, AT-10 — designed in `data/reliability-tests.md`; not yet wired as harnesses. Tracking issues follow the submission.
 
 ## Known limitations
 
