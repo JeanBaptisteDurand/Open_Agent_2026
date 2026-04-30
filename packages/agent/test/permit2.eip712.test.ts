@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  privateKeyToAccount,
-  recoverTypedDataAddress,
-} from "viem/accounts";
-import { keccak256, toHex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { keccak256, recoverTypedDataAddress, toHex } from "viem";
 
 // AT-6 — Permit2 EIP-712 signature.
 // Signs a synthetic `PermitSingle` typed data payload with a known
@@ -51,7 +48,7 @@ describe("AT-6 — Permit2 EIP-712 signature round-trip", () => {
       expiration: 1_800_000_000,
       nonce: 0,
     },
-    spender: "0x66a9893cC07D91d95644AEDD05D03f95e1dBA8Af" as const, // Universal Router
+    spender: "0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af" as const, // Universal Router
     sigDeadline: 1_730_000_000n,
   } as const;
 

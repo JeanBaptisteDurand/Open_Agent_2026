@@ -16,7 +16,7 @@ const PERMIT2_ADDRESS =
 // bundle. The agent never executes; the address is locked here for the
 // EIP-712 domain so the calling agent can verify.
 const UNIVERSAL_ROUTER_MAINNET =
-  "0x66a9893cC07D91d95644AEDD05D03f95e1dBA8Af" as const;
+  "0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af" as const;
 
 const PERMIT_SINGLE_TYPES = {
   PermitSingle: [
