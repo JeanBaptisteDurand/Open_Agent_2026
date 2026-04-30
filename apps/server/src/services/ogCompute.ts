@@ -59,6 +59,30 @@ export class OgComputeClient {
     const provider = new ethers.JsonRpcProvider(config.OG_NEWTON_RPC);
     const wallet = new ethers.Wallet(config.OG_COMPUTE_PRIVATE_KEY, provider);
     this.broker = await createZGComputeNetworkBroker(wallet);
+
+    // Auto-bootstrap the broker ledger sub-account on first use. The
+    // SDK throws "Account does not exist" when the wallet has no ledger
+    // yet — calling `addLedger(balance)` creates one and seeds it with
+    // the initial deposit. Idempotent: if the ledger already exists,
+    // `addLedger` reverts; we swallow the "already exists" path so the
+    // bootstrap is safe to run on every cold start.
+    try {
+      // Minimum balance per the broker SDK is 3 0G.
+      logger.info("0g-compute ensuring ledger exists (addLedger 3 0G)");
+      await this.broker.ledger.addLedger(3);
+      logger.info("0g-compute ledger bootstrapped");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (
+        msg.toLowerCase().includes("already exists") ||
+        msg.toLowerCase().includes("ledger exists") ||
+        msg.toLowerCase().includes("ledger already")
+      ) {
+        logger.info("0g-compute ledger already initialised");
+      } else {
+        logger.warn(`0g-compute addLedger non-fatal: ${msg}`);
+      }
+    }
   }
 
   private async ensureService(): Promise<BrokerService> {
@@ -67,10 +91,15 @@ export class OgComputeClient {
     if (!this.broker) throw new Error("broker init failed");
 
     const services = await this.broker.inference.listService();
-    const match = services.find(
-      (s: { model: string; serviceType: string }) =>
-        s.model === config.OG_COMPUTE_MODEL && s.serviceType === "chatbot",
-    );
+    // Broker now publishes models with a vendor/ prefix (e.g.,
+    // `qwen/qwen-2.5-7b-instruct`). Accept both exact matches and
+    // suffix matches so the config can use either format.
+    const wanted = config.OG_COMPUTE_MODEL.toLowerCase();
+    const match = services.find((s: { model: string; serviceType: string }) => {
+      if (s.serviceType !== "chatbot") return false;
+      const m = s.model.toLowerCase();
+      return m === wanted || m.endsWith(`/${wanted}`) || wanted.endsWith(`/${m}`);
+    });
     if (!match) {
       throw new Error(
         `no service for model ${config.OG_COMPUTE_MODEL}; available: ${services.map((s: { model: string }) => s.model).join(", ")}`,
@@ -81,6 +110,53 @@ export class OgComputeClient {
       model: match.model as string,
       url: match.url as string,
     };
+
+    // Ensure a per-provider sub-account exists and is funded. Without
+    // this, getRequestHeaders fails with "Sub-account not found" /
+    // "Account does not exist". Idempotent: getAccount succeeds if the
+    // account is already set up.
+    if (!this.broker) throw new Error("broker missing");
+    try {
+      await this.broker.inference.getAccount(this.service.provider);
+      logger.info(
+        `0g-compute provider account ready provider=${this.service.provider}`,
+      );
+    } catch {
+      logger.info(
+        `0g-compute provider account missing — funding 1 0G to ${this.service.provider}`,
+      );
+      // Provider sub-account recommended min is 1 0G; below that the
+      // provider may reject requests.
+      await this.broker.ledger.transferFund(
+        this.service.provider,
+        "inference",
+        1_000_000_000_000_000_000n,
+      );
+      logger.info(`0g-compute provider account funded`);
+    }
+
+    // Ensure the provider's TEE signer is acknowledged by the wallet.
+    // Without this, signed responses cannot be verified.
+    try {
+      const ack = await this.broker.inference.acknowledged(
+        this.service.provider,
+      );
+      if (!ack) {
+        logger.info(
+          `0g-compute acknowledging provider signer ${this.service.provider}`,
+        );
+        await this.broker.inference.acknowledgeProviderSigner(
+          this.service.provider,
+        );
+      }
+    } catch (err) {
+      logger.warn(
+        `0g-compute acknowledgement check skipped: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
     return this.service;
   }
 
@@ -114,8 +190,14 @@ export class OgComputeClient {
         JSON.stringify(messages),
       );
 
+      // 0G compute providers expose the OpenAI-compatible chat endpoint
+      // under `/v1/proxy` (per the broker SDK README). The OpenAI client
+      // appends `/chat/completions` to that, hitting `/v1/proxy/chat/completions`
+      // which the provider's reverse-proxy forwards to the model.
+      const baseURL = `${svc.url.replace(/\/$/, "")}/v1/proxy`;
+      logger.info(`0g-compute hitting provider ${baseURL}`);
       const client = new OpenAI({
-        baseURL: svc.url,
+        baseURL,
         apiKey: "0g-broker",
         defaultHeaders: headers as unknown as Record<string, string>,
       });
