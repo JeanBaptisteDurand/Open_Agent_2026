@@ -162,7 +162,7 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 - Phase 6 is a family-multiplier scoring engine, not a swap-by-swap EVM-state replay. The README, panel, and tool name (`scoreHook`) all say so explicitly. A full `SwapMath.computeSwapStep` replay would back AT-2 and is the documented follow-up.
 - Atlas exposes three curated demo wallets as one-click buttons. Each is labeled clearly (live wallet vs curated fixture) so the health-state distribution is pinned for the demo run; judges can paste their own wallet for an authoritative run.
 - Regime classifier weights are heuristic and not back-tested against a labeled dataset; the panel surfaces the raw features so a reviewer can sanity-check.
-- ENS publication writes structured text records under a single parent name (`lplens-demo.eth`) keyed by `lplens.<tokenId>.<field>` — the records resolve through any ENS frontend or via `lplens.resolveEnsRecord` over MCP. A genuine subname-per-position pattern (NameWrapper writes against an owned parent) is the documented follow-up.
+- ENS publication writes structured text records under a single parent name ([`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) on Sepolia) keyed by `lplens.<tokenId>.<field>` — the records resolve through any ENS frontend or via `lplens.resolveEnsRecord` over MCP. A genuine subname-per-position pattern (NameWrapper writes against an owned parent) is the documented follow-up.
 
 ## Deployed contracts
 
@@ -173,6 +173,31 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 | Sepolia (chainId 11155111) | ENS parent name | [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — owner `0x95eEe5d9d8d7D734EB29613E7Fd8e2875349b344`, resolver `0x8FADE66B79cC9f707aB26799354482EB93a5B7dD` |
 
 See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. After deploy, copy the addresses into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` — the server's `ogChain` adapter switches from raw self-tx anchoring to a real `publishReport(...)` call automatically.
+
+## Live demo run — proof-of-life
+
+Captured 2026-04-30 against curated bleeding wallet `0x76809bb…0f7` (USDC/WETH 0.05 % position `tokenId 605311`, far above range, IL dominant):
+
+| Output | Value |
+| --- | --- |
+| 0G Storage rootHash | `0x5b7b82f5d11186e684cbec10be64629b236e9a60cb6c7db924d18ccf8c574d75` |
+| 0G Chain anchor tx | [`0x238d9bd238…7aea1921`](https://chainscan-newton.0g.ai/tx/0x238d9bd238f7c395717783e48a1732168a18cfb84323c27df8464d377aea1921) (block 30 738 381, `LPLensReports.publishReport`) |
+| 0G Compute verdict | model `qwen/qwen-2.5-7b-instruct`, provider `0xa48f0128…2E67836`, broker-signed |
+| AT-4 hallucination guard | fired live — masked two LLM-fabricated numbers with `[unsupported]` in the verdict markdown |
+| ENS records on Sepolia | 5 text records under [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — keys `lplens.605311.{rootHash, storageUrl, anchorTx, chainId, verdict}` |
+
+Independent verification path — anyone with the rootHash + the registry address can run `cast`:
+
+```bash
+cast call 0x05B4140683579dcbD1feC5965E7ADC77f210E53A \
+  "reports(bytes32)(address,uint64,uint256,bytes32,bytes)" \
+  0x5b7b82f5d11186e684cbec10be64629b236e9a60cb6c7db924d18ccf8c574d75 \
+  --rpc-url https://evmrpc-testnet.0g.ai
+
+# Returns: publisher=0x95eEe5...b344, timestamp, tokenId=605311, rootHash, attestation
+```
+
+Or via the MCP tool `lplens.lookupReportOnChain` / `lplens.resolveEnsRecord` from any other agent — no LPLens server in the trust path.
 
 ## Tracks applied
 
