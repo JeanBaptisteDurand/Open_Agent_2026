@@ -110,9 +110,13 @@ export class OgChainClient {
         });
       }
 
+      // 0G Newton blocks are fast but RPC propagation can lag. Generous
+      // timeout + slow polling avoids "tx not yet on a block" races.
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: txHash,
-        timeout: 30_000,
+        timeout: 90_000,
+        pollingInterval: 2_000,
+        retryCount: 6,
       });
 
       logger.info(

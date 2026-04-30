@@ -1,4 +1,6 @@
-// @lplens/agent — orchestrates the 9-phase diagnostic pipeline.
+// @lplens/agent — orchestrates the diagnostic pipeline (phases 1, 3,
+// 4, 5, 6, 7, 10, 8, 9, 11 — phase 10 runs before 8 so the broker
+// attestation is embedded in the report payload that 8 uploads).
 
 export type { DiagnosticEvent } from "@lplens/core";
 export {

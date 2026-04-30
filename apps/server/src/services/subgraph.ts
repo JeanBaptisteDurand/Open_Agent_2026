@@ -41,7 +41,6 @@ const POSITIONS_BY_OWNER_V3 = /* GraphQL */ `
       pool {
         id
         feeTier
-        tickSpacing
         token0 {
           id
           symbol
@@ -76,7 +75,6 @@ const POSITION_BY_ID_V3 = /* GraphQL */ `
       pool {
         id
         feeTier
-        tickSpacing
         sqrtPrice
         tick
         token0Price
@@ -95,6 +93,24 @@ const POSITION_BY_ID_V3 = /* GraphQL */ `
     }
   }
 `;
+
+// V3 pool tickSpacing is fully determined by the fee tier (per
+// Uniswap factory's `feeAmountTickSpacing` mapping). The subgraph
+// schema does not expose it, so we derive it client-side.
+const V3_FEE_TIER_TO_TICK_SPACING: Record<string, number> = {
+  "100": 1,
+  "500": 10,
+  "3000": 60,
+  "10000": 200,
+};
+
+function deriveV3TickSpacing(feeTier: string): string {
+  const ts = V3_FEE_TIER_TO_TICK_SPACING[feeTier];
+  if (ts !== undefined) return String(ts);
+  // Fallback for non-standard tiers — Uniswap factory defaults are
+  // power-of-2 friendly; use 60 (the most common) as a safe default.
+  return "60";
+}
 
 const POOL_HOUR_DATAS_V3 = /* GraphQL */ `
   query PoolHourDatas($pool: ID!, $from: Int!) {
@@ -299,7 +315,13 @@ export class SubgraphClient {
         POSITIONS_BY_OWNER_V3,
         { owner: owner.toLowerCase() },
       );
-      return data.positions;
+      // Subgraph V3 schema does not expose Pool.tickSpacing — derive
+      // from feeTier so downstream consumers (PositionCard, agent phases)
+      // see a complete shape.
+      return data.positions.map((p) => ({
+        ...p,
+        pool: { ...p.pool, tickSpacing: deriveV3TickSpacing(p.pool.feeTier) },
+      }));
     } catch (err) {
       logger.error(
         `subgraph v3 getV3PositionsByOwner failed for ${owner}: ${
@@ -324,7 +346,15 @@ export class SubgraphClient {
         POSITION_BY_ID_V3,
         { id: tokenId },
       );
-      return data.position;
+      if (!data.position) return null;
+      // Patch tickSpacing from feeTier (not exposed by V3 subgraph).
+      return {
+        ...data.position,
+        pool: {
+          ...data.position.pool,
+          tickSpacing: deriveV3TickSpacing(data.position.pool.feeTier),
+        },
+      };
     } catch (err) {
       logger.error(
         `subgraph v3 getV3PositionById failed for ${tokenId}: ${

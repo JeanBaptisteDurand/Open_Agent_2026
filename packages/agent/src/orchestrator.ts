@@ -509,6 +509,7 @@ export async function runPhase8(
     regime: Phase4Output | null;
     hooks: Phase5Output | null;
     migration: Phase7Output | null;
+    verdict?: Phase10Output | null;
   },
   deps: AgentDeps,
   emit: Emit,
@@ -535,6 +536,7 @@ export async function runPhase8(
     regime: outputs.regime,
     hooks: outputs.hooks,
     migration: outputs.migration,
+    verdict: outputs.verdict,
   });
 
   emit({
@@ -653,11 +655,11 @@ export async function runPhase9(
 }
 
 export async function runPhase10(
-  storageResult: Phase8Output | null,
+  draftReport: AssembledReport | null,
   deps: AgentDeps,
   emit: Emit,
 ): Promise<Phase10Output | null> {
-  if (!storageResult) {
+  if (!draftReport) {
     emit({
       type: "narrative",
       text: "Skipping verdict synthesis — no report to summarize.",
@@ -677,10 +679,10 @@ export async function runPhase10(
   emit({
     type: "tool.call",
     tool: "synthesizeVerdict",
-    input: { schemaVersion: storageResult.report.value.schemaVersion },
+    input: { schemaVersion: draftReport.schemaVersion },
   });
 
-  const prompt = buildVerdictPrompt(storageResult.report.value);
+  const prompt = buildVerdictPrompt(draftReport);
   const partial = await deps.synthesizeVerdict(prompt);
 
   // AT-4 hallucination guard: every numeric / hex claim in the verdict
@@ -688,7 +690,7 @@ export async function runPhase10(
   // Unsupported claims are masked with `[unsupported]` and the
   // mismatches are pushed into the warnings array attached to the
   // EMULATED label downstream.
-  const validation = validateVerdict(partial.markdown, storageResult.report.value);
+  const validation = validateVerdict(partial.markdown, draftReport);
 
   const payload: VerdictPayload = {
     ...partial,

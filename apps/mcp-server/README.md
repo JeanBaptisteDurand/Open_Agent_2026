@@ -9,7 +9,7 @@ framework — call the LPLens diagnostic pipeline as a typed tool.
 | Name | What it does |
 | --- | --- |
 | `lplens.ping` | Liveness check — returns `{ pong: true, at: <ISO timestamp> }`. Useful to confirm the MCP transport is wired up. |
-| `lplens.diagnose` | Runs the full 11-phase diagnostic on a Uniswap V3 LP position. Streams SSE from the LPLens server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict. |
+| `lplens.diagnose` | Runs the full diagnostic on a Uniswap V3 LP position. Streams SSE from the LPLens server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict. |
 | `lplens.preflight` | Lightweight migration preview — close→swap→mint plan + Trading API quote + target V4 hook. Stops the upstream stream as soon as the migration field lands so the caller doesn't pay for a full diagnostic. |
 | `lplens.migrate` | Builds the EIP-712 PermitSingle typed data ready for the user's wallet to sign. Does not execute — the calling agent is responsible for surfacing the signature flow to the user. |
 | `lplens.lookupReport` | Fetches a permanent report by its 0G Storage rootHash, served from the LPLens server cache. |
