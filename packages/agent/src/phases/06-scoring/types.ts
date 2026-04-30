@@ -5,10 +5,11 @@
 // the current (hookless) baseline.
 //
 // This is EMULATED — not a chain-state replay. Each family is modeled
-// by a small set of multipliers calibrated against the volatility +
-// toxicity regime of the pool (phase 4 features). The agent emits the
-// full multiplier set in the result so a reviewer can audit the
-// assumption surface.
+// by a small set of heuristic multipliers gated on the volatility +
+// toxicity regime of the pool (phase 4 features). The multipliers are
+// informed by hook design intent, not measured against an empirical
+// backtest dataset. The agent emits the full multiplier set in the
+// result so a reviewer can audit the assumption surface.
 
 import type { Labeled } from "@lplens/core";
 import type { HookFamily } from "../05-hooks/types.js";
