@@ -168,8 +168,8 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 
 | Network | Contract | Address |
 | --- | --- | --- |
-| 0G Newton (chainId 16602) | `LPLensReports` | _filled at submission_ |
-| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | _filled at submission_ |
+| 0G Newton (chainId 16602) | `LPLensReports` | [`0x05B4140683579dcbD1feC5965E7ADC77f210E53A`](https://chainscan-newton.0g.ai/address/0x05B4140683579dcbD1feC5965E7ADC77f210E53A) |
+| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | [`0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141`](https://chainscan-newton.0g.ai/address/0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141) |
 
 See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. After deploy, copy the addresses into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` — the server's `ogChain` adapter switches from raw self-tx anchoring to a real `publishReport(...)` call automatically.
 
