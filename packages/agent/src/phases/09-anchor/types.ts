@@ -1,7 +1,10 @@
-// Phase 9 — On-Chain Anchor.
+// Phase 9 — On-Chain Anchor + Agent iNFT memory update.
 // Submits the report's merkle rootHash to 0G Chain so the report becomes
 // tamper-evident: anyone can re-derive the rootHash from the storage blob
 // and assert it matches what the agent committed on-chain.
+// Also updates the LPLensAgent ERC-7857 iNFT's `memoryRoot` to point at
+// the latest report and bumps `reputation` so the iNFT carries verifiable
+// evolving intelligence/memory (per ETHGlobal 0G iNFT prize requirement).
 
 import type { Labeled } from "@lplens/core";
 
@@ -15,6 +18,19 @@ export interface AnchorReceipt {
   stub: boolean;
 }
 
+export interface AgentMemoryReceipt {
+  tokenId: number;
+  contract: string;
+  memoryRoot: string;
+  reputation: number;
+  updateMemoryTx?: string;
+  recordDiagnoseTx?: string;
+  updatedAt: string;
+  stub: boolean;
+  warnings: string[];
+}
+
 export interface Phase9Output {
   anchor: Labeled<AnchorReceipt>;
+  agentMemory?: Labeled<AgentMemoryReceipt>;
 }

@@ -42,6 +42,7 @@ import type {
   ReportProvenance,
 } from "./phases/08-report/types.js";
 import type {
+  AgentMemoryReceipt,
   AnchorReceipt,
   Phase9Output,
 } from "./phases/09-anchor/types.js";
@@ -89,6 +90,10 @@ export type ReportAnchorer = (
   rootHash: string,
 ) => Promise<Omit<AnchorReceipt, "anchoredAt" | "rootHash">>;
 
+export type AgentMemoryUpdater = (
+  rootHash: string,
+) => Promise<Omit<AgentMemoryReceipt, "updatedAt">>;
+
 export type VerdictSynthesizer = (
   reportJson: string,
 ) => Promise<Omit<VerdictPayload, "generatedAt">>;
@@ -116,6 +121,7 @@ export interface AgentDeps {
   quoteSwap?: Quoter;
   uploadReport?: ReportUploader;
   anchorReport?: ReportAnchorer;
+  updateAgentMemory?: AgentMemoryUpdater;
   synthesizeVerdict?: VerdictSynthesizer;
   publishEns?: EnsPublisher;
 }
@@ -645,12 +651,55 @@ export async function runPhase9(
       ? `Chain anchor skipped — emitting deterministic stub txHash ${receipt.txHash.slice(0, 14)}…`
       : `Anchored on 0G Chain (id ${receipt.chainId}). tx ${receipt.txHash.slice(0, 14)}…`,
   });
+
+  // Phase 9b — agent iNFT memory anchor + reputation increment. Best-
+  // effort: any failure here is reflected in the labeled output's
+  // warnings, but does NOT fail the diagnose run. Skipped when the
+  // agent's iNFT contract / tokenId / signing key isn't configured, OR
+  // when the report-anchor step itself stubbed (no point burning a
+  // memory tx for a stubbed root).
+  let agentMemory: Phase9Output["agentMemory"];
+  if (deps.updateAgentMemory && !receipt.stub) {
+    const tMem = Date.now();
+    emit({
+      type: "tool.call",
+      tool: "updateAgentMemoryRoot",
+      input: { rootHash },
+    });
+    const memPartial = await deps.updateAgentMemory(rootHash);
+    const memReceipt: AgentMemoryReceipt = {
+      ...memPartial,
+      updatedAt: new Date().toISOString(),
+    };
+    emit({
+      type: "tool.result",
+      tool: "updateAgentMemoryRoot",
+      output: memReceipt,
+      latencyMs: Date.now() - tMem,
+    });
+    if (!memReceipt.stub) {
+      emit({
+        type: "narrative",
+        text: `Agent iNFT memory updated: tokenId ${memReceipt.tokenId} memoryRoot ${memReceipt.memoryRoot.slice(0, 14)}… reputation ${memReceipt.reputation}.`,
+      });
+    } else {
+      emit({
+        type: "narrative",
+        text: `iNFT memory update skipped — see warnings.`,
+      });
+    }
+    agentMemory = memReceipt.stub
+      ? emulated(memReceipt, memReceipt.warnings)
+      : verified(memReceipt, `0g-chain-${memReceipt.contract}`);
+  }
+
   emit({ type: "phase.end", phase: 9, durationMs: Date.now() - t0 });
 
   return {
     anchor: receipt.stub
       ? emulated(receipt, ["stub anchor — 0G chain signing key not configured"])
       : verified(receipt, `0g-chain-${receipt.chainId}`),
+    agentMemory,
   };
 }
 
