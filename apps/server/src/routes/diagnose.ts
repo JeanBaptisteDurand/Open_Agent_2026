@@ -11,6 +11,7 @@ import {
   runPhase9,
   runPhase10,
   runPhase11,
+  type AgentMemoryUpdater,
   type EnsPublisher,
   type Quoter,
   type QuoteSummary,
@@ -106,6 +107,20 @@ export async function diagnoseHandler(
       };
     };
 
+    const updateAgentMemory: AgentMemoryUpdater = async (rootHash) => {
+      const result = await ogChain.updateAgentMemory(rootHash);
+      return {
+        tokenId: result.tokenId,
+        contract: result.contract,
+        memoryRoot: result.memoryRoot,
+        reputation: result.reputation,
+        updateMemoryTx: result.updateMemoryTx,
+        recordDiagnoseTx: result.recordDiagnoseTx,
+        stub: result.stub,
+        warnings: result.warnings,
+      };
+    };
+
     const synthesizeVerdict: VerdictSynthesizer = async (reportJson) => {
       const result = await ogCompute.synthesizeVerdict(reportJson);
       return {
@@ -138,6 +153,7 @@ export async function diagnoseHandler(
       quoteSwap,
       uploadReport,
       anchorReport,
+      updateAgentMemory,
       synthesizeVerdict,
       publishEns,
     };

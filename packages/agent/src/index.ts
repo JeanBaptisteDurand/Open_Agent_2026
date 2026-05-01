@@ -63,6 +63,7 @@ export type {
   ReportProvenance,
 } from "./phases/08-report/types.js";
 export type {
+  AgentMemoryReceipt,
   AnchorReceipt,
   Phase9Output,
 } from "./phases/09-anchor/types.js";
@@ -92,6 +93,7 @@ export {
   type EnsPublisher,
   type Phase3Output,
   type PoolHourFetcher,
+  type AgentMemoryUpdater,
   type ReportAnchorer,
   type ReportUploader,
   type V4HookedPoolRow,

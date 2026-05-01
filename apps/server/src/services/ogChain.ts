@@ -50,6 +50,52 @@ const LPLENS_REPORTS_ABI = [
   },
 ] as const;
 
+const LPLENS_AGENT_ABI = [
+  {
+    name: "updateMemoryRoot",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "newRoot", type: "bytes32" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "recordDiagnose",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    name: "agents",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [
+      { name: "owner", type: "address" },
+      { name: "memoryRoot", type: "bytes32" },
+      { name: "codeImageHash", type: "bytes32" },
+      { name: "mintedAt", type: "uint64" },
+      { name: "lastUpdatedAt", type: "uint64" },
+      { name: "reputation", type: "uint64" },
+      { name: "metadataUri", type: "string" },
+    ],
+  },
+] as const;
+
+export interface AgentMemoryUpdate {
+  tokenId: number;
+  contract: string;
+  memoryRoot: string;
+  reputation: number;
+  updateMemoryTx?: string;
+  recordDiagnoseTx?: string;
+  stub: boolean;
+  warnings: string[];
+}
+
 export class OgChainClient {
   isReady(): boolean {
     return Boolean(config.OG_ANCHOR_PRIVATE_KEY);
@@ -143,6 +189,133 @@ export class OgChainClient {
         chainId: config.OG_CHAIN_ID,
         explorerUrl: `stub://og-chain/${stubTx}`,
         stub: true,
+      };
+    }
+  }
+
+  // Anchors the latest diagnose's rootHash inside the agent's iNFT
+  // memory + bumps reputation. Best-effort: any failure here is
+  // logged + reflected in the returned warnings, but does NOT fail
+  // the parent diagnose run. Skipped when LPLENS_AGENT_TOKEN_ID is 0
+  // (iNFT not minted) or the anchor key isn't configured.
+  async updateAgentMemory(rootHash: string): Promise<AgentMemoryUpdate> {
+    const tokenId = config.LPLENS_AGENT_TOKEN_ID;
+    const contract = config.LPLENS_AGENT_CONTRACT ?? "";
+    const warnings: string[] = [];
+
+    if (!tokenId || !contract) {
+      warnings.push(
+        "iNFT update skipped — LPLENS_AGENT_TOKEN_ID or LPLENS_AGENT_CONTRACT not set",
+      );
+      return {
+        tokenId,
+        contract,
+        memoryRoot: rootHash,
+        reputation: 0,
+        stub: true,
+        warnings,
+      };
+    }
+
+    if (!config.OG_ANCHOR_PRIVATE_KEY) {
+      warnings.push("iNFT update skipped — no anchor signing key");
+      return {
+        tokenId,
+        contract,
+        memoryRoot: rootHash,
+        reputation: 0,
+        stub: true,
+        warnings,
+      };
+    }
+
+    try {
+      const account = privateKeyToAccount(
+        normalizeHex(config.OG_ANCHOR_PRIVATE_KEY),
+      );
+      const wallet = createWalletClient({
+        account,
+        chain: zeroGNewton,
+        transport: http(),
+      });
+      const publicClient = createPublicClient({
+        chain: zeroGNewton,
+        transport: http(),
+      });
+      const agentAddr = contract as Hex;
+
+      // 1. updateMemoryRoot — points the iNFT's persistent memory at
+      //    the latest report on 0G Storage.
+      const updateMemoryTx = await wallet.writeContract({
+        address: agentAddr,
+        abi: LPLENS_AGENT_ABI,
+        functionName: "updateMemoryRoot",
+        args: [BigInt(tokenId), normalizeHex(rootHash)],
+      });
+      await publicClient.waitForTransactionReceipt({
+        hash: updateMemoryTx,
+        timeout: 90_000,
+        pollingInterval: 2_000,
+        retryCount: 6,
+      });
+
+      // 2. recordDiagnose — increments the on-chain reputation
+      //    counter (one per anchored report).
+      const recordDiagnoseTx = await wallet.writeContract({
+        address: agentAddr,
+        abi: LPLENS_AGENT_ABI,
+        functionName: "recordDiagnose",
+        args: [BigInt(tokenId)],
+      });
+      await publicClient.waitForTransactionReceipt({
+        hash: recordDiagnoseTx,
+        timeout: 90_000,
+        pollingInterval: 2_000,
+        retryCount: 6,
+      });
+
+      // 3. Read back the post-state so the report payload (and the UI)
+      //    can show the live memoryRoot + reputation counter.
+      const agent = (await publicClient.readContract({
+        address: agentAddr,
+        abi: LPLENS_AGENT_ABI,
+        functionName: "agents",
+        args: [BigInt(tokenId)],
+      })) as readonly [
+        Hex,
+        Hex,
+        Hex,
+        bigint,
+        bigint,
+        bigint,
+        string,
+      ];
+
+      logger.info(
+        `0g-chain agent iNFT updated tokenId=${tokenId} memoryRoot=${agent[1]} reputation=${agent[5]} updateTx=${updateMemoryTx} recordTx=${recordDiagnoseTx}`,
+      );
+
+      return {
+        tokenId,
+        contract,
+        memoryRoot: agent[1],
+        reputation: Number(agent[5]),
+        updateMemoryTx,
+        recordDiagnoseTx,
+        stub: false,
+        warnings,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`0g-chain agent iNFT update failed: ${msg}`);
+      warnings.push(`iNFT update failed: ${msg}`);
+      return {
+        tokenId,
+        contract,
+        memoryRoot: rootHash,
+        reputation: 0,
+        stub: true,
+        warnings,
       };
     }
   }
