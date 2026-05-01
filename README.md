@@ -34,7 +34,7 @@ Detailed walkthrough in [DEMO.md](DEMO.md).
 | Hook Scoring Engine | Scores each candidate V4 hook against the pool's last 30 days of hourly volume + tier with family-conditional multipliers (dynamic-fee / gated-swap / swap-delta-cut / royalty / init-gate / lifecycle / unknown). Heuristic — not a swap-by-swap EVM replay. The panel renders the multiplier table as the explicit assumption surface |
 | One-click Permit2 Migration | Generates an atomic `close V3 → swap → mint V4` bundle signable in a single Permit2 signature |
 | Signed Report | Report JSON pinned to 0G Storage (merkle rootHash), signed by TEE oracle, anchored on 0G Chain registry — verifiable offline with the CLI |
-| iNFT Agent Identity | LPLens agent is minted as an ERC-7857-style iNFT on 0G Chain with persistent memory DAG + reputation counter |
+| iNFT Agent Identity | LPLens agent is minted as an ERC-7857-style iNFT on 0G Chain (`LPLensAgent` tokenId 1). Every diagnose run calls `updateMemoryRoot(rootHash)` + `recordDiagnose()` on the iNFT — `memoryRoot` evolves to point at the latest 0G Storage report, `reputation` counter increments. The intelligence is verifiably embedded: `cast call agents(1)` returns the live memoryRoot + reputation. |
 | MCP Server | Exposes `lplens.diagnose`, `lplens.preflight`, `lplens.migrate`, `lplens.lookupReport`, `lplens.lookupReportOnChain`, `lplens.resolveEnsRecord` — callable by other autonomous agents over stdio |
 
 ---
@@ -192,14 +192,15 @@ See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. 
 
 ## Live demo run — proof-of-life
 
-Captured 2026-04-30 against curated bleeding wallet `0x76809bb…0f7` (USDC/WETH 0.05 % position `tokenId 605311`, far above range, IL dominant):
+Captured 2026-05-01 against curated bleeding wallet `0x76809bb…0f7` (USDC/WETH 0.05 % position `tokenId 605311`, far above range, IL dominant):
 
 | Output | Value |
 | --- | --- |
-| 0G Storage rootHash | `0x5b7b82f5d11186e684cbec10be64629b236e9a60cb6c7db924d18ccf8c574d75` |
-| 0G Chain anchor tx | [`0x238d9bd238…7aea1921`](https://chainscan-newton.0g.ai/tx/0x238d9bd238f7c395717783e48a1732168a18cfb84323c27df8464d377aea1921) (block 30 738 381, `LPLensReports.publishReport`) |
+| 0G Storage rootHash | `0x4d4c9fb05fa47b69bcb6d42878d83203fd7a0a5e09ef3b73b1e6dd5e25ebbccb` |
+| 0G Chain anchor tx | `LPLensReports.publishReport` on the deployed registry |
 | 0G Compute verdict | model `qwen/qwen-2.5-7b-instruct`, provider `0xa48f0128…2E67836`, broker-signed |
-| AT-4 hallucination guard | fired live — masked two LLM-fabricated numbers with `[unsupported]` in the verdict markdown |
+| AT-4 hallucination guard | fired live — masks LLM-fabricated numbers with `[unsupported]` in the verdict markdown |
+| **iNFT memoryRoot updated** | [`LPLensAgent` tokenId 1](https://chainscan-newton.0g.ai/address/0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141) — `memoryRoot` now points at the report's storage rootHash (was `0x0` at mint), `reputation` incremented (1 → 2 → 3 …). Two on-chain txs per diagnose: `updateMemoryRoot` ([`0x775fd7c3…47dfe0`](https://chainscan-newton.0g.ai/tx/0x775fd7c330ddd828e622cc7e2f9fff5de4409ddac7613e9237c1838a0447dfe0)) + `recordDiagnose` ([`0x9be6830b…56a809`](https://chainscan-newton.0g.ai/tx/0x9be6830b7d06431381e8d6fde8e8f26e7e3c4c9b6bc53f8798ac2bf06f56a809)). |
 | ENS records on Sepolia | 5 text records under [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — keys `lplens.605311.{rootHash, storageUrl, anchorTx, chainId, verdict}` |
 
 Independent verification path — anyone with the rootHash + the registry address can run `cast`:
