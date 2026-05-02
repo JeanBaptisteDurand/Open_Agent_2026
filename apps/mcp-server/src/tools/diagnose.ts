@@ -4,8 +4,16 @@
 // over: position, IL breakdown, regime, candidate hooks, migration
 // preview, report rootHash, anchor txHash, ENS subname, and verdict
 // markdown.
+//
+// When `caller` is supplied, the tool checks LPLensAgent.isLicensed
+// before streaming. Unlicensed callers get a `paymentRequired`
+// summary listing how to mint a license (ABI fragment + contract
+// address). Owners are always licensed; anonymous calls (no caller)
+// fall back to open mode for local dev.
 
+import type { Address } from "viem";
 import { z } from "zod";
+import { onchain } from "../services/onchain.js";
 
 const DEFAULT_BASE_URL =
   process.env.LPLENS_API_URL ?? "http://localhost:3001";
@@ -14,12 +22,29 @@ export const diagnoseInputSchema = z.object({
   tokenId: z.string().min(1),
   apiUrl: z.string().url().optional(),
   timeoutMs: z.number().int().positive().max(120_000).optional(),
+  caller: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/)
+    .optional(),
+  agentTokenId: z.string().regex(/^[0-9]+$/).optional(),
 });
 
 export type DiagnoseInput = z.infer<typeof diagnoseInputSchema>;
 
+export interface PaymentRequiredInfo {
+  reason: "license_missing" | "license_expired";
+  agentTokenId: string;
+  licenseContract: string;
+  chainId: number;
+  mintLicenseAbi: string;
+  suggestedPriceWei: string;
+  suggestedExpirySeconds: number;
+  hint: string;
+}
+
 export interface DiagnoseSummary {
   tokenId: string;
+  paymentRequired?: PaymentRequiredInfo;
   position?: { pair: string; tickLower: number; tickUpper: number; liquidity: string };
   il?: {
     hodlValueT1: number;
@@ -43,6 +68,15 @@ export interface DiagnoseSummary {
   durationMs: number;
 }
 
+const DEFAULT_AGENT_TOKEN_ID =
+  process.env.LPLENS_AGENT_TOKEN_ID ?? "1";
+const SUGGESTED_PRICE_WEI =
+  process.env.LPLENS_LICENSE_PRICE_WEI ?? "100000000000000000"; // 0.1 OG
+const SUGGESTED_EXPIRY_SECONDS = 24 * 60 * 60; // 24 h
+
+const MINT_LICENSE_ABI =
+  "function mintLicense(uint256 tokenId, address licensee, uint64 expiresAt) external payable";
+
 interface Event {
   type: string;
   [k: string]: unknown;
@@ -58,6 +92,21 @@ export async function diagnose(input: DiagnoseInput): Promise<DiagnoseSummary> {
     errors: [],
     durationMs: 0,
   };
+
+  // License gate — only enforced when both `caller` and the iNFT contract
+  // are configured. Owners pass through (isLicensed handles owner === caller
+  // server-side). Without caller we keep the dev-friendly open mode.
+  if (input.caller) {
+    const required = await checkLicense({
+      caller: input.caller as Address,
+      agentTokenId: input.agentTokenId ?? DEFAULT_AGENT_TOKEN_ID,
+    });
+    if (required) {
+      summary.paymentRequired = required;
+      summary.durationMs = Date.now() - t0;
+      return summary;
+    }
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -182,10 +231,32 @@ function applyEvent(s: DiagnoseSummary, ev: Event): void {
   }
 }
 
+async function checkLicense(args: {
+  caller: Address;
+  agentTokenId: string;
+}): Promise<PaymentRequiredInfo | null> {
+  const client = onchain();
+  if (!client.isConfigured()) return null;
+  const tokenIdBig = BigInt(args.agentTokenId);
+  const licensed = await client.isLicensed(tokenIdBig, args.caller);
+  if (licensed) return null;
+  return {
+    reason: "license_missing",
+    agentTokenId: args.agentTokenId,
+    licenseContract: client.contractAddress() as string,
+    chainId: client.chainId(),
+    mintLicenseAbi: MINT_LICENSE_ABI,
+    suggestedPriceWei: SUGGESTED_PRICE_WEI,
+    suggestedExpirySeconds: SUGGESTED_EXPIRY_SECONDS,
+    hint:
+      "Call mintLicense(tokenId, caller, expiresAt) on licenseContract with msg.value >= suggestedPriceWei. Royalty splits automatically.",
+  };
+}
+
 export const diagnoseToolDefinition = {
   name: "lplens.diagnose",
   description:
-    "Run the full LPLens diagnostic on a Uniswap V3 LP position. Streams SSE from the server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict.",
+    "Run the full LPLens diagnostic on a Uniswap V3 LP position. Streams SSE from the server, returns a structured summary of position, IL, regime, hooks, migration plan, signed report, on-chain anchor, ENS publish, and TEE verdict. When `caller` is set, requires a non-expired license on the LPLensAgent iNFT — otherwise returns paymentRequired info.",
   inputSchema: {
     type: "object",
     properties: {
@@ -201,6 +272,16 @@ export const diagnoseToolDefinition = {
       timeoutMs: {
         type: "number",
         description: "Stream timeout in milliseconds (max 120 000).",
+      },
+      caller: {
+        type: "string",
+        description:
+          "Optional 0x-prefixed address of the agent calling this tool. When set, the MCP layer checks LPLensAgent.isLicensed before streaming and returns paymentRequired info if the caller has no valid license.",
+      },
+      agentTokenId: {
+        type: "string",
+        description:
+          "LPLensAgent iNFT tokenId to gate against. Defaults to LPLENS_AGENT_TOKEN_ID env or 1.",
       },
     },
     required: ["tokenId"],
