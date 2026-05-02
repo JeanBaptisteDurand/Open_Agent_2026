@@ -54,8 +54,22 @@ export function Landing() {
             }}
           >
             <button onClick={() => nav("/atlas")} style={{ color: "inherit" }}>
-              Dashboard
+              Atlas
             </button>
+            <button onClick={() => nav("/agent")} style={{ color: "inherit" }}>
+              Agent
+            </button>
+            <button onClick={() => nav("/developers")} style={{ color: "inherit" }}>
+              Developers
+            </button>
+            <a
+              href="https://github.com/JeanBaptisteDurand/Open_Agent_2026/blob/main/FEEDBACK.md"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "inherit", textDecoration: "none" }}
+            >
+              Feedback
+            </a>
             <button onClick={() => nav("/atlas")} className="btn btn-primary">
               Connect wallet
             </button>
@@ -123,8 +137,9 @@ export function Landing() {
               }}
             >
               LPLens is an autonomous agent on 0G that reads your Uniswap V3 position,
-              reconstructs your impermanent loss live, simulates every V4 hook against
-              the last 10,000 swaps, and migrates you in a single Permit2 signature.
+              reconstructs your impermanent loss live, replays every V4 hook against
+              the last 1 000 swaps swap-by-swap, and migrates you in a single Permit2
+              signature.
             </p>
             <div
               style={{
