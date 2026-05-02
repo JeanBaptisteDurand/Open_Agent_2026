@@ -24,6 +24,10 @@ export interface MigrationPreviewMeta {
 
 interface Props {
   preview: MigrationPreviewMeta;
+  /** Uniswap LP NFT id this migration was diagnosed against. Used to
+   *  POST the signed Permit2 digest back to the server, which records
+   *  it on the LPLensAgent iNFT (`migrationsTriggered` counter). */
+  lpTokenId?: string;
   onClose: () => void;
 }
 
@@ -44,10 +48,23 @@ function shortHash(s: string): string {
   return `${s.slice(0, 10)}…${s.slice(-6)}`;
 }
 
-export function MigrationModal({ preview, onClose }: Props) {
+export function MigrationModal({ preview, lpTokenId, onClose }: Props) {
   const { isConnected } = useAccount();
-  const { sign, isPending, error, result } = usePermit2Migration();
+  const {
+    sign,
+    recordMigration,
+    isPending,
+    error,
+    result,
+  } = usePermit2Migration();
   const [submitted, setSubmitted] = useState(false);
+  const [recordReceipt, setRecordReceipt] = useState<{
+    migrationsTriggered: number;
+    txHash?: string;
+    explorerUrl?: string;
+    stub: boolean;
+  } | null>(null);
+  const [recording, setRecording] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -65,7 +82,7 @@ export function MigrationModal({ preview, onClose }: Props) {
       "0x66a9893cc07d91d95644aedd05d03f95e1dba8af") as `0x${string}`;
     const amount = preview.amount ? BigInt(preview.amount) : 1_000_000n;
     const now = Math.floor(Date.now() / 1000);
-    await sign({
+    const signed = await sign({
       tokenAddress,
       spender,
       amount,
@@ -73,6 +90,19 @@ export function MigrationModal({ preview, onClose }: Props) {
       nonce: 0,
       sigDeadline: now + 30 * 60,
     });
+    if (signed && lpTokenId) {
+      setRecording(true);
+      const receipt = await recordMigration(lpTokenId, signed);
+      setRecording(false);
+      if (receipt) {
+        setRecordReceipt({
+          migrationsTriggered: receipt.receipt.migrationsTriggered,
+          txHash: receipt.receipt.txHash,
+          explorerUrl: receipt.receipt.explorerUrl,
+          stub: receipt.receipt.stub,
+        });
+      }
+    }
   };
 
   return (
@@ -248,6 +278,42 @@ export function MigrationModal({ preview, onClose }: Props) {
             >
               <div style={{ marginBottom: 6 }}>✓ signed by {shortHash(result.signer)}</div>
               <div style={{ color: "var(--text-secondary)" }}>{shortHash(result.signature)}</div>
+              <div style={{ marginTop: 4, color: "var(--text-tertiary)", fontSize: 10 }}>
+                digest {shortHash(result.digest)}
+              </div>
+              {recording && (
+                <div style={{ marginTop: 8, color: "var(--cyan)" }}>
+                  recording on iNFT…
+                </div>
+              )}
+              {recordReceipt && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    paddingTop: 8,
+                    borderTop: "1px dashed var(--border)",
+                    color: recordReceipt.stub
+                      ? "var(--text-tertiary)"
+                      : "var(--cyan)",
+                  }}
+                >
+                  iNFT migrationsTriggered → {recordReceipt.migrationsTriggered}
+                  {recordReceipt.explorerUrl && !recordReceipt.stub && (
+                    <>
+                      {" · "}
+                      <a
+                        href={recordReceipt.explorerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "var(--cyan)" }}
+                      >
+                        tx ↗
+                      </a>
+                    </>
+                  )}
+                  {recordReceipt.stub && " (stub — no anchor key)"}
+                </div>
+              )}
             </div>
           )}
 

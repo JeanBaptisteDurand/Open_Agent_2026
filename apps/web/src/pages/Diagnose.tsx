@@ -160,7 +160,9 @@ export function Diagnose() {
           {regime && <RegimePanel classification={regime} />}
           {hooks && <HooksPanel result={hooks} />}
           {scoring && <HookScoringPanel result={scoring} />}
-          {migration && <MigrationPanel preview={migration} />}
+          {migration && (
+            <MigrationPanel preview={migration} lpTokenId={tokenId} />
+          )}
           {provenance && (
             <ReportProvenancePanel provenance={provenance} anchor={anchor} />
           )}

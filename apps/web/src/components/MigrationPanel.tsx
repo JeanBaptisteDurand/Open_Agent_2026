@@ -44,9 +44,13 @@ function shortAddr(addr: string): string {
 
 interface Props {
   preview: MigrationPreview;
+  /** Uniswap LP NFT id this preview was diagnosed against. Forwarded
+   *  to the modal so the signed Permit2 digest can be recorded on the
+   *  LPLensAgent iNFT. */
+  lpTokenId?: string;
 }
 
-export function MigrationPanel({ preview }: Props) {
+export function MigrationPanel({ preview, lpTokenId }: Props) {
   const { steps, targetHook, swapQuote, warnings } = preview;
   const [open, setOpen] = useState(false);
   const canMigrate = preview.steps.length > 0;
@@ -156,6 +160,7 @@ export function MigrationPanel({ preview }: Props) {
             steps: preview.steps,
             warnings: preview.warnings,
           }}
+          lpTokenId={lpTokenId}
           onClose={() => setOpen(false)}
         />
       )}
