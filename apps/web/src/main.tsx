@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { WagmiProvider } from "wagmi";
 import { App } from "./App.js";
+import { MockWalletAutoConnect } from "./lib/MockWalletAutoConnect.js";
 import { walletConfig } from "./lib/walletConfig.js";
 import "./index.css";
 
@@ -16,6 +17,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <WagmiProvider config={walletConfig}>
         <QueryClientProvider client={queryClient}>
+          <MockWalletAutoConnect />
           <App />
         </QueryClientProvider>
       </WagmiProvider>
