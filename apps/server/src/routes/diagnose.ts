@@ -114,6 +114,7 @@ export async function diagnoseHandler(
         contract: result.contract,
         memoryRoot: result.memoryRoot,
         reputation: result.reputation,
+        migrationsTriggered: result.migrationsTriggered,
         updateMemoryTx: result.updateMemoryTx,
         recordDiagnoseTx: result.recordDiagnoseTx,
         stub: result.stub,
