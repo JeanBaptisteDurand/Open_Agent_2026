@@ -11,9 +11,10 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: "/atlas", label: "Atlas", matches: (p) => p.startsWith("/atlas") },
-  { to: "/diagnose", label: "Diagnose", matches: (p) => p.startsWith("/diagnose") },
-  { to: "/report", label: "Report", matches: (p) => p.startsWith("/report") },
+  { to: "/atlas", label: "Atlas", matches: (p) => p.startsWith("/atlas") || p.startsWith("/diagnose") || p.startsWith("/report") },
+  { to: "/agent", label: "Agent", matches: (p) => p.startsWith("/agent") },
+  { to: "/developers", label: "Developers", matches: (p) => p.startsWith("/developers") },
+  { to: "https://github.com/JeanBaptisteDurand/Open_Agent_2026/blob/main/FEEDBACK.md", label: "Feedback" },
 ];
 
 interface Props {
@@ -70,20 +71,22 @@ export function AppHeader({ right }: Props) {
         <nav style={{ display: "flex", gap: 4 }}>
           {NAV.map((n) => {
             const active = n.matches ? n.matches(pathname) : pathname === n.to;
-            return (
-              <Link
-                key={n.to}
-                to={n.to}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 6,
-                  fontSize: 13,
-                  color: active ? "var(--text)" : "var(--text-secondary)",
-                  background: active ? "var(--surface-raised)" : "transparent",
-                  textDecoration: "none",
-                  transition: "color 160ms, background 160ms",
-                }}
-              >
+            const isExternal = n.to.startsWith("http");
+            const sx = {
+              padding: "6px 12px",
+              borderRadius: 6,
+              fontSize: 13,
+              color: active ? "var(--text)" : "var(--text-secondary)",
+              background: active ? "var(--surface-raised)" : "transparent",
+              textDecoration: "none",
+              transition: "color 160ms, background 160ms",
+            } as const;
+            return isExternal ? (
+              <a key={n.to} href={n.to} target="_blank" rel="noreferrer" style={sx}>
+                {n.label}
+              </a>
+            ) : (
+              <Link key={n.to} to={n.to} style={sx}>
                 {n.label}
               </Link>
             );
