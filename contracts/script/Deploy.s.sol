@@ -17,14 +17,25 @@ contract Deploy is Script {
             "LPLENS_METADATA_URI",
             string("og://lplens-agent-v0.11.0")
         );
+        // Royalty config — treasury defaults to deployer; fee defaults
+        // to 20 % (2_000 bps). Override via env at deploy time.
+        address treasury = vm.envOr(
+            "LPLENS_PROTOCOL_TREASURY",
+            vm.addr(deployerKey)
+        );
+        uint16 feeBps = uint16(
+            vm.envOr("LPLENS_PROTOCOL_FEE_BPS", uint256(2000))
+        );
 
         vm.startBroadcast(deployerKey);
 
         LPLensReports reports = new LPLensReports();
         console2.log("LPLensReports deployed at", address(reports));
 
-        LPLensAgent inft = new LPLensAgent();
+        LPLensAgent inft = new LPLensAgent(treasury, feeBps);
         console2.log("LPLensAgent deployed at", address(inft));
+        console2.log("LPLensAgent treasury:", treasury);
+        console2.log("LPLensAgent feeBps:", feeBps);
 
         // Optional: mint the agent iNFT to the deployer in the same tx.
         if (codeImage != bytes32(0)) {

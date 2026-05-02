@@ -23,6 +23,10 @@ export interface AgentMemoryReceipt {
   contract: string;
   memoryRoot: string;
   reputation: number;
+  /** Counter of Permit2 migrations recorded against this iNFT. Bumped
+   *  when the user signs a migration bundle in the modal — proves the
+   *  agent's diagnose led to a real signed user action. */
+  migrationsTriggered?: number;
   updateMemoryTx?: string;
   recordDiagnoseTx?: string;
   updatedAt: string;

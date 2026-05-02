@@ -69,6 +69,16 @@ const LPLENS_AGENT_ABI = [
     outputs: [],
   },
   {
+    name: "recordMigration",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "permit2Digest", type: "bytes32" },
+    ],
+    outputs: [],
+  },
+  {
     name: "agents",
     type: "function",
     stateMutability: "view",
@@ -80,6 +90,7 @@ const LPLENS_AGENT_ABI = [
       { name: "mintedAt", type: "uint64" },
       { name: "lastUpdatedAt", type: "uint64" },
       { name: "reputation", type: "uint64" },
+      { name: "migrationsTriggered", type: "uint64" },
       { name: "metadataUri", type: "string" },
     ],
   },
@@ -90,8 +101,20 @@ export interface AgentMemoryUpdate {
   contract: string;
   memoryRoot: string;
   reputation: number;
+  migrationsTriggered?: number;
   updateMemoryTx?: string;
   recordDiagnoseTx?: string;
+  stub: boolean;
+  warnings: string[];
+}
+
+export interface MigrationRecordReceipt {
+  tokenId: number;
+  contract: string;
+  permit2Digest: string;
+  migrationsTriggered: number;
+  txHash?: string;
+  explorerUrl?: string;
   stub: boolean;
   warnings: string[];
 }
@@ -288,11 +311,12 @@ export class OgChainClient {
         bigint,
         bigint,
         bigint,
+        bigint,
         string,
       ];
 
       logger.info(
-        `0g-chain agent iNFT updated tokenId=${tokenId} memoryRoot=${agent[1]} reputation=${agent[5]} updateTx=${updateMemoryTx} recordTx=${recordDiagnoseTx}`,
+        `0g-chain agent iNFT updated tokenId=${tokenId} memoryRoot=${agent[1]} reputation=${agent[5]} migrations=${agent[6]} updateTx=${updateMemoryTx} recordTx=${recordDiagnoseTx}`,
       );
 
       return {
@@ -300,6 +324,7 @@ export class OgChainClient {
         contract,
         memoryRoot: agent[1],
         reputation: Number(agent[5]),
+        migrationsTriggered: Number(agent[6]),
         updateMemoryTx,
         recordDiagnoseTx,
         stub: false,
@@ -314,6 +339,118 @@ export class OgChainClient {
         contract,
         memoryRoot: rootHash,
         reputation: 0,
+        stub: true,
+        warnings,
+      };
+    }
+  }
+
+  // Records a Permit2 migration on the iNFT — called by the migrate
+  // route after the user signs the EIP-712 PermitSingle in the modal.
+  // The digest is the typed-data hash of the signed bundle; embedding
+  // it on chain proves the agent's diagnose led to a real (signed)
+  // user action, not just a screen render. Best-effort: failures are
+  // logged + reflected in warnings, never thrown to the caller.
+  async recordMigration(
+    permit2Digest: string,
+  ): Promise<MigrationRecordReceipt> {
+    const tokenId = config.LPLENS_AGENT_TOKEN_ID;
+    const contract = config.LPLENS_AGENT_CONTRACT ?? "";
+    const warnings: string[] = [];
+
+    if (!tokenId || !contract) {
+      warnings.push(
+        "recordMigration skipped — LPLENS_AGENT_TOKEN_ID or LPLENS_AGENT_CONTRACT not set",
+      );
+      return {
+        tokenId,
+        contract,
+        permit2Digest,
+        migrationsTriggered: 0,
+        stub: true,
+        warnings,
+      };
+    }
+
+    if (!config.OG_ANCHOR_PRIVATE_KEY) {
+      warnings.push("recordMigration skipped — no anchor signing key");
+      return {
+        tokenId,
+        contract,
+        permit2Digest,
+        migrationsTriggered: 0,
+        stub: true,
+        warnings,
+      };
+    }
+
+    try {
+      const account = privateKeyToAccount(
+        normalizeHex(config.OG_ANCHOR_PRIVATE_KEY),
+      );
+      const wallet = createWalletClient({
+        account,
+        chain: zeroGNewton,
+        transport: http(),
+      });
+      const publicClient = createPublicClient({
+        chain: zeroGNewton,
+        transport: http(),
+      });
+      const agentAddr = contract as Hex;
+
+      const txHash = await wallet.writeContract({
+        address: agentAddr,
+        abi: LPLENS_AGENT_ABI,
+        functionName: "recordMigration",
+        args: [BigInt(tokenId), normalizeHex(permit2Digest)],
+      });
+      await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: 90_000,
+        pollingInterval: 2_000,
+        retryCount: 6,
+      });
+
+      const agent = (await publicClient.readContract({
+        address: agentAddr,
+        abi: LPLENS_AGENT_ABI,
+        functionName: "agents",
+        args: [BigInt(tokenId)],
+      })) as readonly [
+        Hex,
+        Hex,
+        Hex,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        string,
+      ];
+
+      logger.info(
+        `0g-chain migration recorded tokenId=${tokenId} digest=${permit2Digest} migrations=${agent[6]} tx=${txHash}`,
+      );
+
+      return {
+        tokenId,
+        contract,
+        permit2Digest,
+        migrationsTriggered: Number(agent[6]),
+        txHash,
+        explorerUrl: `${EXPLORER_BASE}/${txHash}`,
+        stub: false,
+        warnings,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`0g-chain recordMigration failed: ${msg}`);
+      warnings.push(`recordMigration failed: ${msg}`);
+      return {
+        tokenId,
+        contract,
+        permit2Digest,
+        migrationsTriggered: 0,
         stub: true,
         warnings,
       };

@@ -1,10 +1,18 @@
 import { useState } from "react";
+import { hashTypedData } from "viem";
 import {
   useAccount,
   useChainId,
   useSignTypedData,
 } from "wagmi";
-import { PERMIT2_ADDRESS } from "../lib/walletConfig.js";
+import {
+  E2E_MOCK_ACCOUNT,
+  PERMIT2_ADDRESS,
+} from "../lib/walletConfig.js";
+
+const API_BASE_URL =
+  (import.meta.env.VITE_LPLENS_API_URL as string | undefined) ??
+  "http://localhost:3001";
 
 // Builds the EIP-712 PermitSingle for Uniswap's Permit2 contract and
 // asks the connected wallet to sign it. The signature is what the
@@ -58,7 +66,25 @@ export interface MigrationSignResult {
     spender: `0x${string}`;
     sigDeadline: string;
   };
+  /** EIP-712 typed-data hash of what was signed (the value the wallet hashed). */
+  digest: `0x${string}`;
   signedAt: string;
+}
+
+export interface MigrationRecordReceipt {
+  lpTokenId: string;
+  signer: `0x${string}`;
+  digest: `0x${string}`;
+  receipt: {
+    tokenId: number;
+    contract: string;
+    permit2Digest: string;
+    migrationsTriggered: number;
+    txHash?: string;
+    explorerUrl?: string;
+    stub: boolean;
+    warnings: string[];
+  };
 }
 
 export function usePermit2Migration() {
@@ -93,7 +119,25 @@ export function usePermit2Migration() {
     } as const;
 
     try {
-      const signature = await signTypedDataAsync({
+      // E2E mock path — wagmi's mock connector returns a fake signature
+      // that the backend's recoverTypedDataAddress will reject. Sign
+      // with the local viem account instead so the digest+sig actually
+      // round-trips. Production builds never enter this branch.
+      const signature = E2E_MOCK_ACCOUNT
+        ? await E2E_MOCK_ACCOUNT.signTypedData({
+            domain,
+            types: PERMIT_SINGLE_TYPES,
+            primaryType: "PermitSingle",
+            message,
+          })
+        : await signTypedDataAsync({
+            domain,
+            types: PERMIT_SINGLE_TYPES,
+            primaryType: "PermitSingle",
+            message,
+          });
+      const signer = E2E_MOCK_ACCOUNT?.address ?? address;
+      const digest = hashTypedData({
         domain,
         types: PERMIT_SINGLE_TYPES,
         primaryType: "PermitSingle",
@@ -101,7 +145,7 @@ export function usePermit2Migration() {
       });
       const out: MigrationSignResult = {
         signature,
-        signer: address,
+        signer,
         chainId,
         domain: {
           name: domain.name,
@@ -118,6 +162,7 @@ export function usePermit2Migration() {
           spender: args.spender,
           sigDeadline: args.sigDeadline.toString(),
         },
+        digest,
         signedAt: new Date().toISOString(),
       };
       setResult(out);
@@ -129,5 +174,48 @@ export function usePermit2Migration() {
     }
   };
 
-  return { sign, isPending, error, result };
+  /**
+   * Posts the just-signed typed data to the backend so it can verify
+   * the signature, compute the digest server-side, and call
+   * LPLensAgent.recordMigration to bump the iNFT's
+   * `migrationsTriggered` counter on 0G Newton.
+   *
+   * Best-effort: any HTTP failure surfaces in `error` but does not
+   * throw — the migration sign UX is already complete by the time
+   * this fires.
+   */
+  const recordMigration = async (
+    lpTokenId: string,
+    signed: MigrationSignResult,
+  ): Promise<MigrationRecordReceipt | null> => {
+    setError(null);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/migrate/${lpTokenId}/recorded`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tokenId: lpTokenId,
+            signer: signed.signer,
+            signature: signed.signature,
+            domain: signed.domain,
+            types: PERMIT_SINGLE_TYPES,
+            primaryType: "PermitSingle",
+            message: signed.message,
+          }),
+        },
+      );
+      if (!res.ok) {
+        setError(`migrate-recorded HTTP ${res.status}`);
+        return null;
+      }
+      return (await res.json()) as MigrationRecordReceipt;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return null;
+    }
+  };
+
+  return { sign, recordMigration, isPending, error, result };
 }
