@@ -109,13 +109,10 @@ export class V4PositionManagerClient {
         transport: http(this.rpcUrl),
       });
 
-      const [poolKeyResult, infoResult, liquidityResult] = await Promise.all([
-        client.readContract({
-          address: this.contract,
-          abi: POS_MGR_ABI,
-          functionName: "getPoolAndPositionInfo",
-          args: [BigInt(tokenId)],
-        }),
+      // Single call returns the [poolKey, info] tuple — no need to
+      // read getPoolAndPositionInfo twice. Liquidity is a separate
+      // view and runs in parallel.
+      const [poolKeyAndInfo, liquidityResult] = await Promise.all([
         client.readContract({
           address: this.contract,
           abi: POS_MGR_ABI,
@@ -130,9 +127,7 @@ export class V4PositionManagerClient {
         }),
       ]);
 
-      // poolKeyResult is the [poolKey, info] tuple; first call's [0]
-      // gives poolKey, second's [1] gives info — but viem returns both.
-      const [poolKey, info] = poolKeyResult as readonly [
+      const [poolKey, info] = poolKeyAndInfo as readonly [
         {
           currency0: string;
           currency1: string;
@@ -142,7 +137,6 @@ export class V4PositionManagerClient {
         },
         bigint,
       ];
-      void infoResult;
 
       const decoded = decodePositionInfo(info);
 
