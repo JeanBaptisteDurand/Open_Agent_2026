@@ -615,16 +615,15 @@ function ScreenshotFrame({ src, alt }: { src: string; alt: string }) {
 function Slide06Diagnose() {
   const phases = [
     ["01", "Position resolve", COLOR_GREEN],
-    ["02", "Pool RAG", COLOR_GREEN],
-    ["03", "AI plan (TEE)", COLOR_GREEN],
-    ["04", "IL reconstruct", COLOR_GREEN],
-    ["05", "Regime classify", COLOR_AMBER],
-    ["06", "Hook discovery", COLOR_AMBER],
-    ["07", "Hook replay 1k", COLOR_VIOLET],
-    ["08", "Migration plan", COLOR_VIOLET],
-    ["09", "Verdict (TEE)", COLOR_CYAN],
-    ["10", "Hallucination QA", COLOR_CYAN],
-    ["11", "Report + anchor", COLOR_AMBER],
+    ["03", "IL reconstruct (closed-form)", COLOR_GREEN],
+    ["04", "Regime classify", COLOR_AMBER],
+    ["05", "Hook discovery", COLOR_AMBER],
+    ["06", "Hook replay 1k · 0 bps drift", COLOR_VIOLET],
+    ["07", "Migration plan", COLOR_VIOLET],
+    ["10", "Verdict (TEE) + AT-4 guard", COLOR_CYAN],
+    ["08", "Report + 0G Storage", COLOR_AMBER],
+    ["09", "0G Chain anchor", COLOR_AMBER],
+    ["11", "ENS publish (5 records)", COLOR_GREEN],
   ];
   return (
     <SlideShell
@@ -634,7 +633,7 @@ function Slide06Diagnose() {
     >
       <div style={{ padding: "20px 36px 0 36px" }}>
         <Eyebrow>BEAT 2 · THE AGENT WORKS</Eyebrow>
-        <Title size={44}>11 phases, streaming live over SSE.</Title>
+        <Title size={44}>10 phases, streaming live over SSE.</Title>
       </div>
       <div
         style={{
@@ -1486,7 +1485,7 @@ function Slide14Try() {
         <Eyebrow>LIVE DEMO + CODE</Eyebrow>
         <Title size={56}>Try it. Read it. Fork it.</Title>
         <Subtitle>
-          Three demo wallets, one live agent, one signed report per click. Open repo on public testnet —
+          Six demo wallets, one live agent, one signed report per click. Open repo on public testnet —
           bring your own wallet if you prefer.
         </Subtitle>
       </div>
@@ -1508,9 +1507,10 @@ function Slide14Try() {
             ENS : lplensagent.eth
           </div>
           <div style={{ marginTop: 16, fontStyle: "italic", color: "var(--text-secondary)", fontSize: 13 }}>
-            Three demo wallets pinned :
+            Six demo wallets pinned :
           </div>
           <ul style={{ margin: "8px 0 0 0", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+            <DemoBullet color={COLOR_VIOLET} label="multi-position whale" sub="V3 + V4 mixed book" />
             <DemoBullet color={COLOR_GREEN} label="healthy" sub="in-range, fees > deposit" />
             <DemoBullet color={COLOR_GOLD} label="drifting" sub="close-to-edge" />
             <DemoBullet color={COLOR_RED} label="bleeding" sub="out-of-range, IL dominant" />

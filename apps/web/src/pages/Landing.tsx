@@ -79,8 +79,8 @@ export function Landing() {
               }}
             >
               LPLens is an autonomous agent on 0G that reads your Uniswap V3
-              and V4 positions, reconstructs your impermanent loss live,
-              replays every V4 hook against the last 1 000 swaps
+              and V4 positions, decomposes your impermanent loss from the
+              tick range, replays every V4 hook against the last 1 000 swaps
               swap-by-swap, and migrates you in a single Permit2 signature.
             </p>
             <div
@@ -467,7 +467,7 @@ export function Landing() {
             n="01"
             label="DIAGNOSE"
             title="Read the position with a microscope."
-            desc="The agent pulls your tokenId, decodes the tick range, and reconstructs IL swap-by-swap against a HODL baseline. Output: a decomposed loss attribution."
+            desc="The agent pulls your tokenId, decodes the tick range, and reconstructs IL from the current sqrtPriceX96 against the deposit price (Uniswap whitepaper closed-form). Output: a decomposed loss attribution."
           />
           <HowCard
             n="02"
@@ -527,10 +527,10 @@ export function Landing() {
             <CompRow
               cells={[
                 "Position-level IL breakdown",
-                "raw numbers",
+                "per-position IL + APR",
                 "—",
                 "—",
-                "✓ swap-by-swap COMPUTED",
+                "✓ COMPUTED + decomposed",
               ]}
             />
             <CompRow
