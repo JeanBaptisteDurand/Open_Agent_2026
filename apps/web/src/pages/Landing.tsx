@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader.js";
 import { HeroFilm } from "../components/HeroFilm.js";
-import { Cap, Dot, Mono, SectionHeader } from "../design/atoms.js";
+import { Cap, Dot, Mono } from "../design/atoms.js";
 
 export function Landing() {
   const nav = useNavigate();
   return (
     <div>
+      {/* Hero — centered SaaS-style with the prism film as background */}
       <section
         style={{
           position: "relative",
@@ -16,8 +17,7 @@ export function Landing() {
         }}
       >
         <HeroFilm />
-
-        <AppHeader variant="overlay" />
+        <AppHeader />
 
         <div
           style={{
@@ -26,17 +26,23 @@ export function Landing() {
             flex: 1,
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             padding: "0 36px",
+            textAlign: "center",
           }}
         >
-          <div style={{ maxWidth: 1200, width: "100%", margin: "0 auto" }}>
+          <div style={{ maxWidth: 920, width: "100%" }}>
             <div
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: 10,
                 marginBottom: 28,
-                opacity: 0.9,
+                padding: "6px 14px",
+                borderRadius: 999,
+                border: "1px solid var(--border-strong)",
+                background: "rgba(11, 22, 40, 0.55)",
+                opacity: 0.95,
               }}
             >
               <Dot color="cyan" pulse />
@@ -44,7 +50,7 @@ export function Landing() {
                 ENCLAVE · LIVE · 0G COMPUTE TEE
               </Cap>
               <Mono color="text-tertiary" style={{ fontSize: 11 }}>
-                NODE-04 / us-west / SGX attested
+                NODE-04 · TDX attested
               </Mono>
             </div>
             <h1
@@ -55,7 +61,6 @@ export function Landing() {
                 lineHeight: 1.02,
                 fontWeight: 500,
                 letterSpacing: "-0.035em",
-                maxWidth: 1000,
                 color: "var(--text)",
                 textWrap: "balance",
               }}
@@ -71,18 +76,18 @@ export function Landing() {
             </h1>
             <p
               style={{
-                marginTop: 28,
-                maxWidth: 640,
+                margin: "28px auto 0",
+                maxWidth: 720,
                 fontSize: 17,
                 lineHeight: 1.55,
                 color: "var(--text-secondary)",
                 textWrap: "pretty",
               }}
             >
-              LPLens is an autonomous agent on 0G that reads your Uniswap V3 position,
-              reconstructs your impermanent loss live, replays every V4 hook against
-              the last 1 000 swaps swap-by-swap, and migrates you in a single Permit2
-              signature.
+              LPLens is an autonomous agent on 0G that reads your Uniswap V3
+              position, reconstructs your impermanent loss live, replays every
+              V4 hook against the last 1 000 swaps swap-by-swap, and migrates
+              you in a single Permit2 signature.
             </p>
             <div
               style={{
@@ -90,6 +95,7 @@ export function Landing() {
                 gap: 12,
                 marginTop: 36,
                 alignItems: "center",
+                justifyContent: "center",
                 flexWrap: "wrap",
               }}
             >
@@ -98,7 +104,7 @@ export function Landing() {
                 onClick={() => nav("/atlas")}
                 style={{ padding: "14px 22px", fontSize: 14 }}
               >
-                Connect wallet
+                Open Atlas
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path
                     d="M3 7h8M7 3l4 4-4 4"
@@ -111,18 +117,53 @@ export function Landing() {
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => nav("/atlas")}
+                onClick={() => nav("/diagnose/605311")}
                 style={{ padding: "14px 22px", fontSize: 14 }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
-                  <path d="M5.5 4.5L9.5 7L5.5 9.5V4.5Z" fill="currentColor" />
+                  <circle
+                    cx="7"
+                    cy="7"
+                    r="6"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                  />
+                  <path
+                    d="M5.5 4.5L9.5 7L5.5 9.5V4.5Z"
+                    fill="currentColor"
+                  />
                 </svg>
-                Watch the diagnosis
-                <Mono color="text-tertiary" style={{ fontSize: 11, marginLeft: 4 }}>
-                  2:48
-                </Mono>
+                Watch a live diagnose
               </button>
+            </div>
+
+            {/* Stats row — three metrics that anchor the thesis */}
+            <div
+              style={{
+                marginTop: 56,
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 32,
+                maxWidth: 720,
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
+              <Stat
+                value="1 000"
+                label="swaps replayed"
+                sub="0 bps drift vs mainnet"
+              />
+              <Stat
+                value="5"
+                label="verification paths"
+                sub="no LPLens server in trust"
+              />
+              <Stat
+                value="0"
+                label="keys in custody"
+                sub="user signs, agent never executes"
+              />
             </div>
           </div>
         </div>
@@ -145,30 +186,65 @@ export function Landing() {
               fontSize: 11,
             }}
           >
-            <div style={{ width: 40, height: 1, background: "var(--border-strong)" }} />
+            <div
+              style={{
+                width: 40,
+                height: 1,
+                background: "var(--border-strong)",
+              }}
+            />
             <Cap>Scroll · how it works</Cap>
-            <div style={{ width: 40, height: 1, background: "var(--border-strong)" }} />
+            <div
+              style={{
+                width: 40,
+                height: 1,
+                background: "var(--border-strong)",
+              }}
+            />
           </div>
         </div>
       </section>
 
-      <section style={{ padding: "80px 36px", maxWidth: 1400, margin: "0 auto" }}>
-        <SectionHeader
-          label="METHOD · 3 PHASES"
-          title="A lens, not a dashboard."
-          aside={
-            <div style={{ maxWidth: 380, color: "var(--text-secondary)", fontSize: 13 }}>
-              Every position ships with a signed, reproducible diagnosis. You keep
-              the verdict; your keys never leave your wallet.
-            </div>
-          }
-        />
+      {/* Features — 3 phases of the agent loop */}
+      <section
+        style={{
+          padding: "100px 36px",
+          maxWidth: 1200,
+          margin: "0 auto",
+          textAlign: "center",
+        }}
+      >
+        <Cap style={{ color: "var(--cyan)" }}>METHOD · 3 PHASES</Cap>
+        <h2
+          style={{
+            margin: "12px 0 16px",
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(32px, 4vw, 48px)",
+            fontWeight: 500,
+            letterSpacing: "-0.025em",
+            textWrap: "balance",
+          }}
+        >
+          A lens, not a dashboard.
+        </h2>
+        <p
+          style={{
+            margin: "0 auto 56px",
+            maxWidth: 640,
+            color: "var(--text-secondary)",
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}
+        >
+          Every position ships with a signed, reproducible diagnosis. You keep
+          the verdict; your keys never leave your wallet.
+        </p>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
             gap: 20,
-            marginTop: 32,
+            textAlign: "left",
           }}
         >
           <HowCard
@@ -181,20 +257,21 @@ export function Landing() {
             n="02"
             label="SIMULATE"
             title="Score every V4 hook, in a sealed enclave."
-            desc="Candidate hooks are executed against the exact swap stream your pool experienced. Counterfactual P&L, fee capture, and LVR are measured."
+            desc="Candidate hooks are replayed against the exact swap stream your pool experienced. Counterfactual P&L, fee capture, and LVR are measured."
           />
           <HowCard
             n="03"
             label="MIGRATE"
             title="One signature. Three on-chain moves."
-            desc="Close V3 → swap → mint V4, bundled through Permit2. Report signed inside the TEE, pinned to 0G Storage, anchored to 0G Chain for audit."
+            desc="Close V3 → swap → mint V4, bundled through Permit2. Report signed inside the TEE, pinned to 0G Storage, anchored on 0G Chain for audit."
           />
         </div>
       </section>
 
+      {/* Instrument stack — what's load-bearing under the hood */}
       <section
         style={{
-          padding: "40px 36px",
+          padding: "60px 36px",
           borderTop: "1px solid var(--border)",
           borderBottom: "1px solid var(--border)",
           background: "rgba(15, 22, 40, 0.5)",
@@ -202,19 +279,22 @@ export function Landing() {
       >
         <div
           style={{
-            maxWidth: 1400,
+            maxWidth: 1200,
             margin: "0 auto",
             display: "flex",
             flexDirection: "column",
-            gap: 20,
+            gap: 24,
+            alignItems: "center",
+            textAlign: "center",
           }}
         >
           <Cap style={{ color: "var(--text-tertiary)" }}>INSTRUMENT STACK</Cap>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               gap: 24,
+              width: "100%",
             }}
           >
             <TrustItem name="0G Compute" sub="TDX · provider-attested" />
@@ -229,33 +309,116 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Closing CTA — final push to /atlas */}
+      <section
+        style={{
+          padding: "100px 36px",
+          maxWidth: 920,
+          margin: "0 auto",
+          textAlign: "center",
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(28px, 3.5vw, 40px)",
+            fontWeight: 500,
+            letterSpacing: "-0.025em",
+            textWrap: "balance",
+          }}
+        >
+          Three demo wallets. One live agent. One signed report per click.
+        </h2>
+        <p
+          style={{
+            margin: "20px auto 32px",
+            maxWidth: 560,
+            color: "var(--text-secondary)",
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}
+        >
+          Bring your own wallet, or pick a curated demo. The pipeline runs
+          end-to-end on real chain data — no mocks, no canned responses.
+        </p>
+        <button
+          className="btn btn-primary"
+          onClick={() => nav("/atlas")}
+          style={{ padding: "14px 28px", fontSize: 14 }}
+        >
+          Open the Atlas
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path
+              d="M3 7h8M7 3l4 4-4 4"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </section>
+
       <footer
         style={{
-          padding: "80px 36px 40px",
+          padding: "32px 36px 32px",
           borderTop: "1px solid var(--border)",
-          marginTop: 80,
         }}
       >
         <div
           style={{
-            maxWidth: 1400,
+            maxWidth: 1200,
             margin: "0 auto",
             display: "flex",
             justifyContent: "space-between",
             color: "var(--text-tertiary)",
             fontSize: 11,
-            paddingTop: 24,
-            borderTop: "1px solid var(--border-faint)",
             flexWrap: "wrap",
             gap: 12,
           }}
         >
-          <Mono>
-            rootHash 0x7ac4f6…b812 · signed · {new Date().toISOString().slice(0, 10)}
-          </Mono>
-          <span>© 2026 LPLens Labs</span>
+          <Mono>built for ETHGlobal Open Agents — Apr 24 → May 6 2026</Mono>
+          <span>© 2026 LPLens · 42 Blockchain</span>
         </div>
       </footer>
+    </div>
+  );
+}
+
+interface StatProps {
+  value: string;
+  label: string;
+  sub: string;
+}
+
+function Stat({ value, label, sub }: StatProps) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+      <span
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 32,
+          fontWeight: 500,
+          color: "var(--cyan)",
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {value}
+      </span>
+      <span
+        style={{
+          fontSize: 11,
+          textTransform: "uppercase",
+          letterSpacing: "0.12em",
+          color: "var(--text-secondary)",
+        }}
+      >
+        {label}
+      </span>
+      <Mono color="text-tertiary" style={{ fontSize: 10 }}>
+        {sub}
+      </Mono>
     </div>
   );
 }
@@ -286,7 +449,8 @@ function HowCard({ n, label, title, desc }: HowCardProps) {
           left: 0,
           right: 0,
           height: 1,
-          background: "linear-gradient(90deg, transparent, var(--cyan), transparent)",
+          background:
+            "linear-gradient(90deg, transparent, var(--cyan), transparent)",
           opacity: 0.3,
         }}
       />
@@ -336,7 +500,14 @@ interface TrustItemProps {
 
 function TrustItem({ name, sub }: TrustItemProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        alignItems: "center",
+      }}
+    >
       <span
         style={{
           fontFamily: "var(--font-display)",
