@@ -196,13 +196,26 @@ export async function diagnoseHandler(
       deps,
       (event) => sse.emit(event),
     );
+
+    // Cache the report as soon as phase 8 completes so the
+    // /api/report/:rootHash endpoint resolves immediately, even if the
+    // user clicks "view report" before phase 9 (anchor) and phase 11
+    // (ENS) finish. Anchor metadata is filled in by a second put() once
+    // phase 9 returns. Without this two-step write, /report/:hash 404s
+    // for the ~60 s window between report.uploaded and the end of ENS
+    // publication — the bug we hit on the live VPS.
+    if (storage) {
+      const provenance = storage.provenance.value;
+      reportCache.put({
+        rootHash: provenance.rootHash,
+        storageUrl: provenance.storageUrl,
+        storageStub: provenance.stub,
+        cachedAt: new Date().toISOString(),
+        payload: storage.report.value,
+      });
+    }
+
     const anchor = await runPhase9(storage, deps, (event) => sse.emit(event));
-    await runPhase11(
-      position,
-      { storage, anchor, verdict },
-      deps,
-      (event) => sse.emit(event),
-    );
 
     if (storage) {
       const provenance = storage.provenance.value;
@@ -217,6 +230,13 @@ export async function diagnoseHandler(
         payload: storage.report.value,
       });
     }
+
+    await runPhase11(
+      position,
+      { storage, anchor, verdict },
+      deps,
+      (event) => sse.emit(event),
+    );
   } catch (err) {
     logger.error(
       `diagnose stream errored for ${tokenId}: ${
