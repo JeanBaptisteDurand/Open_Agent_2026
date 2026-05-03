@@ -34,7 +34,7 @@ import {
   buildMigrationPreview,
   type Quoter,
 } from "./phases/07-migration/buildPreview.js";
-import type { Phase7Output } from "./phases/07-migration/types.js";
+import type { MigrationPreview, Phase7Output } from "./phases/07-migration/types.js";
 import { assembleReport } from "./phases/08-report/assembleReport.js";
 import type {
   AssembledReport,
@@ -503,8 +503,23 @@ export async function runPhase7(
   }
   emit({ type: "phase.end", phase: 7, durationMs: Date.now() - t0 });
 
+  // When the swap quote came back live from the Trading API, the numbers
+  // shown in the preview (price impact, gas fee, route, output amount)
+  // are computed from real Uniswap routing — only the `close → swap →
+  // mint` sequence as a whole is hypothetical (the agent never executes).
+  // Surface that distinction with COMPUTED + the existing warnings list,
+  // and reserve EMULATED for the no-quote fallback.
+  const previewLabel: Labeled<MigrationPreview> = preview.swapQuote
+    ? {
+        value: preview,
+        label: "COMPUTED",
+        source: "uniswap-trading-api-v1-quote + permit2-eip712-bundle",
+        warnings: preview.warnings,
+      }
+    : emulated(preview, preview.warnings);
+
   return {
-    preview: emulated(preview, preview.warnings),
+    preview: previewLabel,
   };
 }
 
