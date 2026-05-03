@@ -186,8 +186,8 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 
 | Network | Contract | Address |
 | --- | --- | --- |
-| 0G Newton (chainId 16602) | `LPLensReports` | [`0x05B4140683579dcbD1feC5965E7ADC77f210E53A`](https://chainscan-newton.0g.ai/address/0x05B4140683579dcbD1feC5965E7ADC77f210E53A) |
-| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | [`0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141`](https://chainscan-newton.0g.ai/address/0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141) — agent token `tokenId 1`, owner `0x95eEe5d9d8d7D734EB29613E7Fd8e2875349b344`, codeImageHash `0x3c89cd0bad030975cc7d4e5dbda1973a808bb38d67df6d460f931914ff039a7c` |
+| 0G Newton (chainId 16602) | `LPLensReports` | [`0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3`](https://chainscan-newton.0g.ai/address/0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3) |
+| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | [`0x938f3B7841b3faCbBE967F90B548d991e9882c6C`](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) — agent token `tokenId 1`, owner `0x95eEe5d9d8d7D734EB29613E7Fd8e2875349b344`, codeImageHash `0x3c89cd0bad030975cc7d4e5dbda1973a808bb38d67df6d460f931914ff039a7c` |
 | Sepolia (chainId 11155111) | ENS parent name | [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — owner `0x95eEe5d9d8d7D734EB29613E7Fd8e2875349b344`, resolver `0x8FADE66B79cC9f707aB26799354482EB93a5B7dD` |
 
 See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. After deploy, copy the addresses into the project root `.env` as `LPLENS_REPORTS_CONTRACT` and `LPLENS_AGENT_CONTRACT` — the server's `ogChain` adapter switches from raw self-tx anchoring to a real `publishReport(...)` call automatically.
@@ -202,13 +202,13 @@ Captured 2026-05-01 against curated bleeding wallet `0x76809bb…0f7` (USDC/WETH
 | 0G Chain anchor tx | `LPLensReports.publishReport` on the deployed registry |
 | 0G Compute verdict | model `qwen/qwen-2.5-7b-instruct`, provider `0xa48f0128…2E67836`, broker-signed |
 | AT-4 hallucination guard | fired live — masks LLM-fabricated numbers with `[unsupported]` in the verdict markdown |
-| **iNFT memoryRoot updated** | [`LPLensAgent` tokenId 1](https://chainscan-newton.0g.ai/address/0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141) — `memoryRoot` now points at the report's storage rootHash (was `0x0` at mint), `reputation` incremented (1 → 2 → 3 …). Two on-chain txs per diagnose: `updateMemoryRoot` ([`0x775fd7c3…47dfe0`](https://chainscan-newton.0g.ai/tx/0x775fd7c330ddd828e622cc7e2f9fff5de4409ddac7613e9237c1838a0447dfe0)) + `recordDiagnose` ([`0x9be6830b…56a809`](https://chainscan-newton.0g.ai/tx/0x9be6830b7d06431381e8d6fde8e8f26e7e3c4c9b6bc53f8798ac2bf06f56a809)). |
+| **iNFT memoryRoot updated** | [`LPLensAgent` tokenId 1](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) — `memoryRoot` now points at the report's storage rootHash (was `0x0` at mint), `reputation` incremented (1 → 2 → 3 …). Two on-chain txs per diagnose: `updateMemoryRoot` ([`0x775fd7c3…47dfe0`](https://chainscan-newton.0g.ai/tx/0x775fd7c330ddd828e622cc7e2f9fff5de4409ddac7613e9237c1838a0447dfe0)) + `recordDiagnose` ([`0x9be6830b…56a809`](https://chainscan-newton.0g.ai/tx/0x9be6830b7d06431381e8d6fde8e8f26e7e3c4c9b6bc53f8798ac2bf06f56a809)). |
 | ENS records on Sepolia | 5 text records under [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — keys `lplens.605311.{rootHash, storageUrl, anchorTx, chainId, verdict}` |
 
 Independent verification path — anyone with the rootHash + the registry address can run `cast`:
 
 ```bash
-cast call 0x05B4140683579dcbD1feC5965E7ADC77f210E53A \
+cast call 0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3 \
   "reports(bytes32)(address,uint64,uint256,bytes32,bytes)" \
   0x5b7b82f5d11186e684cbec10be64629b236e9a60cb6c7db924d18ccf8c574d75 \
   --rpc-url https://evmrpc-testnet.0g.ai
@@ -222,7 +222,7 @@ Or via the MCP tool `lplens.lookupReportOnChain` / `lplens.resolveEnsRecord` fro
 
 Three structural choices distinguish LPLens from any other autonomous-agent submission in the cohort:
 
-1. **Live agent memory + monetizable usage, not static metadata.** Most iNFT designs mint a token and never touch it again. LPLens emits **two on-chain transactions per diagnose run** (`updateMemoryRoot` + `recordDiagnose`) — `cast call agents(1)` on [`LPLensAgent`](https://chainscan-newton.0g.ai/address/0x7CDE5dEb5CE16e8d7DE020736e7B9D99D392a141) always returns the rootHash of the *latest* report, a `reputation` counter for runs performed, and a `migrationsTriggered` counter that increments when the user actually signs the Permit2 migration bundle. Third-party agents pay to call this agent via `mintLicense` — the contract auto-splits the payment 80/20 between iNFT owner and protocol treasury. The intelligence is in the cursor; the cursor is rentable.
+1. **Live agent memory + monetizable usage, not static metadata.** Most iNFT designs mint a token and never touch it again. LPLens emits **two on-chain transactions per diagnose run** (`updateMemoryRoot` + `recordDiagnose`) — `cast call agents(1)` on [`LPLensAgent`](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) always returns the rootHash of the *latest* report, a `reputation` counter for runs performed, and a `migrationsTriggered` counter that increments when the user actually signs the Permit2 migration bundle. Third-party agents pay to call this agent via `mintLicense` — the contract auto-splits the payment 80/20 between iNFT owner and protocol treasury. The intelligence is in the cursor; the cursor is rentable.
 
 2. **ENS as the agent's public output index, not a vanity name.** Five text records published per diagnose, keyed `lplens.<tokenId>.{rootHash, storageUrl, anchorTx, chainId, verdict}`. Any other agent can resolve [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) and enumerate every report this agent has produced, **indexed by Uniswap position tokenId**. ENS becomes the queryable memory of the agent economy.
 
