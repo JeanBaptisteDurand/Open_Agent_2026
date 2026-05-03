@@ -276,19 +276,27 @@ export function Landing() {
             maxWidth: 1400,
             margin: "0 auto",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 40,
-            flexWrap: "wrap",
+            flexDirection: "column",
+            gap: 20,
           }}
         >
           <Cap style={{ color: "var(--text-tertiary)" }}>INSTRUMENT STACK</Cap>
-          <TrustItem name="0G Compute" sub="TDX · provider-attested" />
-          <TrustItem name="Uniswap V3 / V4" sub="mainnet · sepolia" />
-          <TrustItem name="Permit2" sub="EIP-712 signed bundle" />
-          <TrustItem name="MCP" sub="6 tools · agent-callable" />
-          <TrustItem name="ERC-7857" sub="iNFT agent identity" />
-          <TrustItem name="ENS" sub="provenance text records" />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+              gap: 24,
+            }}
+          >
+            <TrustItem name="0G Compute" sub="TDX · provider-attested" />
+            <TrustItem name="0G Storage" sub="merkle rootHash anchored" />
+            <TrustItem name="0G Chain" sub="LPLensReports + iNFT registry" />
+            <TrustItem name="Uniswap V3 / V4" sub="mainnet · sepolia" />
+            <TrustItem name="Permit2" sub="EIP-712 signed bundle" />
+            <TrustItem name="ENS" sub="lplensagent.eth — Sepolia" />
+            <TrustItem name="ERC-7857" sub="iNFT agent identity" />
+            <TrustItem name="MCP" sub="6 tools · agent-callable" />
+          </div>
         </div>
       </section>
 
