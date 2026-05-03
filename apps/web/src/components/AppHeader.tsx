@@ -4,6 +4,13 @@ import { Logo } from "./Logo.js";
 import { Chip } from "../design/atoms.js";
 import { ConnectButton } from "./ConnectButton.js";
 
+// Single header used on every page. Modeled on the original Landing
+// inline header — relative position, no border, no backdrop blur,
+// no sticky behavior. Brand on the left, lightweight nav inline,
+// Connect wallet at the far right of the nav. Active route is
+// highlighted with text color only — no pill background — so the
+// marketing chrome reads identically on /atlas as on /.
+
 interface NavItem {
   to: string;
   label: string;
@@ -31,102 +38,93 @@ const NAV: NavItem[] = [
   },
 ];
 
+const GIT_TAG =
+  (import.meta.env.VITE_GIT_TAG as string | undefined) ?? "v1.0.2";
+
 interface Props {
-  /** Optional slot for page-specific items rendered to the left of
-   *  the Connect wallet button (e.g. a status pill on a live page). */
+  /** Optional slot rendered to the left of the Connect wallet button. */
   right?: ReactNode;
-  /** When true the header is rendered as overlay (transparent, no
-   *  border) for the Landing hero. Default sticky + opaque for app
-   *  pages. */
-  variant?: "app" | "overlay";
 }
 
-export function AppHeader({ right, variant = "app" }: Props) {
+export function AppHeader({ right }: Props) {
   const { pathname } = useLocation();
-  const isOverlay = variant === "overlay";
   return (
     <header
       style={{
+        position: "relative",
+        zIndex: 2,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "14px 36px",
-        borderBottom: isOverlay ? "none" : "1px solid var(--border)",
-        background: isOverlay ? "transparent" : "rgba(11, 11, 14, 0.82)",
-        backdropFilter: isOverlay ? undefined : "blur(12px)",
-        position: isOverlay ? "relative" : "sticky",
-        top: isOverlay ? undefined : 0,
-        zIndex: isOverlay ? 2 : 40,
+        padding: "18px 36px",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-        <Link
-          to="/"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            color: "var(--text)",
-            textDecoration: "none",
-          }}
-        >
-          <Logo />
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            LPLens
-          </span>
-          <Chip tone="cyan" style={{ marginLeft: 4 }}>
-            v0.9 · ALPHA
-          </Chip>
-        </Link>
+      <Link
+        to="/"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          color: "var(--text)",
+          textDecoration: "none",
+        }}
+      >
+        <Logo />
         <span
           style={{
-            width: 1,
-            height: 18,
-            background: "var(--border-strong)",
+            fontFamily: "var(--font-display)",
+            fontSize: 15,
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
           }}
-        />
-        <nav style={{ display: "flex", gap: 4 }}>
-          {NAV.map((n) => {
-            const active = n.matches ? n.matches(pathname) : pathname === n.to;
-            const isExternal = n.to.startsWith("http");
-            const sx = {
-              padding: "6px 12px",
-              borderRadius: 6,
-              fontSize: 13,
-              color: active ? "var(--text)" : "var(--text-secondary)",
-              background: active ? "var(--surface-raised)" : "transparent",
-              textDecoration: "none",
-              transition: "color 160ms, background 160ms",
-            } as const;
-            return isExternal ? (
-              <a
-                key={n.to}
-                href={n.to}
-                target="_blank"
-                rel="noreferrer"
-                style={sx}
-              >
-                {n.label}
-              </a>
-            ) : (
-              <Link key={n.to} to={n.to} style={sx}>
-                {n.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        >
+          LPLens
+        </span>
+        <Chip tone="cyan" style={{ marginLeft: 4 }}>
+          {GIT_TAG}
+        </Chip>
+      </Link>
+      <nav
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 28,
+          fontSize: 13,
+          color: "var(--text-secondary)",
+        }}
+      >
+        {NAV.map((n) => {
+          const active = n.matches ? n.matches(pathname) : pathname === n.to;
+          const isExternal = n.to.startsWith("http");
+          const sx = {
+            color: active ? "var(--text)" : "var(--text-secondary)",
+            textDecoration: "none",
+            transition: "color 160ms",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            font: "inherit",
+            cursor: "pointer",
+          } as const;
+          return isExternal ? (
+            <a
+              key={n.to}
+              href={n.to}
+              target="_blank"
+              rel="noreferrer"
+              style={sx}
+            >
+              {n.label}
+            </a>
+          ) : (
+            <Link key={n.to} to={n.to} style={sx}>
+              {n.label}
+            </Link>
+          );
+        })}
         {right}
         <ConnectButton />
-      </div>
+      </nav>
     </header>
   );
 }
