@@ -2,6 +2,8 @@
 
 ### The autonomous LP-rescue agent for Uniswap V3 / V4. Runs on the full 0G stack, with its own ENS name and on-chain memory.
 
+[![Demo Video](https://img.shields.io/badge/Demo-YouTube-red?logo=youtube)](https://youtu.be/-bohamjgD9c)
+
 Most Uniswap LPs lose money and never know why. LPLens diagnoses any V3 or V4 position you hold, explains *why* it's bleeding (range, regime, MEV, hook behavior), backtests every candidate V4 hook against the pool's real swap history, and offers a one-click Permit2 migration to the hook that would have earned you more. The agent never executes, you keep custody and sign a single Permit2 typed-data.
 
 Every numeric value in the report carries an honesty label (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so you can tell at a glance which claims trace back to chain-state and which are heuristics. Every finished report is signed by a TEE-attested 0G Compute provider, pinned to 0G Storage with a merkle rootHash, anchored on 0G Chain through the `LPLensReports` registry, and indexed under the agent's own ENS name (`lplensagent.eth` on Sepolia), five independent verification surfaces, no LPLens server in the trust path.
@@ -172,6 +174,7 @@ Owner of the iNFT is always implicitly licensed; royalty kicks in only on third-
 - **Networks :** Ethereum mainnet (data plane) · 0G Newton testnet (Storage / Compute / Chain / iNFT) · Sepolia (ENS)
 - **Repository :** [github.com/JeanBaptisteDurand/Open_Agent_2026](https://github.com/JeanBaptisteDurand/Open_Agent_2026)
 - **Live Demo :** [lplens.xyz](https://lplens.xyz)
+- **Demo Video :** [youtu.be/-bohamjgD9c](https://youtu.be/-bohamjgD9c)
 - **Builder feedback :** [FEEDBACK.md](FEEDBACK.md) (Uniswap track requirement)
 
 ---
