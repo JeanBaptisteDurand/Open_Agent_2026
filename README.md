@@ -55,22 +55,18 @@ LPLens does exactly that.
 
 ## Architecture overview
 
-```
-                    Browser (React + React Flow)
-                              │ (SSE, REST)
-                              ▼
-                     Express gateway + BullMQ
-                              │
-           ┌──────────────────┼──────────────────┐
-           ▼                  ▼                  ▼
-   Uniswap Subgraph     0G Compute TEE    Ethereum RPC
-   (v3 + v4 schemas,    (inference)       (viem contract reads,
-    chainId 1)                             chainId 1)
-                              │
-                              ▼
-                       0G Storage + 0G Chain
-                       (report rootHash + anchor)
-```
+![LPLens architecture](architecture.png)
+
+Inputs (User, Wallet, External MCP agent) hit a single Caddy entry on
+`lplens.xyz`. Caddy fans the request to the React SPA, the Express API +
+BullMQ pipeline, or the MCP server. The pipeline reads Uniswap V3 / V4
+subgraphs + Ethereum RPC, calls 0G Compute (TEE-attested verdict),
+uploads the report to 0G Storage, anchors the rootHash on 0G Chain,
+publishes ENS text records, and returns the Permit2 EIP-712 bundle for
+the wallet to sign. The five verification surfaces (LPLens API, 0G
+Chain registry, iNFT memoryRoot, ENS text record, 0G Storage merkle
+root) all converge on the same hash — no LPLens server in the trust
+path.
 
 **High-level flow**
 
@@ -118,11 +114,11 @@ Every numeric value in a LPLens report is **labeled** — we never present an es
 
 | Label | Meaning | Example |
 | --- | --- | --- |
-| 🟢 **VERIFIED** | Read directly on-chain or from canonical subgraph | `liquidity = 83 472 839 …` |
-| 🔵 **COMPUTED** | Derived mathematically from VERIFIED data via Uniswap formulas | `IL_pure_usd = f(liquidity, tickLower, tickUpper, priceNow)` |
-| 🟡 **ESTIMATED** | Heuristic (no ground truth) — displayed with a confidence interval | `toxicity_score = 0.087 ± 0.02` |
-| 🟠 **EMULATED** | Result of a simulation of something that did not actually run on-chain | `simulated_apr_in_dynamic_fee_hook = +18.6 %` (with `warnings[]`) |
-| 🏷️ **LABELED** | Manual curation by us | `hook_family = "JIT_PROTECTED"` |
+| **VERIFIED** | Read directly on-chain or from canonical subgraph | `liquidity = 83 472 839 …` |
+| **COMPUTED** | Derived mathematically from VERIFIED data via Uniswap formulas | `IL_pure_usd = f(liquidity, tickLower, tickUpper, priceNow)` |
+| **ESTIMATED** | Heuristic (no ground truth) — displayed with a confidence interval | `toxicity_score = 0.087 ± 0.02` |
+| **EMULATED** | Result of a simulation of something that did not actually run on-chain | `simulated_apr_in_dynamic_fee_hook = +18.6 %` (with `warnings[]`) |
+| **LABELED** | Manual curation by us | `hook_family = "JIT_PROTECTED"` |
 
 Phase 6 (hook scoring) is always EMULATED — the report explicitly discloses that the simulation uses family-level multipliers and cannot guarantee on-chain execution would match.
 
@@ -153,16 +149,16 @@ The label column is the truth, not the marketing. Anything `EMULATED` or
 
 | Phase | Status | What it does |
 | --- | --- | --- |
-| 1 — Position resolution | ✅ live | V3: subgraph getV3Position. V4: `PositionManager.getPoolAndPositionInfo(tokenId)` decodes the packed PositionInfo; aggregator-only fallback if `MAINNET_RPC` is missing. Returns `VERIFIED`. |
-| 3 — IL reconstruction | ✅ live | Eq. 6.29 / 6.30 of the V3 whitepaper via `@uniswap/v3-sdk` `SqrtPriceMath`. Vitest invariants in `packages/agent/test/IL.invariants.test.ts` cover the four foundational cases. Returns `COMPUTED`. |
-| 4 — Regime classification | ✅ live | Realized vol / Hurst / linreg + sandwich-spike proxy (hours where volume/liquidity > 3σ) + JIT proxy (liquidity volatility / mean). Returns `ESTIMATED` with confidence. |
-| 5 — V4 hook discovery | ✅ live | V4 subgraph + 14-bit hook flag-bitmap decoding → 7 family classifier. Returns `LABELED`. |
-| 6 — V4 hook **scoring** | ✅ live + AT-2 backed | Counterfactual P&L computed by replaying the pool's last 1 000 mainnet swaps swap-by-swap through `SwapMath.computeSwapStep`, with and without each candidate hook installed. AT-2 anchors the primitive at 0 bps drift vs on-chain post-swap state. Family-conditional multipliers remain as the second-pass adjustment for hook semantics that the bit-perfect replay alone can't capture (e.g. discretionary fee changes); the panel still surfaces them as the explicit assumption surface. The base counterfactual returns `COMPUTED`. |
-| 7 — Migration preview | ✅ live | Uniswap Trading API `/quote` for the swap leg; close → swap → mint preview. Permit2 EIP-712 PermitSingle ready for the wallet. Returns `EMULATED` with warnings (sample notional, no live execution). |
-| 8 — Report assembly + 0G Storage | ✅ live | Assembles the full verdict JSON, uploads to 0G Storage, returns merkle rootHash. `VERIFIED` with key, deterministic stub `EMULATED` without. |
-| 9 — 0G Chain anchor | ✅ live | Calls `LPLensReports.publishReport(tokenId, rootHash, attestation)` if `LPLENS_REPORTS_CONTRACT` is set, else self-tx with rootHash as calldata. `VERIFIED` or stub. |
-| 10 — TEE verdict synthesis | ✅ live + AT-4 guard | 0G Compute broker → `qwen-2.5-7b-instruct` → 3-sentence markdown. Every `$` / `%` / hex claim is regex-extracted and checked (within ±2%) against the report payload; unsupported claims are masked `[unsupported]` and the value drops to `EMULATED` with the mismatch list. |
-| 11 — ENS identity publish | ✅ live | Writes per-position text records under the agent's parent ENS name. `VERIFIED` or stub. |
+| 1 — Position resolution | live | V3: subgraph getV3Position. V4: `PositionManager.getPoolAndPositionInfo(tokenId)` decodes the packed PositionInfo; aggregator-only fallback if `MAINNET_RPC` is missing. Returns `VERIFIED`. |
+| 3 — IL reconstruction | live | Eq. 6.29 / 6.30 of the V3 whitepaper via `@uniswap/v3-sdk` `SqrtPriceMath`. Vitest invariants in `packages/agent/test/IL.invariants.test.ts` cover the four foundational cases. Returns `COMPUTED`. |
+| 4 — Regime classification | live | Realized vol / Hurst / linreg + sandwich-spike proxy (hours where volume/liquidity > 3σ) + JIT proxy (liquidity volatility / mean). Returns `ESTIMATED` with confidence. |
+| 5 — V4 hook discovery | live | V4 subgraph + 14-bit hook flag-bitmap decoding → 7 family classifier. Returns `LABELED`. |
+| 6 — V4 hook **scoring** | live + AT-2 backed | Counterfactual P&L computed by replaying the pool's last 1 000 mainnet swaps swap-by-swap through `SwapMath.computeSwapStep`, with and without each candidate hook installed. AT-2 anchors the primitive at 0 bps drift vs on-chain post-swap state. Family-conditional multipliers remain as the second-pass adjustment for hook semantics that the bit-perfect replay alone can't capture (e.g. discretionary fee changes); the panel still surfaces them as the explicit assumption surface. The base counterfactual returns `COMPUTED`. |
+| 7 — Migration preview | live | Uniswap Trading API `/quote` for the swap leg; close → swap → mint preview. Permit2 EIP-712 PermitSingle ready for the wallet. Returns `EMULATED` with warnings (sample notional, no live execution). |
+| 8 — Report assembly + 0G Storage | live | Assembles the full verdict JSON, uploads to 0G Storage, returns merkle rootHash. `VERIFIED` with key, deterministic stub `EMULATED` without. |
+| 9 — 0G Chain anchor | live | Calls `LPLensReports.publishReport(tokenId, rootHash, attestation)` if `LPLENS_REPORTS_CONTRACT` is set, else self-tx with rootHash as calldata. `VERIFIED` or stub. |
+| 10 — TEE verdict synthesis | live + AT-4 guard | 0G Compute broker → `qwen-2.5-7b-instruct` → 3-sentence markdown. Every `$` / `%` / hex claim is regex-extracted and checked (within ±2%) against the report payload; unsupported claims are masked `[unsupported]` and the value drops to `EMULATED` with the mismatch list. |
+| 11 — ENS identity publish | live | Writes per-position text records under the agent's parent ENS name. `VERIFIED` or stub. |
 
 Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the LLM call is what writes the user-facing summary, so a separate planning pass would duplicate the LLM cost.
 
@@ -311,16 +307,16 @@ Past hackathon projects with the same "Lens" architecture (RAG-over-chain-data a
 
 | Track | Requirement | Status |
 | --- | --- | --- |
-| **0G Autonomous Agents/Swarms/iNFT** | Project name + short description | ✅ this README hero |
-| | Contract deployment addresses | ✅ [Deployed contracts](#deployed-contracts) |
-| | Public GitHub repo + README + setup | ✅ [Local setup](#local-setup) |
-| | Demo video & live demo link (≤ 3 min) | ✅ [DEMO.md](DEMO.md) walkthrough — recording linked at submission time |
-| | Protocol features / SDKs explained | ✅ [Tech stack](#tech-stack) + [Tracks applied](#tracks-applied) |
-| | Team Telegram + X | ✅ above |
-| | iNFT minted on 0G explorer + intelligence/memory embedded proof | ✅ [`LPLensAgent` token 1](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) — `cast call agents(1)` returns live `memoryRoot`, `reputation`, `migrationsTriggered` |
-| **Uniswap Best API Integration** | `FEEDBACK.md` in repo root | ✅ [FEEDBACK.md](FEEDBACK.md) |
-| **ENS Best for AI Agents** | Functional ENS demo (no hard-coded values) | ✅ five text records under `lplensagent.eth` written live per diagnose; readable via `cast namehash` or any ENS frontend |
-| | Demo video / live link | ✅ DEMO.md + per-position records on Sepolia |
+| **0G Autonomous Agents/Swarms/iNFT** | Project name + short description | this README hero |
+| | Contract deployment addresses | [Deployed contracts](#deployed-contracts) |
+| | Public GitHub repo + README + setup | [Local setup](#local-setup) |
+| | Demo video & live demo link (≤ 3 min) | [DEMO.md](DEMO.md) walkthrough — recording linked at submission time |
+| | Protocol features / SDKs explained | [Tech stack](#tech-stack) + [Tracks applied](#tracks-applied) |
+| | Team Telegram + X | above |
+| | iNFT minted on 0G explorer + intelligence/memory embedded proof | [`LPLensAgent` token 1](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) — `cast call agents(1)` returns live `memoryRoot`, `reputation`, `migrationsTriggered` |
+| **Uniswap Best API Integration** | `FEEDBACK.md` in repo root | [FEEDBACK.md](FEEDBACK.md) |
+| **ENS Best for AI Agents** | Functional ENS demo (no hard-coded values) | five text records under `lplensagent.eth` written live per diagnose; readable via `cast namehash` or any ENS frontend |
+| | Demo video / live link | DEMO.md + per-position records on Sepolia |
 
 ## Demo
 
