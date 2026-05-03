@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Logo } from "../components/Logo.js";
+import { AppHeader } from "../components/AppHeader.js";
 import { HeroFilm } from "../components/HeroFilm.js";
-import { Cap, Chip, Dot, Kbd, Mono, SectionHeader } from "../design/atoms.js";
+import { Cap, Dot, Mono, SectionHeader } from "../design/atoms.js";
 
 export function Landing() {
   const nav = useNavigate();
@@ -13,68 +13,11 @@ export function Landing() {
           minHeight: "92vh",
           display: "flex",
           flexDirection: "column",
-          paddingTop: 24,
         }}
       >
         <HeroFilm />
 
-        <header
-          style={{
-            position: "relative",
-            zIndex: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "18px 36px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Logo />
-            <span
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 15,
-                fontWeight: 600,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              LPLens
-            </span>
-            <Chip tone="cyan" style={{ marginLeft: 4 }}>
-              v0.9 · ALPHA
-            </Chip>
-          </div>
-          <nav
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 28,
-              fontSize: 13,
-              color: "var(--text-secondary)",
-            }}
-          >
-            <button onClick={() => nav("/atlas")} style={{ color: "inherit" }}>
-              Atlas
-            </button>
-            <button onClick={() => nav("/agent")} style={{ color: "inherit" }}>
-              Agent
-            </button>
-            <button onClick={() => nav("/developers")} style={{ color: "inherit" }}>
-              Developers
-            </button>
-            <a
-              href="https://github.com/JeanBaptisteDurand/Open_Agent_2026/blob/main/FEEDBACK.md"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "inherit", textDecoration: "none" }}
-            >
-              Feedback
-            </a>
-            <button onClick={() => nav("/atlas")} className="btn btn-primary">
-              Connect wallet
-            </button>
-          </nav>
-        </header>
+        <AppHeader variant="overlay" />
 
         <div
           style={{
@@ -180,20 +123,6 @@ export function Landing() {
                   2:48
                 </Mono>
               </button>
-              <div
-                style={{
-                  marginLeft: 16,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  color: "var(--text-tertiary)",
-                  fontSize: 12,
-                }}
-              >
-                <Kbd>⌘</Kbd>
-                <Kbd>K</Kbd>
-                <span>to search</span>
-              </div>
             </div>
           </div>
         </div>
