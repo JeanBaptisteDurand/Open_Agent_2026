@@ -10,7 +10,8 @@ const MCP_SERVER_URL =
   (import.meta.env.VITE_LPLENS_MCP_URL as string | undefined) ??
   "mcp.lplens.xyz";
 const AGENT_CONTRACT =
-  (import.meta.env.VITE_LPLENS_AGENT_CONTRACT as string | undefined) ?? "";
+  (import.meta.env.VITE_LPLENS_AGENT_CONTRACT as string | undefined) ??
+  "0x938f3B7841b3faCbBE967F90B548d991e9882c6C";
 const AGENT_TOKEN_ID =
   (import.meta.env.VITE_LPLENS_AGENT_TOKEN_ID as string | undefined) ?? "1";
 

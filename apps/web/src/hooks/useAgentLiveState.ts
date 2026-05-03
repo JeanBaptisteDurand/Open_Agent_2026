@@ -13,8 +13,12 @@ import {
 // a screenshot. No-op (returns null) when the contract address isn't
 // configured at build time.
 
+// Defaults match the live deployment on 0G Newton — env overrides win
+// when a redeploy points the page at a fresh contract.
+const DEFAULT_AGENT_CONTRACT =
+  "0x938f3B7841b3faCbBE967F90B548d991e9882c6C" as Address;
 const AGENT_ADDRESS = (import.meta.env.VITE_LPLENS_AGENT_CONTRACT ??
-  "") as Address | "";
+  DEFAULT_AGENT_CONTRACT) as Address;
 const AGENT_TOKEN_ID = BigInt(
   (import.meta.env.VITE_LPLENS_AGENT_TOKEN_ID as string | undefined) ?? "1",
 );
@@ -95,11 +99,6 @@ export function useAgentLiveState(): AgentLiveStateResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!AGENT_ADDRESS) {
-      setError("VITE_LPLENS_AGENT_CONTRACT not set");
-      return;
-    }
-
     let cancelled = false;
     const client = createPublicClient({
       chain: newtonChain,
