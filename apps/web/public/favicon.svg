@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Dark backplate so the mark stays visible on light browser tabs -->
+  <rect width="32" height="32" rx="6" fill="#0B0B0E"/>
+  <!-- Prism triangle — amber stroke, faint amber fill -->
+  <polygon points="16,4 28,26 4,26" stroke="#FFB020" stroke-width="1.6" fill="rgba(255, 176, 32, 0.08)" stroke-linejoin="round"/>
+  <!-- Incoming horizontal beam -->
+  <line x1="3" y1="16" x2="14" y2="16" stroke="#F2EFE8" stroke-width="1.2" opacity="0.9"/>
+  <!-- 5 spectral fan lines exiting the prism -->
+  <line x1="17" y1="16" x2="29" y2="9"  stroke="#FFB020" stroke-width="1.1"/>
+  <line x1="17" y1="16" x2="29" y2="14" stroke="#F5D266" stroke-width="1.1"/>
+  <line x1="17" y1="16" x2="29" y2="18" stroke="#8EE887" stroke-width="1.1"/>
+  <line x1="17" y1="16" x2="29" y2="22" stroke="#FF5E4F" stroke-width="1.1"/>
+  <line x1="17" y1="16" x2="29" y2="26" stroke="#C59CFF" stroke-width="1.1"/>
+</svg>
