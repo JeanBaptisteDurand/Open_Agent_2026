@@ -23,7 +23,7 @@ import { createPublicClient, defineChain, http, type Hex } from "viem";
 
 const LPLENS_REPORTS_CONTRACT =
   (process.env.LPLENS_REPORTS_CONTRACT as Hex | undefined) ??
-  ("0x05B4140683579dcbD1feC5965E7ADC77f210E53A" as Hex);
+  ("0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3" as Hex);
 
 const RPC_URL =
   process.env.OG_NEWTON_RPC ?? "https://evmrpc-testnet.0g.ai";
