@@ -26,23 +26,17 @@ export function Landing() {
             flex: 1,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
             padding: "0 36px",
-            textAlign: "center",
           }}
         >
-          <div style={{ maxWidth: 920, width: "100%" }}>
+          <div style={{ maxWidth: 1200, width: "100%", margin: "0 auto" }}>
             <div
               style={{
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
                 gap: 10,
                 marginBottom: 28,
-                padding: "6px 14px",
-                borderRadius: 999,
-                border: "1px solid var(--border-strong)",
-                background: "rgba(11, 22, 40, 0.55)",
-                opacity: 0.95,
+                opacity: 0.9,
               }}
             >
               <Dot color="cyan" pulse />
@@ -61,6 +55,7 @@ export function Landing() {
                 lineHeight: 1.02,
                 fontWeight: 500,
                 letterSpacing: "-0.035em",
+                maxWidth: 1000,
                 color: "var(--text)",
                 textWrap: "balance",
               }}
@@ -76,8 +71,8 @@ export function Landing() {
             </h1>
             <p
               style={{
-                margin: "28px auto 0",
-                maxWidth: 720,
+                marginTop: 28,
+                maxWidth: 640,
                 fontSize: 17,
                 lineHeight: 1.55,
                 color: "var(--text-secondary)",
@@ -95,7 +90,6 @@ export function Landing() {
                 gap: 12,
                 marginTop: 36,
                 alignItems: "center",
-                justifyContent: "center",
                 flexWrap: "wrap",
               }}
             >
@@ -104,7 +98,7 @@ export function Landing() {
                 onClick={() => nav("/atlas")}
                 style={{ padding: "14px 22px", fontSize: 14 }}
               >
-                Open Atlas
+                Connect wallet
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path
                     d="M3 7h8M7 3l4 4-4 4"
@@ -133,37 +127,11 @@ export function Landing() {
                     fill="currentColor"
                   />
                 </svg>
-                Watch a live diagnose
+                Watch the diagnosis
+                <Mono color="text-tertiary" style={{ fontSize: 11, marginLeft: 4 }}>
+                  2:48
+                </Mono>
               </button>
-            </div>
-
-            {/* Stats row — three metrics that anchor the thesis */}
-            <div
-              style={{
-                marginTop: 56,
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 32,
-                maxWidth: 720,
-                marginLeft: "auto",
-                marginRight: "auto",
-              }}
-            >
-              <Stat
-                value="1 000"
-                label="swaps replayed"
-                sub="0 bps drift vs mainnet"
-              />
-              <Stat
-                value="5"
-                label="verification paths"
-                sub="no LPLens server in trust"
-              />
-              <Stat
-                value="0"
-                label="keys in custody"
-                sub="user signs, agent never executes"
-              />
             </div>
           </div>
         </div>
@@ -202,6 +170,40 @@ export function Landing() {
               }}
             />
           </div>
+        </div>
+      </section>
+
+      {/* Stats row — three metrics that anchor the thesis */}
+      <section
+        style={{
+          padding: "56px 36px",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 920,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 32,
+          }}
+        >
+          <Stat
+            value="1 000"
+            label="swaps replayed"
+            sub="0 bps drift vs mainnet"
+          />
+          <Stat
+            value="5"
+            label="verification paths"
+            sub="no LPLens server in trust"
+          />
+          <Stat
+            value="0"
+            label="keys in custody"
+            sub="user signs, agent never executes"
+          />
         </div>
       </section>
 
