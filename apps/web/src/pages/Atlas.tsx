@@ -14,13 +14,45 @@ import { classifyHealth } from "../lib/health.js";
 // position's range/fee state (see HUMAN.md `Curate the demo wallets`).
 // Editorial labels match what the page actually renders.
 interface DemoWallet {
-  slot: "healthy" | "drifting" | "bleeding" | "whale" | "mixed";
+  slot:
+    | "portfolio"
+    | "bleeding"
+    | "mixed"
+    | "whale"
+    | "healthy"
+    | "drifting";
   label: string;
   address: string;
   hint: string;
 }
 
+// Multi-position demos first — they showcase the dashboard's density
+// before the user scrolls. Single-position narrative slots come after.
 const CURATED_DEMO_WALLETS: DemoWallet[] = [
+  {
+    slot: "portfolio",
+    label: "portfolio · 30+ positions",
+    address: "0xfd235968e65b0990584585763f837a5b5330e6de",
+    hint: "30 LP positions across 27 different pools · diverse pro LP wallet",
+  },
+  {
+    slot: "bleeding",
+    label: "bleeding · 10 out-of-range",
+    address: "0x8f4daa33706d70677fd69e4e0d47e595bc820e95",
+    hint: "10 USDC/WETH positions · ALL out-of-range · ~$600 k stuck · 0 fees",
+  },
+  {
+    slot: "mixed",
+    label: "mixed · 5 trapped above",
+    address: "0x4d3e3d1a38505185ba86a1b1f3084195d556bc2a",
+    hint: "5 USDC/WETH positions · all out (price climbed) · strong fee history",
+  },
+  {
+    slot: "whale",
+    label: "whale · $20 m healthy",
+    address: "0x4b296808f414ab3775889fa2863e1d73f958a58e",
+    hint: "$20.9 m USDC + 5 893 WETH · in-range 23 % · mature LP, fees > deposits",
+  },
   {
     slot: "healthy",
     label: "healthy · in-range",
@@ -33,32 +65,15 @@ const CURATED_DEMO_WALLETS: DemoWallet[] = [
     address: "0x7c6ef14f6890d0fda17fb8e4fb6f649f0355c3be",
     hint: "USDC/WETH 0.05% · still in-range but at 14 % · USDC-heavy ($500 k)",
   },
-  {
-    slot: "bleeding",
-    label: "bleeding · 10 out-of-range",
-    address: "0x8f4daa33706d70677fd69e4e0d47e595bc820e95",
-    hint: "10 USDC/WETH positions · ALL out-of-range · ~$600 k stuck · 0 fees",
-  },
-  {
-    slot: "whale",
-    label: "whale · $20 m healthy",
-    address: "0x4b296808f414ab3775889fa2863e1d73f958a58e",
-    hint: "$20.9 m USDC + 5 893 WETH · in-range 23 % · mature LP, fees > deposits",
-  },
-  {
-    slot: "mixed",
-    label: "mixed · trapped above range",
-    address: "0x4d3e3d1a38505185ba86a1b1f3084195d556bc2a",
-    hint: "5 USDC/WETH positions · all out (price climbed) · strong fee history",
-  },
 ];
 
 const SLOT_TONE: Record<DemoWallet["slot"], string> = {
+  portfolio: "var(--violet, #b48cff)",
+  bleeding: "var(--bleed)",
+  mixed: "var(--toxic)",
+  whale: "var(--cyan)",
   healthy: "var(--healthy)",
   drifting: "var(--toxic)",
-  bleeding: "var(--bleed)",
-  whale: "var(--cyan)",
-  mixed: "var(--violet, #b48cff)",
 };
 
 function aggregate(positions: V3PositionRaw[]) {
