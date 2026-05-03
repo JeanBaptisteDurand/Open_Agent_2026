@@ -2,9 +2,13 @@ import type { V3PositionRaw } from "./api.js";
 
 export type Health = "green" | "amber" | "red";
 
-// Placeholder heuristic until phase 3 IL math lands. We use the raw
-// collected fees vs deposited tokens as a quick proxy. Real classification
-// will come from the agent's IL reconstruction output.
+// Classification combines two signals — out-of-range OR no fees collected
+// is bleeding (red), in-range with fees flowing is healthy (green), the
+// rest is drifting (amber). The pool's current tick comes from the
+// subgraph; if the subgraph hasn't indexed swaps yet (tick null) we fall
+// back to fee-ratio only.
+const FEE_RATIO_HEALTHY_THRESHOLD = 0.005; // 0.5 % of deposited value
+
 export function classifyHealth(p: V3PositionRaw): Health {
   const dep0 = parseFloat(p.depositedToken0);
   const dep1 = parseFloat(p.depositedToken1);
@@ -12,10 +16,23 @@ export function classifyHealth(p: V3PositionRaw): Health {
   const fee1 = parseFloat(p.collectedFeesToken1);
   const total = dep0 + dep1;
   if (total === 0) return "amber";
+
+  const tickRaw = p.pool.tick;
+  if (tickRaw !== null && tickRaw !== "") {
+    const cur = parseInt(tickRaw, 10);
+    const tl = parseInt(p.tickLower.tickIdx, 10);
+    const tu = parseInt(p.tickUpper.tickIdx, 10);
+    if (Number.isFinite(cur) && Number.isFinite(tl) && Number.isFinite(tu)) {
+      const inRange = cur >= tl && cur <= tu;
+      if (!inRange) return "red";
+    }
+  }
+
   const ratio = (fee0 + fee1) / total;
-  if (ratio > 0.005) return "green";
+  if (ratio > FEE_RATIO_HEALTHY_THRESHOLD) return "green";
   if (ratio > 0) return "amber";
-  return "red";
+  // In range but zero fees — fresh position or dead pool, treat as drifting.
+  return "amber";
 }
 
 export const HEALTH_COLORS: Record<Health, string> = {

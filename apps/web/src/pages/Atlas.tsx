@@ -9,14 +9,12 @@ import { Addr } from "../design/Addr.js";
 import { fetchPositions, type V3PositionRaw } from "../lib/api.js";
 import { classifyHealth } from "../lib/health.js";
 
-// Three curated demo wallets — one per health-state slot. Each
-// `address` field holds a wallet picked for the expected state so the
-// demo's green / amber / red narrative is pinned regardless of
-// real-time chain drift on a single wallet. Edit these constants to
-// re-point a slot at a fresher wallet — see HUMAN.md `Curate the demo
-// wallets` for the validation procedure.
+// Curated demo wallets — one per health-state slot. Each address was
+// validated by querying the V3 subgraph + checking the dominant
+// position's range/fee state (see HUMAN.md `Curate the demo wallets`).
+// Editorial labels match what the page actually renders.
 interface DemoWallet {
-  slot: "healthy" | "drifting" | "bleeding";
+  slot: "healthy" | "drifting" | "bleeding" | "whale" | "mixed";
   label: string;
   address: string;
   hint: string;
@@ -26,20 +24,32 @@ const CURATED_DEMO_WALLETS: DemoWallet[] = [
   {
     slot: "healthy",
     label: "healthy · in-range",
-    address: "0x30c35950f2a8b8b76338bcd0b4d6fe67c98d2439",
-    hint: "USDC/WETH 0.05% — current tick at ~25% of range, fees compounding",
+    address: "0x90deceec188094f6f6c1ef446d843f70abfc92cb",
+    hint: "single position · USDC/WETH 0.05% · in-range at 46 % · 111 % fee ratio",
   },
   {
     slot: "drifting",
     label: "drifting · close-to-edge",
-    address: "0x4ec9073ce27ea985c77b13d1cbf03033789de3f1",
-    hint: "USDC/WETH 0.05% — current tick at ~87% of range, exit imminent",
+    address: "0x7c6ef14f6890d0fda17fb8e4fb6f649f0355c3be",
+    hint: "USDC/WETH 0.05% · still in-range but at 14 % · USDC-heavy ($500 k)",
   },
   {
     slot: "bleeding",
-    label: "bleeding · out-of-range",
-    address: "0x76809bbfefb88547333466fc62985dfe19cd90f7",
-    hint: "USDC/WETH 0.05% — way above range, IL dominant — migrate",
+    label: "bleeding · 10 out-of-range",
+    address: "0x8f4daa33706d70677fd69e4e0d47e595bc820e95",
+    hint: "10 USDC/WETH positions · ALL out-of-range · ~$600 k stuck · 0 fees",
+  },
+  {
+    slot: "whale",
+    label: "whale · $20 m healthy",
+    address: "0x4b296808f414ab3775889fa2863e1d73f958a58e",
+    hint: "$20.9 m USDC + 5 893 WETH · in-range 23 % · mature LP, fees > deposits",
+  },
+  {
+    slot: "mixed",
+    label: "mixed · trapped above range",
+    address: "0x4d3e3d1a38505185ba86a1b1f3084195d556bc2a",
+    hint: "5 USDC/WETH positions · all out (price climbed) · strong fee history",
   },
 ];
 
@@ -47,6 +57,8 @@ const SLOT_TONE: Record<DemoWallet["slot"], string> = {
   healthy: "var(--healthy)",
   drifting: "var(--toxic)",
   bleeding: "var(--bleed)",
+  whale: "var(--cyan)",
+  mixed: "var(--violet, #b48cff)",
 };
 
 function aggregate(positions: V3PositionRaw[]) {
