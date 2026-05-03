@@ -41,6 +41,7 @@ const POSITIONS_BY_OWNER_V3 = /* GraphQL */ `
       pool {
         id
         feeTier
+        tick
         token0 {
           id
           symbol

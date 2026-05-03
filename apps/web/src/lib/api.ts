@@ -15,6 +15,9 @@ export interface V3PositionRaw {
     id: string;
     feeTier: string;
     tickSpacing: string;
+    /** Current pool tick — used by classifyHealth to detect out-of-range
+     *  positions. Nullable when the subgraph hasn't indexed any swaps yet. */
+    tick: string | null;
     token0: { id: string; symbol: string; decimals: string };
     token1: { id: string; symbol: string; decimals: string };
   };
