@@ -50,3 +50,5 @@ apps/web/playwright-report/
 .gitmodules
 contracts/lib/
 contracts/foundry.lock
+# Playwright visual-tour screenshot artifacts (regenerated on each run)
+apps/web/screenshots/
