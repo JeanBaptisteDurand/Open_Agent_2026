@@ -193,6 +193,66 @@ cast call ${AGENT_CONTRACT || "<LPLensAgent>"} \\
           </pre>
         </section>
 
+        {/* Run the MCP server locally — install / build / start */}
+        <section
+          style={{
+            marginTop: 24,
+            padding: 24,
+            borderRadius: 10,
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: 14, fontFamily: "var(--font-display)", color: "var(--cyan)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+            Run the MCP server on your machine
+          </h2>
+          <p style={{ marginTop: 12, fontSize: 13, color: "var(--text-secondary)", maxWidth: 760, lineHeight: 1.6 }}>
+            The MCP server is a Node STDIO process that Claude Desktop spawns
+            as a subprocess on your machine. It calls the LPLens HTTP backend
+            for the heavy lifting (subgraph, 0G Compute, storage, chain anchor)
+            and reads the iNFT licence on-chain via your local RPC. You don't
+            host anything — you run a single binary.
+          </p>
+          <pre
+            style={{
+              marginTop: 12,
+              padding: 14,
+              borderRadius: 8,
+              background: "var(--surface-raised)",
+              border: "1px solid var(--border)",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              overflow: "auto",
+              lineHeight: 1.6,
+            }}
+          >
+{`# Option A — clone + build (works today, ~1 minute)
+git clone https://github.com/JeanBaptisteDurand/Open_Agent_2026.git
+cd Open_Agent_2026
+pnpm install
+pnpm --filter @lplens/mcp-server build
+
+# Server entry — point Claude Desktop at this absolute path:
+node $(pwd)/apps/mcp-server/dist/index.js
+
+# Option B — npm package (roadmap, see /roadmap)
+# npm install -g @lplens/mcp-server
+# lplens-mcp`}
+          </pre>
+          <p style={{ marginTop: 12, fontSize: 11, color: "var(--text-tertiary)", lineHeight: 1.55 }}>
+            Releases pinned at{" "}
+            <a
+              href="https://github.com/JeanBaptisteDurand/Open_Agent_2026/releases"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "var(--cyan)" }}
+            >
+              github.com/JeanBaptisteDurand/Open_Agent_2026/releases
+            </a>
+            {" "}— grab the latest tarball if you'd rather not clone.
+          </p>
+        </section>
+
         {/* Claude Desktop */}
         <section
           style={{
