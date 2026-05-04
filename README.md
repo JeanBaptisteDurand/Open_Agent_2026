@@ -197,12 +197,13 @@ See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. 
 
 ## Live demo run — proof-of-life
 
-Captured 2026-05-01 against curated bleeding wallet `0x76809bb…0f7` (USDC/WETH 0.05 % position `tokenId 605311`, far above range, IL dominant):
+Captured 2026-05-03 against tokenId 685602 (USDC/WETH 0.05 %, mainnet) — view the full report at
+[`/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11`](http://localhost:3100/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11):
 
 | Output | Value |
 | --- | --- |
-| 0G Storage rootHash | `0x4d4c9fb05fa47b69bcb6d42878d83203fd7a0a5e09ef3b73b1e6dd5e25ebbccb` |
-| 0G Chain anchor tx | `LPLensReports.publishReport` on the deployed registry |
+| 0G Storage rootHash | [`0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11`](http://localhost:3100/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11) |
+| 0G Chain anchor tx | [`0xd7392aa9dfd4fb1d…0ecbd8e`](https://chainscan-newton.0g.ai/tx/0xd7392aa9dfd4fb1dbae1447bbf901943d7f3816c2639c64a46f45ad140ecbd8e) on the deployed `LPLensReports` registry |
 | 0G Compute verdict | model `qwen/qwen-2.5-7b-instruct`, provider `0xa48f0128…2E67836`, broker-signed |
 | AT-4 hallucination guard | fired live — masks LLM-fabricated numbers with `[unsupported]` in the verdict markdown |
 | **iNFT memoryRoot updated** | [`LPLensAgent` tokenId 1](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) — `memoryRoot` now points at the report's storage rootHash (was `0x0` at mint), `reputation` incremented (1 → 2 → 3 …). Two on-chain txs per diagnose: `updateMemoryRoot` ([`0x775fd7c3…47dfe0`](https://chainscan-newton.0g.ai/tx/0x775fd7c330ddd828e622cc7e2f9fff5de4409ddac7613e9237c1838a0447dfe0)) + `recordDiagnose` ([`0x9be6830b…56a809`](https://chainscan-newton.0g.ai/tx/0x9be6830b7d06431381e8d6fde8e8f26e7e3c4c9b6bc53f8798ac2bf06f56a809)). |

@@ -128,13 +128,16 @@ export function AppHeader({ right }: Props) {
           );
         })}
         {right}
-        {/* 0G Compute provider attestation type — real value, not the
-            old SGX claim. Hides on narrow viewports. */}
+        {/* 0G Compute provider attestation — real signal that verdicts
+            run inside a TEE on the 0G compute network. We do NOT claim a
+            specific attestation type (TDX vs SGX) because we never queried
+            the provider for its `teeType` field — only the broker-level
+            "attestation present" guarantee is empirically verified. */}
         <span
-          title="Verdicts run on a 0G Compute provider whose attestation report (TDX) is verifiable on-chain — see /agent for the live signer address."
+          title="Verdicts run on a 0G Compute provider with a broker-verifiable attestation report. See /agent for the live signer address."
           style={{ display: "inline-flex", marginLeft: 4 }}
         >
-          <Chip tone="cyan">0G Compute · TDX</Chip>
+          <Chip tone="cyan">0G Compute · TEE attested</Chip>
         </span>
         <ConnectButton />
       </nav>
