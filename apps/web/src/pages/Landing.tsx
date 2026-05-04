@@ -175,8 +175,8 @@ export function Landing() {
             <Partner name="0G Labs" sub="AI-native L1 — TEE compute, storage, chain" />
             <Partner name="Uniswap Foundation" sub="V3+V4 subgraphs, Trading API, Permit2" />
             <Partner name="ENS Labs" sub="agent identity & output index" />
-            <Partner name="KeeperHub" sub="reliable on-chain execution" />
-            <Partner name="Gensyn" sub="AXL — encrypted P2P agent transport" />
+            <Partner name="ERC-7857" sub="iNFT standard for embedded intelligence" />
+            <Partner name="MCP" sub="@modelcontextprotocol/sdk — agent-callable tools" />
             <Partner name="ETHGlobal" sub="Open Agents 2026" />
           </div>
         </div>
