@@ -573,6 +573,60 @@ export function Landing() {
         </div>
       </section>
 
+      {/* ─── 8b · Five anchor lines ───────────────────────────────────── */}
+      <section style={{ padding: "100px 36px", maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <Cap style={{ color: "var(--cyan)" }}>FIVE ANCHOR LINES</Cap>
+          <h2
+            style={{
+              margin: "12px 0 16px",
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(32px, 4vw, 48px)",
+              fontWeight: 500,
+              letterSpacing: "-0.025em",
+              textWrap: "balance",
+            }}
+          >
+            What we tell every judge, every demo, every time.
+          </h2>
+          <p
+            style={{
+              margin: "0 auto",
+              maxWidth: 720,
+              color: "var(--text-secondary)",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            Five lines that separate LPLens from every adjacent LP-agent submission in the cohort —
+            policy-bounded wallets, auto-rebalanced vaults, RL black boxes, dashboard-only explorers,
+            cosmetic-ENS projects.
+          </p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <AnchorLine
+            tag="01 · DIAGNOSTIC, NOT AUTO-DEPLOY"
+            body="LPLens does not deploy your capital. It diagnoses why your LP is bleeding, signs the report inside a TEE, and proposes a V4 migration only if the simulation backtests positively. The agent never executes — the user keeps custody."
+          />
+          <AnchorLine
+            tag="02 · HONESTY LAYER"
+            body="Every numeric output carries one of five labels: VERIFIED, COMPUTED, ESTIMATED, EMULATED, LABELED. If the agent did not backtest a hook against the pool's real swaps, it says so. The hallucination guard fires before anchoring — unsupported claims never reach any of the five verification surfaces."
+          />
+          <AnchorLine
+            tag="03 · V4 HOOK REPLAY, NOT HEURISTIC"
+            body="We do not guess if a V4 hook will help your pool. We replay the pool's last 1 000 mainnet swaps through the candidate hook via SwapMath.computeSwapStep and show the counterfactual IL — at 0 bps drift vs on-chain post-swap state."
+          />
+          <AnchorLine
+            tag="04 · SIGNED REPORT, NOT A SCREENSHOT"
+            body="The verdict is a blob signed inside an Intel TDX enclave, pinned on 0G Storage, anchored on 0G Chain. Forwardable to a DAO. Verifiable offline by anyone with the rootHash and the registry address — no LPLens server in the trust path."
+          />
+          <AnchorLine
+            tag="05 · ENS DOES REAL WORK"
+            body="The agent's ENS subname resolves its on-chain memory cursor. Five text records per diagnose key the rootHash, storageUrl, anchorTx, chainId, and verdict — indexed by Uniswap position tokenId. ENS becomes the queryable memory of the agent economy here. Not a vanity name."
+          />
+        </div>
+      </section>
+
       {/* ─── 9 · Closing CTA ──────────────────────────────────────────── */}
       <section style={{ padding: "100px 36px", maxWidth: 920, margin: "0 auto", textAlign: "center" }}>
         <h2
@@ -814,6 +868,41 @@ function PathCard({ n, name, sub }: PathCardProps) {
       <Mono color="text-tertiary" style={{ fontSize: 10 }}>
         {sub}
       </Mono>
+    </div>
+  );
+}
+
+interface AnchorLineProps {
+  tag: string;
+  body: string;
+}
+function AnchorLine({ tag, body }: AnchorLineProps) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        padding: "26px 32px",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderLeft: "4px solid var(--cyan)",
+        borderRadius: 10,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <Cap style={{ color: "var(--cyan)", fontSize: 11 }}>{tag}</Cap>
+      <p
+        style={{
+          margin: 0,
+          color: "var(--text)",
+          fontSize: 15,
+          lineHeight: 1.6,
+          textWrap: "pretty",
+        }}
+      >
+        {body}
+      </p>
     </div>
   );
 }
