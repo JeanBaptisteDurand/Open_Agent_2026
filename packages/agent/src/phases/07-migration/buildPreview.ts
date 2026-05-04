@@ -69,12 +69,13 @@ export async function buildMigrationPreview(args: {
     },
   ];
   const warnings: string[] = [
-    "Migration is previewed only — the agent does not execute the swap.",
-    "Quote uses a sample notional (1 unit of token0) to keep preview latency low.",
+    "Migration is previewed only — the agent does not execute the swap. Quote uses a sample notional (1 unit of token0) to keep preview latency low.",
   ];
 
   if (!top) {
-    warnings.push("No V4 hook candidate found — migration target unknown.");
+    warnings.push(
+      "Searched the V4 PoolManager indexer for hooks on this pair — none deployed yet on this chain. The preview shows only the V3 burn step; the swap + V4 mint legs would COMPUTE as soon as a target hook appears.",
+    );
     steps.push({
       kind: "mint",
       description: "Mint a fresh V3 position (no V4 alternative discovered)",
