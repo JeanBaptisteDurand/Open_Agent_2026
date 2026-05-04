@@ -130,13 +130,12 @@ export function AppHeader({ right }: Props) {
         {right}
         {/* 0G Compute provider attestation type — real value, not the
             old SGX claim. Hides on narrow viewports. */}
-        <Chip
-          tone="cyan"
-          style={{ marginLeft: 4 }}
+        <span
           title="Verdicts run on a 0G Compute provider whose attestation report (TDX) is verifiable on-chain — see /agent for the live signer address."
+          style={{ display: "inline-flex", marginLeft: 4 }}
         >
-          0G Compute · TDX
-        </Chip>
+          <Chip tone="cyan">0G Compute · TDX</Chip>
+        </span>
         <ConnectButton />
       </nav>
     </header>
