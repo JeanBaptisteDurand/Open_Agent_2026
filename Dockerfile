@@ -37,12 +37,14 @@ RUN pnpm --filter @lplens/web run build
 FROM base AS server
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+# Copy node_modules first (deps stage has the pnpm content-addressable
+# store with all symlinks) then the WHOLE workspace packages so the
+# pnpm symlinks resolve cleanly. Copying just dist/+package.json breaks
+# the .pnpm/ workspace links.
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
-COPY --from=build /app/packages/core/dist ./packages/core/dist
-COPY --from=build /app/packages/core/package.json ./packages/core/
-COPY --from=build /app/packages/agent/dist ./packages/agent/dist
-COPY --from=build /app/packages/agent/package.json ./packages/agent/
+COPY --from=build /app/packages/core ./packages/core
+COPY --from=build /app/packages/agent ./packages/agent
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/server/prisma ./apps/server/prisma
 COPY --from=build /app/apps/server/package.json ./apps/server/
