@@ -9,6 +9,10 @@ import { AppHeader } from "../components/AppHeader.js";
 const MCP_SERVER_URL =
   (import.meta.env.VITE_LPLENS_MCP_URL as string | undefined) ??
   "mcp.lplens.xyz";
+const GIT_TAG =
+  (import.meta.env.VITE_GIT_TAG as string | undefined) ?? "main";
+const REPO_BASE =
+  "https://github.com/JeanBaptisteDurand/Open_Agent_2026";
 const AGENT_CONTRACT =
   (import.meta.env.VITE_LPLENS_AGENT_CONTRACT as string | undefined) ??
   "0x938f3B7841b3faCbBE967F90B548d991e9882c6C";
@@ -213,9 +217,49 @@ cast call ${AGENT_CONTRACT || "<LPLensAgent>"} \\
             and reads the iNFT licence on-chain via your local RPC. You don't
             host anything — you run a single binary.
           </p>
+
+          {/* Direct download buttons — auto-generated GitHub source archives
+              for the latest pushed tag, no manual release upload needed. */}
+          <div
+            style={{
+              marginTop: 16,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            <a
+              href={`${REPO_BASE}/archive/refs/tags/${GIT_TAG}.tar.gz`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-primary"
+              style={{ padding: "10px 16px", fontSize: 13 }}
+            >
+              Download {GIT_TAG} · .tar.gz
+            </a>
+            <a
+              href={`${REPO_BASE}/archive/refs/tags/${GIT_TAG}.zip`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost"
+              style={{ padding: "10px 16px", fontSize: 13 }}
+            >
+              .zip
+            </a>
+            <a
+              href={`${REPO_BASE}/releases`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost"
+              style={{ padding: "10px 16px", fontSize: 13 }}
+            >
+              All releases →
+            </a>
+          </div>
+
           <pre
             style={{
-              marginTop: 12,
+              marginTop: 16,
               padding: 14,
               borderRadius: 8,
               background: "var(--surface-raised)",
@@ -226,30 +270,28 @@ cast call ${AGENT_CONTRACT || "<LPLensAgent>"} \\
               lineHeight: 1.6,
             }}
           >
-{`# Option A — clone + build (works today, ~1 minute)
-git clone https://github.com/JeanBaptisteDurand/Open_Agent_2026.git
+{`# Option A — git clone (gets you onto the latest main)
+git clone ${REPO_BASE}.git
 cd Open_Agent_2026
 pnpm install
 pnpm --filter @lplens/mcp-server build
-
-# Server entry — point Claude Desktop at this absolute path:
 node $(pwd)/apps/mcp-server/dist/index.js
 
-# Option B — npm package (roadmap, see /roadmap)
+# Option B — download the ${GIT_TAG} tarball above, then:
+tar xzf Open_Agent_2026-${GIT_TAG.replace(/^v/, "")}.tar.gz
+cd Open_Agent_2026-${GIT_TAG.replace(/^v/, "")}
+pnpm install
+pnpm --filter @lplens/mcp-server build
+node $(pwd)/apps/mcp-server/dist/index.js
+
+# Option C — npm install (planned, see /roadmap)
 # npm install -g @lplens/mcp-server
 # lplens-mcp`}
           </pre>
           <p style={{ marginTop: 12, fontSize: 11, color: "var(--text-tertiary)", lineHeight: 1.55 }}>
-            Releases pinned at{" "}
-            <a
-              href="https://github.com/JeanBaptisteDurand/Open_Agent_2026/releases"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "var(--cyan)" }}
-            >
-              github.com/JeanBaptisteDurand/Open_Agent_2026/releases
-            </a>
-            {" "}— grab the latest tarball if you'd rather not clone.
+            Tarball + zip are GitHub-generated archives of the source pinned
+            at the latest tag — no compiled binary yet (npm package is on the{" "}
+            <a href="/roadmap" style={{ color: "var(--cyan)" }}>roadmap</a>).
           </p>
         </section>
 
