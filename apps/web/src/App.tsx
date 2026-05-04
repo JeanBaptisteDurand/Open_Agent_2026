@@ -1,10 +1,13 @@
+// Top-level router. /deck mirrors the submission PDF as a webpage.
 import { Route, Routes } from "react-router-dom";
 import { Agent } from "./pages/Agent.js";
 import { Atlas } from "./pages/Atlas.js";
+import { Deck } from "./pages/Deck.js";
 import { Developers } from "./pages/Developers.js";
 import { Diagnose } from "./pages/Diagnose.js";
 import { Landing } from "./pages/Landing.js";
 import { Report } from "./pages/Report.js";
+import { Roadmap } from "./pages/Roadmap.js";
 
 export function App() {
   return (
@@ -13,6 +16,8 @@ export function App() {
       <Route path="/atlas" element={<Atlas />} />
       <Route path="/agent" element={<Agent />} />
       <Route path="/developers" element={<Developers />} />
+      <Route path="/roadmap" element={<Roadmap />} />
+      <Route path="/deck" element={<Deck />} />
       <Route path="/diagnose/:tokenId" element={<Diagnose />} />
       <Route path="/report/:rootHash" element={<Report />} />
     </Routes>
