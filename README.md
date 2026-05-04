@@ -277,8 +277,8 @@ Each sample runs the full pipeline with real chain reads, real 0G Storage upload
 
 | Channel | Handle |
 | --- | --- |
-| Telegram | `@JeanBaptisteDurand` |
-| X | `@JeanBaptisteD42` |
+| Telegram | `@Beorlor` |
+| X | [`@JBD_Dev`](https://x.com/JBD_Dev) |
 | GitHub | [`JeanBaptisteDurand`](https://github.com/JeanBaptisteDurand) |
 | Email | `jbdurand2000@gmail.com` |
 
