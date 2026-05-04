@@ -408,22 +408,22 @@ export function Landing() {
             }}
           >
             <CapabilityCard
-              icon="🪙"
+              tag="01"
               title="mintLicense — 80/20 royalty"
               desc="Pay 0.1 OG for a 24 h license to invoke the agent's gated MCP tools. Owner gets 80 %, treasury 20 %, automatic split."
             />
             <CapabilityCard
-              icon="🧠"
+              tag="02"
               title="memoryRoot evolves per run"
               desc="Each diagnose updates agents(1).memoryRoot to the new 0G Storage blob — cast call agents(1) always returns the latest report's hash."
             />
             <CapabilityCard
-              icon="📈"
+              tag="03"
               title="reputation + migrationsTriggered"
               desc="Two on-chain counters move per run. recordDiagnose bumps reputation. recordMigration bumps migrationsTriggered when the user signs."
             />
             <CapabilityCard
-              icon="🔗"
+              tag="04"
               title="6 MCP tools — 3 gated, 3 free"
               desc="diagnose / preflight / migrate require a license. lookupReport / lookupReportOnChain / resolveEnsRecord stay public — verification is a public good."
             />
@@ -822,28 +822,59 @@ function PathCard({ n, name, sub }: PathCardProps) {
 }
 
 interface CapabilityCardProps {
-  icon: string;
+  tag: string;
   title: string;
   desc: string;
 }
-function CapabilityCard({ icon, title, desc }: CapabilityCardProps) {
+function CapabilityCard({ tag, title, desc }: CapabilityCardProps) {
   return (
     <div
       style={{
-        padding: 24,
+        position: "relative",
+        padding: 28,
         borderRadius: 12,
         background: "var(--surface)",
         border: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 14,
+        overflow: "hidden",
       }}
     >
-      <span style={{ fontSize: 22 }}>{icon}</span>
-      <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 500, letterSpacing: "-0.01em" }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 1,
+          background:
+            "linear-gradient(90deg, transparent, var(--cyan), transparent)",
+          opacity: 0.3,
+        }}
+      />
+      <Mono color="text-tertiary" style={{ fontSize: 11 }}>
+        {tag}
+      </Mono>
+      <h3
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-display)",
+          fontSize: 18,
+          fontWeight: 500,
+          letterSpacing: "-0.015em",
+        }}
+      >
         {title}
       </h3>
-      <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: 12.5, lineHeight: 1.55 }}>
+      <p
+        style={{
+          margin: 0,
+          color: "var(--text-secondary)",
+          fontSize: 13,
+          lineHeight: 1.55,
+        }}
+      >
         {desc}
       </p>
     </div>
