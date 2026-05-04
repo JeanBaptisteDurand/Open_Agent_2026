@@ -406,7 +406,7 @@ export function Roadmap() {
             lineHeight: 1.65,
           }}
         >
-          v1.0.2-submission is the audit-grade Ethereum-mainnet build shipped
+          v1.0.3-submission is the audit-grade Ethereum-mainnet build shipped
           to ETHGlobal Open Agents. The items below are scoped follow-ups that
           extend reach without touching the verification primitives. Click any
           row to expand the impacted layers and the rationale.
