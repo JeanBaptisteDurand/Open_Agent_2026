@@ -235,6 +235,20 @@ Three structural choices distinguish LPLens from any other autonomous-agent subm
 
 These three choices compose into a verification matrix that is **structurally unforgeable**: the rootHash of any report can be checked through five independent paths — (a) the LPLens REST API, (b) `LPLensReports.reports(rootHash)` direct on 0G Chain, (c) the iNFT's `memoryRoot` storage slot via `agents(1)`, (d) the ENS text record under `lplensagent.eth`, (e) the 0G Storage blob's own merkle root. Five paths, one hash, no LPLens server in the trust path. The AT-4 hallucination guard runs *before* anchoring, so unsupported LLM claims are masked `[unsupported]` and never reach any of the five surfaces.
 
+## Anchor lines
+
+The five lines that anchor every demo, voice-over, and judge interaction. Each one separates LPLens from a specific class of adjacent submission in the cohort.
+
+1. **Diagnostic, not auto-deploy.** LPLens does not deploy your capital. It diagnoses why your LP is bleeding, signs the report inside a TEE, and proposes a V4 migration only if the simulation backtests positively against the pool's real swaps. The agent never executes — the user keeps custody. *(Separates us from Parallax-style policy-bounded auto-deploy wallets and from auto-rebalancing vaults like ALP.)*
+
+2. **Honesty layer, no silent hallucinations.** Every numeric output carries one of five labels (`VERIFIED` / `COMPUTED` / `ESTIMATED` / `EMULATED` / `LABELED`). If the agent did not backtest a hook against the pool's real swaps, it says so. The AT-4 hallucination guard fires *before* anchoring — unsupported claims are masked `[unsupported]` and never reach any of the five verification surfaces. *(Separates us from RL/black-box LP agents that ship opaque scores.)*
+
+3. **V4 hook replay, not heuristic.** We do not guess if a V4 hook will help your pool. We replay the pool's last 1 000 mainnet swaps through the candidate hook via `SwapMath.computeSwapStep` and show the counterfactual IL — at 0 bps drift vs on-chain post-swap state (AT-2). *(Separates us from family-multiplier scoring and from PPO-trained LP managers like CryptoBroCalls.)*
+
+4. **Signed report, not a screenshot.** The verdict is not a Twitter image. It is a blob signed inside an Intel TDX enclave, pinned on 0G Storage, anchored on 0G Chain. Forwardable to a DAO. Verifiable offline by anyone with the rootHash and the registry address. *(Separates us from every dashboard-only LP explorer in the space.)*
+
+5. **ENS does real work — not a vanity name.** The agent's ENS subname resolves its on-chain memory cursor. Five text records per diagnose key the rootHash, storageUrl, anchorTx, chainId, and verdict — indexed by Uniswap position tokenId. Without ENS, no third party can enumerate this agent's reports without trusting the LPLens API. ENS is the queryable memory of the agent economy here, not a label. *(Separates us from cosmetic-ENS submissions where the name is decoration, not infrastructure.)*
+
 ## Tracks applied
 
 | Track | Prize | What we do for it |
