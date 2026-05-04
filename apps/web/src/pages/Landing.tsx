@@ -79,9 +79,9 @@ export function Landing() {
               }}
             >
               LPLens is an autonomous agent on 0G that reads your Uniswap V3
-              position, reconstructs your impermanent loss live, replays every
-              V4 hook against the last 1 000 swaps swap-by-swap, and migrates
-              you in a single Permit2 signature.
+              and V4 positions, reconstructs your impermanent loss live,
+              replays every V4 hook against the last 1 000 swaps
+              swap-by-swap, and migrates you in a single Permit2 signature.
             </p>
             <div
               style={{
