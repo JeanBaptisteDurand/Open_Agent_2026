@@ -27,7 +27,7 @@ export default defineConfig({
     {
       command: "pnpm --filter @lplens/web run dev",
       url: "http://localhost:3100",
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 60_000,
       cwd: "../..",
     },
