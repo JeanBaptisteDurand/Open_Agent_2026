@@ -7,7 +7,7 @@
 import { z } from "zod";
 
 const DEFAULT_BASE_URL =
-  process.env.LPLENS_API_URL ?? "http://localhost:3001";
+  process.env.LPLENS_API_URL ?? "https://lplens.xyz";
 
 const PERMIT2_ADDRESS =
   "0x000000000022D473030F116dDEE9F6B43aC78BA3" as const;
@@ -219,7 +219,7 @@ export const migrateToolDefinition = {
       },
       apiUrl: {
         type: "string",
-        description: "LPLens API URL. Defaults to LPLENS_API_URL or localhost.",
+        description: "LPLens API URL. Defaults to LPLENS_API_URL or https://lplens.xyz.",
       },
       chainId: {
         type: "number",

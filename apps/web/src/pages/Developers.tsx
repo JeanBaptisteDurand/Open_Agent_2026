@@ -337,8 +337,10 @@ node $(pwd)/apps/mcp-server/dist/index.js
         // Hosted prod backend — switch to http://localhost:3001 if you run
         // the server locally with \`pnpm --filter @lplens/server run dev\`.
         "LPLENS_API_URL": "https://lplens.xyz",
-        "LPLENS_AGENT_CONTRACT": "${AGENT_CONTRACT || "0x..."}",
-        "LPLENS_AGENT_TOKEN_ID": "${AGENT_TOKEN_ID}"
+        "LPLENS_AGENT_CONTRACT": "${AGENT_CONTRACT || "0x938f3B7841b3faCbBE967F90B548d991e9882c6C"}",
+        "LPLENS_REPORTS_CONTRACT": "0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3",
+        "LPLENS_AGENT_TOKEN_ID": "${AGENT_TOKEN_ID}",
+        "OG_NEWTON_RPC": "https://evmrpc-testnet.0g.ai"
       }
     }
   }
