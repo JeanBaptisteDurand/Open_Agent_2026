@@ -576,7 +576,7 @@ export function Landing() {
       {/* ─── 8b · Five anchor lines ───────────────────────────────────── */}
       <section style={{ padding: "100px 36px", maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <Cap style={{ color: "var(--cyan)" }}>FIVE ANCHOR LINES</Cap>
+          <Cap style={{ color: "var(--cyan)" }}>FIVE ANCHORS</Cap>
           <h2
             style={{
               margin: "12px 0 16px",
@@ -587,7 +587,7 @@ export function Landing() {
               textWrap: "balance",
             }}
           >
-            What we tell every judge, every demo, every time.
+            Five design choices that hold the project up.
           </h2>
           <p
             style={{
@@ -598,9 +598,8 @@ export function Landing() {
               lineHeight: 1.6,
             }}
           >
-            Five lines that separate LPLens from every adjacent LP-agent submission in the cohort —
-            policy-bounded wallets, auto-rebalanced vaults, RL black boxes, dashboard-only explorers,
-            cosmetic-ENS projects.
+            Each one is a deliberate constraint that's verifiable in the code or
+            on chain. Take any one away and the trust story collapses.
           </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -618,11 +617,11 @@ export function Landing() {
           />
           <AnchorLine
             tag="04 · SIGNED REPORT, NOT A SCREENSHOT"
-            body="The verdict is a blob signed inside an Intel TDX enclave, pinned on 0G Storage, anchored on 0G Chain. Forwardable to a DAO. Verifiable offline by anyone with the rootHash and the registry address — no LPLens server in the trust path."
+            body="The verdict is a blob signed by a 0G Compute TEE-attested provider, pinned on 0G Storage, anchored on 0G Chain. Forwardable to a DAO. Verifiable offline by anyone with the rootHash and the registry address — no LPLens server in the trust path."
           />
           <AnchorLine
             tag="05 · ENS DOES REAL WORK"
-            body="The agent's ENS subname resolves its on-chain memory cursor. Five text records per diagnose key the rootHash, storageUrl, anchorTx, chainId, and verdict — indexed by Uniswap position tokenId. ENS becomes the queryable memory of the agent economy here. Not a vanity name."
+            body="The agent's ENS name resolves its on-chain memory cursor. Five text records per diagnose key the rootHash, storageUrl, anchorTx, chainId, and verdict — indexed by Uniswap position tokenId. ENS becomes the queryable memory of the agent economy here. Not a vanity name."
           />
         </div>
       </section>

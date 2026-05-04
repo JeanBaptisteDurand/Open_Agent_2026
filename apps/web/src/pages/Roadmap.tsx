@@ -31,17 +31,19 @@ const STATUS_LABEL: Record<RoadmapItem["status"], string> = {
 const ROADMAP: RoadmapItem[] = [
   {
     id: "hosted-mcp",
-    title: "Hosted MCP server at mcp.lplens.xyz (HTTP/SSE transport)",
+    title: "Hosted MCP at lplens.xyz/mcp (HTTP/SSE transport)",
     status: "scoped",
     effortHours: "~6–8 h",
     oneLine:
-      "Today users clone the repo and run the MCP server locally as a STDIO subprocess. Ship a public HTTP/SSE-transport MCP at mcp.lplens.xyz so they only need to drop a URL into Claude Desktop config — zero install, zero build.",
+      "Today users clone the repo and run the MCP server locally as a STDIO subprocess. Ship a public HTTP/SSE-transport MCP under the same lplens.xyz domain so they only need to drop a URL into Claude Desktop config — zero install, zero build.",
     body: (
       <>
         <p>
           The MCP SDK supports SSE-over-HTTP transport. Wrap the existing tool
-          handlers in an Express endpoint, host on the same backend that
-          already serves the REST API, route the DNS subdomain.
+          handlers in an Express endpoint mounted at <code>/mcp</code> on the
+          same backend that already serves the REST API. The internal Caddy
+          adds a <code>handle /mcp/*</code> block alongside the existing{" "}
+          <code>/api/*</code> route. No new subdomain, no new TLS cert.
         </p>
         <h4>What changes for users</h4>
         <ul>
@@ -50,7 +52,7 @@ const ROADMAP: RoadmapItem[] = [
             <code>"command": "node", "args": ["/abs/path/dist/index.js"]</code>
           </li>
           <li>
-            <strong>To</strong> <code>"url": "https://mcp.lplens.xyz"</code>
+            <strong>To</strong> <code>"url": "https://lplens.xyz/mcp"</code>
           </li>
         </ul>
         <p>

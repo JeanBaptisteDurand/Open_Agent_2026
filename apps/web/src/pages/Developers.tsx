@@ -6,9 +6,13 @@ import { AppHeader } from "../components/AppHeader.js";
 // for licensees who need to mint a license before calling the gated
 // tools. Static content — every figure traces back to the contract.
 
+// MCP runs as a STDIO subprocess on the user's machine — no public URL
+// today. The roadmap entry plans an HTTP/SSE transport hosted at
+// lplens.xyz/mcp (same domain, not a subdomain). Override at build via
+// VITE_LPLENS_MCP_URL only if/when that endpoint is deployed.
 const MCP_SERVER_URL =
   (import.meta.env.VITE_LPLENS_MCP_URL as string | undefined) ??
-  "mcp.lplens.xyz";
+  "STDIO (self-host)";
 const GIT_TAG =
   (import.meta.env.VITE_GIT_TAG as string | undefined) ?? "main";
 const REPO_BASE =
@@ -330,8 +334,9 @@ node $(pwd)/apps/mcp-server/dist/index.js
       "command": "node",
       "args": ["/abs/path/to/Open_Agent_2026/apps/mcp-server/dist/index.js"],
       "env": {
-        // Run \`pnpm --filter @lplens/server run dev\` (or your hosted backend URL).
-        "LPLENS_API_URL": "http://localhost:3001",
+        // Hosted prod backend — switch to http://localhost:3001 if you run
+        // the server locally with \`pnpm --filter @lplens/server run dev\`.
+        "LPLENS_API_URL": "https://lplens.xyz",
         "LPLENS_AGENT_CONTRACT": "${AGENT_CONTRACT || "0x..."}",
         "LPLENS_AGENT_TOKEN_ID": "${AGENT_TOKEN_ID}"
       }
@@ -391,15 +396,13 @@ console.log(result);`}
         </section>
 
         <p style={{ marginTop: 32, fontSize: 11, color: "var(--text-tertiary)", textAlign: "center" }}>
-          MCP server runs locally via STDIO — see{" "}
-          <a
-            href="/roadmap"
-            style={{ color: "var(--cyan)" }}
-          >
+          Backend live at <code>https://lplens.xyz</code>. MCP server runs locally via STDIO ({" "}
+          <code>{MCP_SERVER_URL}</code>) — see{" "}
+          <a href="/roadmap" style={{ color: "var(--cyan)" }}>
             /roadmap
           </a>{" "}
-          for the planned hosted endpoint at{" "}
-          <code>{MCP_SERVER_URL}</code>. ENS identity{" "}
+          for the planned hosted HTTP/SSE endpoint at{" "}
+          <code>lplens.xyz/mcp</code>. ENS identity{" "}
           <a
             href="https://sepolia.app.ens.domains/lplensagent.eth"
             target="_blank"
