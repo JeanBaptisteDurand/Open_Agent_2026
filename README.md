@@ -6,6 +6,8 @@ LPLens has its own ENS name ([`lplensagent.eth`](https://sepolia.app.ens.domains
 
 Every numeric value carries one of five honesty labels (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so a judge can tell at a glance which claims trace back to chain-state and which are heuristics.
 
+**Scope :** Ethereum mainnet only (chainId 1). The V3 + V4 subgraphs, the 1 000-swap replay corpus, and the V4 PositionManager reads are all scoped to mainnet — there is no chain selector in the atlas. Multi-chain support (Base, Arbitrum, Unichain, and the other 15 EVM chains where V4 is live) is the documented follow-up; the Permit2 EIP-712 builder already accepts an arbitrary `chainId`, so the migration leg is chain-portable, but the data plane upstream is not.
+
 **The closed loop:** agent identity (ENS) → agent memory (iNFT `memoryRoot` updated per run) → verifiable inference (0G Compute TEE + AT-4 hallucination guard) → real DeFi action (V4 hook scoring + Permit2 single-sig migration). Each diagnose produces **two** on-chain txs on 0G Chain (`updateMemoryRoot` + `recordDiagnose`) plus five Sepolia ENS text records — the agent's intelligence is verifiably embedded, not asserted. The same rootHash is independently checkable through **five paths** (LPLens REST · `LPLensReports.reports()` on 0G Chain · iNFT `agents(1).memoryRoot` storage slot · ENS text record · 0G Storage blob merkle root) so no LPLens server sits in the trust path. An MCP server exposes `lplens.diagnose`, `lplens.preflight`, `lplens.migrate`, `lplens.lookupReport`, `lplens.lookupReportOnChain`, and `lplens.resolveEnsRecord` — the last two are the composability beat: anyone, including another agent, can verify a report exists from on-chain state alone.
 
 Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — Apr 24 → May 6 2026.
@@ -29,7 +31,7 @@ Detailed walkthrough in [DEMO.md](DEMO.md).
 
 | Feature | Description |
 | --- | --- |
-| Position Atlas | Connect wallet → list every V3/V4 LP position with a green/amber/red health indicator (percent in-range + IL direction) |
+| Position Atlas | Connect wallet → list every V3/V4 LP position with a green/amber/red health indicator (percent in-range + IL direction). **Ethereum mainnet only** (chainId 1) — Base / Arbitrum / Unichain / other V4 chains are documented follow-ups, not wired in v0.11. |
 | LP Diagnostic Agent | Multi-phase agent that streams analysis over SSE : position resolution → IL decomposition → regime classification → hook discovery → hook scoring → migration preview → verdict (TEE) → report assembly → 0G Chain anchor → ENS publish |
 | Hook Scoring Engine | Scores each candidate V4 hook against the pool's last 30 days of hourly volume + tier with family-conditional multipliers (dynamic-fee / gated-swap / swap-delta-cut / royalty / init-gate / lifecycle / unknown). Heuristic — not a swap-by-swap EVM replay. The panel renders the multiplier table as the explicit assumption surface |
 | One-click Permit2 Migration | Generates an atomic `close V3 → swap → mint V4` bundle signable in a single Permit2 signature |
@@ -62,7 +64,8 @@ LPLens does exactly that.
            ┌──────────────────┼──────────────────┐
            ▼                  ▼                  ▼
    Uniswap Subgraph     0G Compute TEE    Ethereum RPC
-   (v3 + v4 schemas)    (inference)       (viem contract reads)
+   (v3 + v4 schemas,    (inference)       (viem contract reads,
+    chainId 1)                             chainId 1)
                               │
                               ▼
                        0G Storage + 0G Chain
@@ -143,7 +146,7 @@ Four additional tuning tests cover directionality of hook family emulation, sand
 
 
 
-## Build status — v1.0.0-rc.1 (honesty pass applied)
+## Build status — v1.0.2-submission
 
 The label column is the truth, not the marketing. Anything `EMULATED` or
 `heuristic` is exactly that — explicit warnings travel with the value.
@@ -204,6 +207,7 @@ Captured 2026-05-01 against curated bleeding wallet `0x76809bb…0f7` (USDC/WETH
 | AT-4 hallucination guard | fired live — masks LLM-fabricated numbers with `[unsupported]` in the verdict markdown |
 | **iNFT memoryRoot updated** | [`LPLensAgent` tokenId 1](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) — `memoryRoot` now points at the report's storage rootHash (was `0x0` at mint), `reputation` incremented (1 → 2 → 3 …). Two on-chain txs per diagnose: `updateMemoryRoot` ([`0x775fd7c3…47dfe0`](https://chainscan-newton.0g.ai/tx/0x775fd7c330ddd828e622cc7e2f9fff5de4409ddac7613e9237c1838a0447dfe0)) + `recordDiagnose` ([`0x9be6830b…56a809`](https://chainscan-newton.0g.ai/tx/0x9be6830b7d06431381e8d6fde8e8f26e7e3c4c9b6bc53f8798ac2bf06f56a809)). |
 | ENS records on Sepolia | 5 text records under [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — keys `lplens.605311.{rootHash, storageUrl, anchorTx, chainId, verdict}` |
+| **iNFT licence — end-to-end mint** | Verified mint on the deployed contract: 0.1 OG paid → 80/20 split landed on owner + treasury → `isLicensed(1, 0x70997970…79c8)` returns `true`. Tx [`0xe8e55c75…f9e340`](https://chainscan-newton.0g.ai/tx/0xe8e55c7537f1df457cf5ea407707393c75d027983c612c47e5a9884e7cf9e340) (block 31 178 818, 86 336 gas). |
 
 Independent verification path — anyone with the rootHash + the registry address can run `cast`:
 
@@ -271,6 +275,13 @@ Each sample runs the full pipeline with real chain reads, real 0G Storage upload
 
 **42 Blockchain** — Jean-Baptiste Durand.
 
+| Channel | Handle |
+| --- | --- |
+| Telegram | `@JeanBaptisteDurand` |
+| X | `@JeanBaptisteD42` |
+| GitHub | [`JeanBaptisteDurand`](https://github.com/JeanBaptisteDurand) |
+| Email | `jbdurand2000@gmail.com` |
+
 Past hackathon projects with the same "Lens" architecture (RAG-over-chain-data agent with SSE streaming + MCP) :
 
 - **BaseLens** — Base L2 smart contract analyzer
@@ -281,7 +292,20 @@ Past hackathon projects with the same "Lens" architecture (RAG-over-chain-data a
 
 ---
 
----
+## Submission checklist (per ETHGlobal Open Agents track requirements)
+
+| Track | Requirement | Status |
+| --- | --- | --- |
+| **0G Autonomous Agents/Swarms/iNFT** | Project name + short description | ✅ this README hero |
+| | Contract deployment addresses | ✅ [Deployed contracts](#deployed-contracts) |
+| | Public GitHub repo + README + setup | ✅ [Local setup](#local-setup) |
+| | Demo video & live demo link (≤ 3 min) | ✅ [DEMO.md](DEMO.md) walkthrough — recording linked at submission time |
+| | Protocol features / SDKs explained | ✅ [Tech stack](#tech-stack) + [Tracks applied](#tracks-applied) |
+| | Team Telegram + X | ✅ above |
+| | iNFT minted on 0G explorer + intelligence/memory embedded proof | ✅ [`LPLensAgent` token 1](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) — `cast call agents(1)` returns live `memoryRoot`, `reputation`, `migrationsTriggered` |
+| **Uniswap Best API Integration** | `FEEDBACK.md` in repo root | ✅ [FEEDBACK.md](FEEDBACK.md) |
+| **ENS Best for AI Agents** | Functional ENS demo (no hard-coded values) | ✅ five text records under `lplensagent.eth` written live per diagnose; readable via `cast namehash` or any ENS frontend |
+| | Demo video / live link | ✅ DEMO.md + per-position records on Sepolia |
 
 ## Demo
 
