@@ -1,0 +1,110 @@
+# LPLens production stack — runs on the VPS behind the global Caddy.
+# Layout: global Caddy (host) → lplens-caddy (this stack) → server / web.
+# The internal Caddy is exposed on host port 8480; the global Caddy
+# reverse-proxies lplens.xyz to that port (or directly to the
+# lplens-caddy container IP — see VPS Caddyfile).
+#
+# Bring up:
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Bring down:
+#   docker compose -f docker-compose.prod.yml down
+# Logs:
+#   docker compose -f docker-compose.prod.yml logs -f server
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: lplens-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lplens
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lplens_prod}
+      POSTGRES_DB: lplens
+    volumes:
+      - lplens_pgdata:/var/lib/postgresql/data
+      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lplens"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - lplens-internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: lplens-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - lplens-internal
+
+  server:
+    build:
+      context: .
+      target: server
+    container_name: lplens-server
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://lplens:${POSTGRES_PASSWORD:-lplens_prod}@lplens-postgres:5432/lplens
+      REDIS_URL: redis://lplens-redis:6379
+      PORT: "3001"
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    networks:
+      - lplens-internal
+
+  web:
+    build:
+      context: .
+      target: web
+    container_name: lplens-web
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - lplens-internal
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: lplens-caddy
+    restart: unless-stopped
+    depends_on:
+      - server
+      - web
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - lplens_caddy_data:/data
+      - lplens_caddy_config:/config
+    ports:
+      - "8480:80"
+    networks:
+      - lplens-internal
+
+volumes:
+  lplens_pgdata:
+  lplens_caddy_data:
+  lplens_caddy_config:
+
+networks:
+  lplens-internal:
+    name: lplens-internal
+    driver: bridge
