@@ -4,7 +4,7 @@
 
 LPLens has its own ENS name ([`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) on Sepolia), its own iNFT (ERC-7857-style `LPLensAgent` tokenId 1 on 0G Newton), its own persistent memory (every diagnose blob pinned to 0G Storage with the rootHash written into the iNFT's `memoryRoot`), and verifiable inference (TEE-attested verdicts via 0G Compute with an inline hallucination guard that masks any number the model can't ground in the report data). Other agents discover its work via ENS text records or call it directly through the MCP server's tools — and pay to use it via on-chain `mintLicense` calls that auto-split 80/20 between iNFT owner and protocol treasury. When LPLens finds a bleeding Uniswap LP position, it **replays the pool's last 1 000 mainnet swaps swap-by-swap through every candidate V4 hook** to pick the winner (AT-2 anchors the replay at 0 bps drift vs on-chain state), generates the Permit2 EIP-712 bundle for V3→V4 migration, and the user signs once. The signed digest is then anchored on the iNFT's `migrationsTriggered` counter — proof the diagnosis led to a real signed user action.
 
-Every numeric value carries one of five honesty labels (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so a judge can tell at a glance which claims trace back to chain-state and which are heuristics.
+Every numeric value carries one of five honesty labels (`VERIFIED` · `COMPUTED` · `ESTIMATED` · `EMULATED` · `LABELED`) so anyone can tell at a glance which claims trace back to chain-state and which are heuristics.
 
 **Scope :** Ethereum mainnet only (chainId 1). The V3 + V4 subgraphs, the 1 000-swap replay corpus, and the V4 PositionManager reads are all scoped to mainnet — there is no chain selector in the atlas. Multi-chain support (Base, Arbitrum, Unichain, and the other 15 EVM chains where V4 is live) is the documented follow-up; the Permit2 EIP-712 builder already accepts an arbitrary `chainId`, so the migration leg is chain-portable, but the data plane upstream is not.
 
@@ -14,7 +14,7 @@ Built for [ETHGlobal Open Agents](https://ethglobal.com/events/openagents) — A
 
 ---
 
-## 30-second tour (for judges)
+## 30-second tour
 
 If you only have a minute, here's the path that proves every claim in this README:
 
@@ -180,7 +180,7 @@ Phase 2 (planning narrative) is rolled into phase 10's verdict synthesis — the
 ## Known limitations
 
 - AT-2 replay is anchored on a single curated pool (USDC/WETH 0.05 % mainnet) over a 1 000-swap window. Generalising the harness to arbitrary pools and longer windows is wired but not run by default — fetching tens of thousands of subgraph rows blows up CI time.
-- Atlas exposes three curated demo wallets as one-click buttons. Each is labeled clearly (live wallet vs curated fixture) so the health-state distribution is pinned for the demo run; judges can paste their own wallet for an authoritative run.
+- Atlas exposes three curated demo wallets as one-click buttons. Each is labeled clearly (live wallet vs curated fixture) so the health-state distribution is pinned for the demo run; anyone can paste their own wallet for an authoritative run.
 - Regime classifier weights are heuristic and not back-tested against a labeled dataset; the panel surfaces the raw features so a reviewer can sanity-check.
 - ENS publication writes structured text records under a single parent name ([`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) on Sepolia) keyed by `lplens.<tokenId>.<field>` — the records resolve through any ENS frontend or via `lplens.resolveEnsRecord` over MCP. A genuine subname-per-position pattern (NameWrapper writes against an owned parent) is the documented follow-up.
 - iNFT licensing payments settle in OG (the 0G Newton native token) via `mintLicense{value:...}`. A USDC-via-x402 path is a follow-up; the contract's royalty split logic is currency-agnostic at the source-of-funds level.
@@ -198,11 +198,11 @@ See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command. 
 ## Live demo run — proof-of-life
 
 Captured 2026-05-03 against tokenId 685602 (USDC/WETH 0.05 %, mainnet) — view the full report at
-[`/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11`](http://localhost:3100/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11):
+[`/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11`](https://lplens.xyz/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11):
 
 | Output | Value |
 | --- | --- |
-| 0G Storage rootHash | [`0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11`](http://localhost:3100/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11) |
+| 0G Storage rootHash | [`0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11`](https://lplens.xyz/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11) |
 | 0G Chain anchor tx | [`0xd7392aa9dfd4fb1d…0ecbd8e`](https://chainscan-newton.0g.ai/tx/0xd7392aa9dfd4fb1dbae1447bbf901943d7f3816c2639c64a46f45ad140ecbd8e) on the deployed `LPLensReports` registry |
 | 0G Compute verdict | model `qwen/qwen-2.5-7b-instruct`, provider `0xa48f0128…2E67836`, broker-signed |
 | AT-4 hallucination guard | fired live — masks LLM-fabricated numbers with `[unsupported]` in the verdict markdown |
@@ -225,7 +225,7 @@ Or via the MCP tool `lplens.lookupReportOnChain` / `lplens.resolveEnsRecord` fro
 
 ## What makes this submission different
 
-Three structural choices distinguish LPLens from any other autonomous-agent submission in the cohort:
+Three structural choices distinguish LPLens from any other autonomous-agent design we ship:
 
 1. **Live agent memory + monetizable usage, not static metadata.** Most iNFT designs mint a token and never touch it again. LPLens emits **two on-chain transactions per diagnose run** (`updateMemoryRoot` + `recordDiagnose`) — `cast call agents(1)` on [`LPLensAgent`](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C) always returns the rootHash of the *latest* report, a `reputation` counter for runs performed, and a `migrationsTriggered` counter that increments when the user actually signs the Permit2 migration bundle. Third-party agents pay to call this agent via `mintLicense` — the contract auto-splits the payment 80/20 between iNFT owner and protocol treasury. The intelligence is in the cursor; the cursor is rentable.
 
@@ -235,25 +235,25 @@ Three structural choices distinguish LPLens from any other autonomous-agent subm
 
 These three choices compose into a verification matrix that is **structurally unforgeable**: the rootHash of any report can be checked through five independent paths — (a) the LPLens REST API, (b) `LPLensReports.reports(rootHash)` direct on 0G Chain, (c) the iNFT's `memoryRoot` storage slot via `agents(1)`, (d) the ENS text record under `lplensagent.eth`, (e) the 0G Storage blob's own merkle root. Five paths, one hash, no LPLens server in the trust path. The AT-4 hallucination guard runs *before* anchoring, so unsupported LLM claims are masked `[unsupported]` and never reach any of the five surfaces.
 
-## Anchor lines
+## Anchors
 
-The five lines that anchor every demo, voice-over, and judge interaction. Each one separates LPLens from a specific class of adjacent submission in the cohort.
+Five design choices that hold the project up. Each one is a deliberate constraint that's verifiable in the code or on chain. Take any one away and the trust story collapses.
 
-1. **Diagnostic, not auto-deploy.** LPLens does not deploy your capital. It diagnoses why your LP is bleeding, signs the report inside a TEE, and proposes a V4 migration only if the simulation backtests positively against the pool's real swaps. The agent never executes — the user keeps custody. *(Separates us from Parallax-style policy-bounded auto-deploy wallets and from auto-rebalancing vaults like ALP.)*
+1. **Diagnostic, not auto-deploy.** LPLens does not deploy your capital. It diagnoses why your LP is bleeding, signs the report inside a TEE, and proposes a V4 migration only if the simulation backtests positively against the pool's real swaps. The agent never executes — the user keeps custody.
 
-2. **Honesty layer, no silent hallucinations.** Every numeric output carries one of five labels (`VERIFIED` / `COMPUTED` / `ESTIMATED` / `EMULATED` / `LABELED`). If the agent did not backtest a hook against the pool's real swaps, it says so. The AT-4 hallucination guard fires *before* anchoring — unsupported claims are masked `[unsupported]` and never reach any of the five verification surfaces. *(Separates us from RL/black-box LP agents that ship opaque scores.)*
+2. **Honesty layer, no silent hallucinations.** Every numeric output carries one of five labels (`VERIFIED` / `COMPUTED` / `ESTIMATED` / `EMULATED` / `LABELED`). If the agent did not backtest a hook against the pool's real swaps, it says so. The AT-4 hallucination guard fires *before* anchoring — unsupported claims are masked `[unsupported]` and never reach any of the five verification surfaces.
 
-3. **V4 hook replay, not heuristic.** We do not guess if a V4 hook will help your pool. We replay the pool's last 1 000 mainnet swaps through the candidate hook via `SwapMath.computeSwapStep` and show the counterfactual IL — at 0 bps drift vs on-chain post-swap state (AT-2). *(Separates us from family-multiplier scoring and from PPO-trained LP managers like CryptoBroCalls.)*
+3. **V4 hook replay, not heuristic.** We do not guess if a V4 hook will help your pool. We replay the pool's last 1 000 mainnet swaps through the candidate hook via `SwapMath.computeSwapStep` and show the counterfactual IL — at 0 bps drift vs on-chain post-swap state (AT-2).
 
-4. **Signed report, not a screenshot.** The verdict is not a Twitter image. It is a blob signed inside an Intel TDX enclave, pinned on 0G Storage, anchored on 0G Chain. Forwardable to a DAO. Verifiable offline by anyone with the rootHash and the registry address. *(Separates us from every dashboard-only LP explorer in the space.)*
+4. **Signed report, not a screenshot.** The verdict is a blob signed by a 0G Compute TEE-attested provider, pinned on 0G Storage, anchored on 0G Chain. Forwardable to a DAO. Verifiable offline by anyone with the rootHash and the registry address — no LPLens server in the trust path.
 
-5. **ENS does real work — not a vanity name.** The agent's ENS subname resolves its on-chain memory cursor. Five text records per diagnose key the rootHash, storageUrl, anchorTx, chainId, and verdict — indexed by Uniswap position tokenId. Without ENS, no third party can enumerate this agent's reports without trusting the LPLens API. ENS is the queryable memory of the agent economy here, not a label. *(Separates us from cosmetic-ENS submissions where the name is decoration, not infrastructure.)*
+5. **ENS does real work — not a vanity name.** The agent's ENS name resolves its on-chain memory cursor. Five text records per diagnose key the rootHash, storageUrl, anchorTx, chainId, and verdict — indexed by Uniswap position tokenId. Without ENS, no third party can enumerate this agent's reports without trusting the LPLens API. ENS is the queryable memory of the agent economy here, not a label.
 
 ## Tracks applied
 
 | Track | Prize | What we do for it |
 | --- | --- | --- |
-| **0G — Best Autonomous Agents, Swarms & iNFT Innovations** | $7 500 pool (up to 5 × $1 500) | The only ERC-7857-style agent in the cohort whose **on-chain memory cursor advances per action AND monetizes its usage with automatic royalty splits**. Every diagnose emits two txs (`updateMemoryRoot` + `recordDiagnose`) that move `agents(1).memoryRoot` to point at the new 0G Storage blob and increment `reputation`; signing the Permit2 migration bundle bumps a third counter (`migrationsTriggered`). Third-party agents pay to call the agent via `mintLicense(tokenId, licensee, expiresAt) payable` — the contract splits the payment 80/20 between iNFT owner and protocol treasury automatically (configurable at deploy). The MCP server enforces the license check via `isLicensed(tokenId, caller)` before streaming. Verdicts run on **0G Compute** (broker-attested, `qwen/qwen-2.5-7b-instruct`) with the AT-4 hallucination guard masking unsupported claims with `[unsupported]` **before** anchoring — the agent self-fact-checks before publishing. Reports pinned to **0G Storage** with merkle rootHash, anchored on **0G Chain** through `LPLensReports`. Full triple-stack (Storage + Compute + Chain) wired to a single evolving + monetizable iNFT identity. |
+| **0G — Best Autonomous Agents, Swarms & iNFT Innovations** | $7 500 pool (up to 5 × $1 500) | The only ERC-7857-style agent we ship whose **on-chain memory cursor advances per action AND monetizes its usage with automatic royalty splits**. Every diagnose emits two txs (`updateMemoryRoot` + `recordDiagnose`) that move `agents(1).memoryRoot` to point at the new 0G Storage blob and increment `reputation`; signing the Permit2 migration bundle bumps a third counter (`migrationsTriggered`). Third-party agents pay to call the agent via `mintLicense(tokenId, licensee, expiresAt) payable` — the contract splits the payment 80/20 between iNFT owner and protocol treasury automatically (configurable at deploy). The MCP server enforces the license check via `isLicensed(tokenId, caller)` before streaming. Verdicts run on **0G Compute** (broker-attested, `qwen/qwen-2.5-7b-instruct`) with the AT-4 hallucination guard masking unsupported claims with `[unsupported]` **before** anchoring — the agent self-fact-checks before publishing. Reports pinned to **0G Storage** with merkle rootHash, anchored on **0G Chain** through `LPLensReports`. Full triple-stack (Storage + Compute + Chain) wired to a single evolving + monetizable iNFT identity. |
 | **Uniswap Foundation — Best Uniswap API Integration** | $5 000 (1 of 3) | The Uniswap-vertical submission that treats **V4 hooks as data to be reasoned over** rather than infrastructure to be built — and that closes the loop end-to-end on chain. 14-bit permission bitmap → 7 family classifier (no other tool decodes this for end-users); pool's last 30 days of hourly swap volume scored under family-conditional multipliers, **calibrated against a swap-by-swap mainnet replay (AT-2: 0 bps drift on 1 000 USDC/WETH 0.05 % swaps)**; Trading API v1 `/quote` priced into the migration preview; Permit2 EIP-712 `PermitSingle` typed-data signed once. The signed digest is then posted back to `LPLensAgent.recordMigration(tokenId, digest)` — the iNFT's `migrationsTriggered` counter increments on chain. V3 + V4 subgraphs (`modifyLiquidities`, ticks, `Pool` discovery, `poolHourData`) plus on-chain reads on the V4 `PositionManager`. The IL math + Trading API quote are the baseline; the **V4 hook replay + Permit2 migration recorded on chain** are the wedge — diagnostic, action, AND on-chain proof of action. Builder feedback in [FEEDBACK.md](FEEDBACK.md). |
 | **ENS — Best ENS Integration for AI Agents** | $2 500 (1 of 3) | ENS wired as the **agent's public output index**, not a vanity label. Every diagnose publishes five text records keyed `lplens.<tokenId>.{rootHash, storageUrl, anchorTx, chainId, verdict}` under [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) — any other agent resolves the parent name and enumerates every report this agent has ever produced, **queryable by Uniswap position tokenId**. ENS-to-iNFT binding closes the identity loop: the human-readable name resolves to the agent's verifiable on-chain memory cursor on 0G Chain. The MCP tool `lplens.resolveEnsRecord` exposes that lookup over stdio — turning ENS into the generic discovery layer for the agent economy, with no LPLens API in the trust path. |
 
@@ -275,7 +275,7 @@ Frontend at `http://localhost:3100`, backend at `http://localhost:3001`, MCP ser
 
 ## Demo positions
 
-Three curated sample positions (committed as mock data) let a judge test without providing their own wallet :
+Three curated sample positions (committed as mock data) let anyone test without providing their own wallet :
 
 - **Green** — USDC/WETH 0.05 % in-range, +$340 over 19 days
 - **Amber** — WBTC/WETH 0.3 % drifting close to upper bound

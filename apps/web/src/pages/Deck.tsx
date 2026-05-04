@@ -504,7 +504,7 @@ function Slide05Atlas() {
     <SlideShell
       index={5}
       marker="04 · WHAT THE USER SEES"
-      caption="Six demo wallets pin the green / amber / red narrative for judges."
+      caption="Six demo wallets pin the green / amber / red narrative."
     >
       <div style={{ padding: "20px 36px 0 36px" }}>
         <Eyebrow>BEAT 1 · ATLAS</Eyebrow>
@@ -1178,7 +1178,7 @@ function Slide11Architecture() {
           title="0G"
           tag="AI-NATIVE L1"
           rows={[
-            ["Compute (TDX)", "qwen-2.5-7b verdicts inside Intel TDX enclave + AT-4 hallucination guard"],
+            ["Compute (TEE)", "qwen-2.5-7b verdicts on a 0G Compute TEE-attested provider + AT-4 hallucination guard"],
             ["Storage", "Report blob pinned → merkle rootHash returned, written into iNFT memoryRoot"],
             ["Chain", "LPLensReports + LPLensAgent (ERC-7857). 2 txs per diagnose"],
           ]}
@@ -1268,7 +1268,7 @@ function Slide12Differentiation() {
     <SlideShell
       index={12}
       marker="11 · DIFFERENTIATION"
-      caption="Closest cohort: Parallax (ENS+v4 wallet), CryptoBroCalls (RL LP), ALP (vault). LPLens is the only diagnostic + sign-once migration agent in this set."
+      caption="Adjacent designs: Parallax (ENS+v4 wallet), CryptoBroCalls (RL LP), ALP (vault). LPLens is the only diagnostic + sign-once migration agent in this set."
     >
       <div style={{ padding: "32px 36px 0 36px" }}>
         <Eyebrow>DIFFERENTIATION</Eyebrow>
@@ -1502,7 +1502,7 @@ function Slide14Try() {
         <TryColumn color={COLOR_AMBER} title="LIVE DEMO">
           <div style={{ fontSize: 36, fontFamily: "var(--font-display)", fontWeight: 800 }}>lplens.xyz</div>
           <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 13, color: COLOR_CYAN }}>
-            MCP : mcp.lplens.xyz
+            MCP : self-host (STDIO) · lplens.xyz/mcp planned
           </div>
           <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: 13, color: COLOR_GREEN }}>
             ENS : lplensagent.eth
