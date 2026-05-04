@@ -43,7 +43,7 @@ export function Landing() {
                 ENCLAVE · LIVE · 0G COMPUTE TEE
               </Cap>
               <Mono color="text-tertiary" style={{ fontSize: 11 }}>
-                NODE-04 · TDX attested
+                broker-verifiable attestation
               </Mono>
             </div>
             <h1
@@ -106,10 +106,7 @@ export function Landing() {
                 style={{ padding: "14px 22px", fontSize: 14 }}
               >
                 <PlayIcon />
-                Watch the diagnosis
-                <Mono color="text-tertiary" style={{ fontSize: 11, marginLeft: 4 }}>
-                  2:48
-                </Mono>
+                Watch a live diagnose
               </button>
             </div>
           </div>
@@ -273,7 +270,7 @@ export function Landing() {
                 textWrap: "balance",
               }}
             >
-              Eleven phases. Streamed live over SSE.
+              Ten phases. Streamed live over SSE.
             </h2>
             <p
               style={{
@@ -631,7 +628,7 @@ export function Landing() {
               width: "100%",
             }}
           >
-            <TrustItem name="0G Compute" sub="TDX · provider-attested" />
+            <TrustItem name="0G Compute" sub="TEE · broker-attested" />
             <TrustItem name="0G Storage" sub="merkle rootHash anchored" />
             <TrustItem name="0G Chain" sub="LPLensReports + iNFT registry" />
             <TrustItem name="Uniswap V3 / V4" sub="mainnet · sepolia" />

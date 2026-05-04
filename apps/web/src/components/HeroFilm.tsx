@@ -351,7 +351,7 @@ export function HeroFilm() {
               letterSpacing="0.16em"
               textAnchor="end"
             >
-              SIGNED · NODE-04
+              SIGNED · 0G COMPUTE
             </text>
           </g>
         </svg>

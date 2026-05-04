@@ -288,7 +288,8 @@ node $(pwd)/apps/mcp-server/dist/index.js
       "command": "node",
       "args": ["/abs/path/to/Open_Agent_2026/apps/mcp-server/dist/index.js"],
       "env": {
-        "LPLENS_API_URL": "https://lplens.xyz",
+        // Run \`pnpm --filter @lplens/server run dev\` (or your hosted backend URL).
+        "LPLENS_API_URL": "http://localhost:3001",
         "LPLENS_AGENT_CONTRACT": "${AGENT_CONTRACT || "0x..."}",
         "LPLENS_AGENT_TOKEN_ID": "${AGENT_TOKEN_ID}"
       }
@@ -348,10 +349,24 @@ console.log(result);`}
         </section>
 
         <p style={{ marginTop: 32, fontSize: 11, color: "var(--text-tertiary)", textAlign: "center" }}>
-          MCP server — <code>{MCP_SERVER_URL}</code> · ENS{" "}
-          <a href="https://sepolia.app.ens.domains/lplensagent.eth" target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
+          MCP server runs locally via STDIO — see{" "}
+          <a
+            href="/roadmap"
+            style={{ color: "var(--cyan)" }}
+          >
+            /roadmap
+          </a>{" "}
+          for the planned hosted endpoint at{" "}
+          <code>{MCP_SERVER_URL}</code>. ENS identity{" "}
+          <a
+            href="https://sepolia.app.ens.domains/lplensagent.eth"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "var(--cyan)" }}
+          >
             lplensagent.eth
           </a>
+          .
         </p>
       </main>
     </div>
