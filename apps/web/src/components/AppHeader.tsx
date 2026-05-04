@@ -33,6 +33,11 @@ const NAV: NavItem[] = [
     matches: (p) => p.startsWith("/developers"),
   },
   {
+    to: "/roadmap",
+    label: "Roadmap",
+    matches: (p) => p.startsWith("/roadmap"),
+  },
+  {
     to: "https://github.com/JeanBaptisteDurand/Open_Agent_2026/blob/main/FEEDBACK.md",
     label: "Feedback",
   },
