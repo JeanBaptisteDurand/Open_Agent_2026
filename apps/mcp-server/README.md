@@ -38,8 +38,10 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`
         "/absolute/path/to/Open_Agent_2026/apps/mcp-server/dist/index.js"
       ],
       "env": {
-        "LPLENS_API_URL": "http://localhost:3001",
-        "LPLENS_REPORTS_CONTRACT": ""
+        "LPLENS_API_URL": "https://lplens.xyz",
+        "LPLENS_AGENT_CONTRACT": "0x938f3B7841b3faCbBE967F90B548d991e9882c6C",
+        "LPLENS_REPORTS_CONTRACT": "0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3",
+        "OG_NEWTON_RPC": "https://evmrpc-testnet.0g.ai"
       }
     }
   }
@@ -47,9 +49,10 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`
 ```
 
 Then restart Claude Desktop. The 7 tools appear under the
-`lplens-mcp` server. Run the LPLens API server in another terminal
-(`pnpm --filter @lplens/server dev`) so `lplens.diagnose` has somewhere
-to stream from.
+`lplens-mcp` server. The defaults above point at the production
+deployment at `lplens.xyz` — no local LPLens server required. To
+develop against a local server instead, override `LPLENS_API_URL`
+to `http://localhost:3001` and run `pnpm --filter @lplens/server dev`.
 
 ## Wire into Cursor
 

@@ -16,7 +16,7 @@ import { z } from "zod";
 import { onchain } from "../services/onchain.js";
 
 const DEFAULT_BASE_URL =
-  process.env.LPLENS_API_URL ?? "http://localhost:3001";
+  process.env.LPLENS_API_URL ?? "https://lplens.xyz";
 
 export const diagnoseInputSchema = z.object({
   tokenId: z.string().min(1),
@@ -267,7 +267,7 @@ export const diagnoseToolDefinition = {
       apiUrl: {
         type: "string",
         description:
-          "LPLens API URL. Defaults to LPLENS_API_URL env or http://localhost:3001.",
+          "LPLens API URL. Defaults to LPLENS_API_URL env or https://lplens.xyz (production deployment).",
       },
       timeoutMs: {
         type: "number",

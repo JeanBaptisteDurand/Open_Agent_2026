@@ -6,7 +6,7 @@
 import { z } from "zod";
 
 const DEFAULT_BASE_URL =
-  process.env.LPLENS_API_URL ?? "http://localhost:3001";
+  process.env.LPLENS_API_URL ?? "https://lplens.xyz";
 
 export const lookupReportInputSchema = z.object({
   rootHash: z.string().min(4),
@@ -78,7 +78,7 @@ export const lookupReportToolDefinition = {
       },
       apiUrl: {
         type: "string",
-        description: "LPLens API URL. Defaults to LPLENS_API_URL or http://localhost:3001.",
+        description: "LPLens API URL. Defaults to LPLENS_API_URL or https://lplens.xyz.",
       },
     },
     required: ["rootHash"],

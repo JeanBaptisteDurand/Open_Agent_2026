@@ -7,7 +7,7 @@
 import { z } from "zod";
 
 const DEFAULT_BASE_URL =
-  process.env.LPLENS_API_URL ?? "http://localhost:3001";
+  process.env.LPLENS_API_URL ?? "https://lplens.xyz";
 
 export const preflightInputSchema = z.object({
   tokenId: z.string().min(1),
@@ -159,7 +159,7 @@ export const preflightToolDefinition = {
       },
       apiUrl: {
         type: "string",
-        description: "LPLens API URL. Defaults to LPLENS_API_URL or localhost.",
+        description: "LPLens API URL. Defaults to LPLENS_API_URL or https://lplens.xyz.",
       },
       timeoutMs: {
         type: "number",
