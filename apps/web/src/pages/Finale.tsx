@@ -5,12 +5,12 @@
 
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mono } from "../design/atoms.js";
 import { useDemoFlag, usePresenterFlag } from "../finale/demoFlags.js";
 import { usePresenter } from "../finale/presenter.js";
 import { BeatSection, SnapScroll } from "../finale/SnapScroll.js";
 import { HeroSection } from "../finale/sections/HeroSection.js";
 import { AtlasSection } from "../finale/sections/AtlasSection.js";
+import { CloseSection } from "../finale/sections/CloseSection.js";
 import { FINALE_BEATS } from "../finale/tokens.js";
 
 const BLEEDING_TOKENID = "605311";
@@ -20,7 +20,7 @@ export function Finale() {
   const demoMode = useDemoFlag();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const presenter = usePresenter(FINALE_BEATS.length, presenterMode, scrollRef);
-  const navigate = useNavigate();
+  void useNavigate;
 
   const goToBeat = (i: number): void => presenter.setBeat(i);
 
@@ -181,19 +181,12 @@ export function Finale() {
               background: "var(--surface)",
             }}
           />
-          <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
-            <button
-              className="btn btn-primary"
-              onClick={() => navigate("/")}
-              style={{ padding: "14px 22px", fontSize: 14 }}
-            >
-              ↗ Back to LPLens.xyz
-            </button>
-            <Mono color="text-tertiary" style={{ fontSize: 11, alignSelf: "center" }}>
-              demo runs at lplens.xyz · finale {new Date().toLocaleDateString()}
-            </Mono>
-          </div>
         </SectionFrame>
+      </BeatSection>
+
+      {/* 8. Close — three partners, lens series, lplens.xyz CTA */}
+      <BeatSection index={7} id="close">
+        <CloseSection />
       </BeatSection>
     </SnapScroll>
   );

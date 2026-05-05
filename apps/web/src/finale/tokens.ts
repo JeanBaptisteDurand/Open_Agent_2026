@@ -62,4 +62,5 @@ export const FINALE_BEATS: ReadonlyArray<{
   { id: "migrate", label: "Custody", hint: "One Permit2 signature." },
   { id: "compose", label: "Composability", hint: "Other agents pay 0.1 OG to call." },
   { id: "verify", label: "Trust", hint: "5 surfaces verify the same hash." },
+  { id: "close", label: "Try it", hint: "lplens.xyz · open repo · the Lens series." },
 ];

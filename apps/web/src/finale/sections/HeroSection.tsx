@@ -206,6 +206,10 @@ export function HeroSection({ presenter, onWatchDiagnose }: HeroSectionProps) {
           <span style={{ color: "var(--cyan)" }}>LPLens · the LP-rescue agent</span>
           <span>·</span>
           <span>autonomous on 0G</span>
+          <span style={{ color: "var(--text-faint)" }}>—</span>
+          <span style={{ color: "var(--text-secondary)" }}>
+            42 Blockchain · BaseLens · CORLens · SuiLens · LPLens
+          </span>
         </div>
 
         {/* Three-line stacked thesis — capped so each line stays single
