@@ -99,12 +99,21 @@ function aggregate(positions: V3PositionRaw[]) {
 
 export function Atlas() {
   const { address: connectedAddress } = useAccount();
-  const [address, setAddress] = useState(connectedAddress ?? "");
-  const [submitted, setSubmitted] = useState<string | null>(
-    connectedAddress ?? null,
-  );
+  // Auto-pin the bleeding wallet on first load when no wallet is
+  // connected. The demo's narrative ("LP bleeding · diagnose this")
+  // always opens with this wallet, so saving the click matters when
+  // the live judge clicks through during the 5-min stream.
+  const bleeding = CURATED_DEMO_WALLETS.find((w) => w.slot === "bleeding");
+  const initial = connectedAddress ?? bleeding?.address ?? null;
+  const initialSlot: DemoWallet["slot"] | null = connectedAddress
+    ? null
+    : bleeding
+      ? "bleeding"
+      : null;
+  const [address, setAddress] = useState(initial ?? "");
+  const [submitted, setSubmitted] = useState<string | null>(initial);
   const [activeSlot, setActiveSlot] = useState<DemoWallet["slot"] | null>(
-    null,
+    initialSlot,
   );
 
   const { data, isLoading, error } = useQuery({
