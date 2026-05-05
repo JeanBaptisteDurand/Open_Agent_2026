@@ -34,6 +34,7 @@ import {
   type HookScoringResult,
 } from "../components/HookScoringPanel.js";
 import { useDiagnosticStream } from "../hooks/useDiagnosticStream.js";
+import { PhaseStrip } from "../finale/PhaseStrip.js";
 import type { DiagnosticEvent } from "@lplens/core";
 
 type ToolEvent = Extract<
@@ -120,6 +121,7 @@ export function Diagnose() {
   return (
     <div className="min-h-screen">
       <AppHeader />
+      <PhaseStrip events={events} />
       <div className="p-8">
       <header className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between gap-4">
