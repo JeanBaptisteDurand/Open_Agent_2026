@@ -273,24 +273,31 @@ function ExternalAgentColumn({ t }: ColumnProps) {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            aria-hidden
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 999,
-              background: "var(--violet)",
-              boxShadow: "0 0 8px var(--violet-glow)",
-              animation: "pulse-dot 1.4s infinite",
-            }}
-          />
-          <Mono color="violet" style={{ fontSize: 11, letterSpacing: "0.16em" }}>
-            EXTERNAL AGENT · CLAUDE DESKTOP MCP
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <AgentDot label="2" tone="violet" />
+          <Mono style={{ fontSize: 12, color: "var(--text)", letterSpacing: "0.04em" }}>
+            agent #2
           </Mono>
+          <span style={{ color: "var(--text-tertiary)" }}>→</span>
+          <AgentDot label="1" tone="cyan" />
+          <Mono style={{ fontSize: 12, color: "var(--text)", letterSpacing: "0.04em" }}>
+            agent #1 · LPLens
+          </Mono>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9,
+              color: "var(--text-tertiary)",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              marginLeft: 8,
+            }}
+          >
+            via MCP stdio
+          </span>
         </div>
         <Mono color="text-tertiary" style={{ fontSize: 10, letterSpacing: "0.12em" }}>
-          remote · stdin/stdout
+          claude desktop
         </Mono>
       </div>
 
@@ -446,33 +453,64 @@ function ContractColumn({ t, licensesMinted }: ContractColumnProps) {
         </Mono>
       </div>
 
-      {/* Royalty split visualization */}
+      {/* Royalty split — 0.1 OG payment chip → SVG Y-fork → 0.08 + 0.02 */}
+      <SplitFork
+        flowing={t >= 5500 && t < 7500}
+        committed={txConfirmed}
+        paymentVisible={t >= 3500}
+      />
+
+      {/* Proportional 80 / 20 bar */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
-          alignItems: "center",
-          gap: 14,
-          padding: "16px 14px",
-          border: "1px dashed var(--border-strong)",
-          borderRadius: 10,
-          background: "var(--base-deeper)",
-          minHeight: 110,
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
         }}
       >
-        <SplitNode
-          label="OWNER"
-          amount={txConfirmed ? 0.08 : 0}
-          tone="healthy"
-          flowing={t >= 5500 && t < 7500}
-        />
-        <SplitArrow />
-        <SplitNode
-          label="TREASURY"
-          amount={txConfirmed ? 0.02 : 0}
-          tone="violet"
-          flowing={t >= 5500 && t < 7500}
-        />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--text-tertiary)",
+          }}
+        >
+          <span>OWNER · 80%</span>
+          <span style={{ color: "var(--text-secondary)" }}>ATOMIC ROYALTY SPLIT</span>
+          <span>TREASURY · 20%</span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            height: 8,
+            borderRadius: 999,
+            overflow: "hidden",
+            border: "1px solid var(--border-strong)",
+            background: "var(--base-deeper)",
+          }}
+        >
+          <span
+            style={{
+              flex: 0.8,
+              background:
+                "linear-gradient(90deg, rgba(142,232,135,0.7), rgba(142,232,135,1))",
+              boxShadow: "0 0 12px var(--healthy-glow) inset",
+            }}
+          />
+          <span
+            style={{
+              flex: 0.2,
+              background:
+                "linear-gradient(90deg, rgba(197,156,255,0.85), rgba(197,156,255,1))",
+              boxShadow: "0 0 12px var(--violet-glow) inset",
+            }}
+          />
+        </div>
       </div>
 
       {/* Counters */}
@@ -551,36 +589,211 @@ function ContractColumn({ t, licensesMinted }: ContractColumnProps) {
   );
 }
 
-interface SplitNodeProps {
-  label: string;
-  amount: number;
-  tone: "healthy" | "violet" | "cyan";
+interface SplitForkProps {
   flowing: boolean;
+  committed: boolean;
+  paymentVisible: boolean;
 }
 
-function SplitNode({ label, amount, tone, flowing }: SplitNodeProps) {
+function AgentDot({ label, tone }: { label: string; tone: "cyan" | "violet" }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 18,
+        height: 18,
+        borderRadius: 999,
+        border: `1px solid var(--${tone})`,
+        color: `var(--${tone})`,
+        background: tone === "cyan" ? "rgba(255,176,32,0.1)" : "rgba(197,156,255,0.1)",
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: 0,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function SplitFork({ flowing, committed, paymentVisible }: SplitForkProps) {
   return (
     <div
       style={{
+        display: "grid",
+        gridTemplateRows: "auto auto auto",
+        gap: 10,
+        padding: "16px 14px",
+        border: "1px dashed var(--border-strong)",
+        borderRadius: 10,
+        background: "var(--base-deeper)",
+        minHeight: 200,
+      }}
+    >
+      {/* Top: payment chip */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 14px",
+            borderRadius: 999,
+            border: "1px solid var(--cyan)",
+            background: "rgba(255,176,32,0.1)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "var(--cyan)",
+            opacity: paymentVisible ? 1 : 0.25,
+            transform: paymentVisible ? "translateY(0)" : "translateY(-6px)",
+            boxShadow: flowing ? "0 0 18px var(--cyan-glow)" : undefined,
+            transition: "all 320ms cubic-bezier(0.2,0.8,0.2,1)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 999,
+              background: "var(--cyan)",
+              boxShadow: "0 0 8px var(--cyan-glow)",
+              animation: paymentVisible ? "pulse-dot 1.4s infinite" : undefined,
+            }}
+          />
+          0.1 OG · mintLicense
+        </span>
+      </div>
+
+      {/* Middle: SVG Y-fork */}
+      <svg
+        viewBox="0 0 320 64"
+        width="100%"
+        height="64"
+        style={{ overflow: "visible" }}
+      >
+        <defs>
+          <linearGradient id="fork-flow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#FFB020" stopOpacity={flowing ? 1 : 0.5} />
+            <stop offset="100%" stopColor="#FFB020" stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        {/* trunk */}
+        <line
+          x1="160"
+          y1="0"
+          x2="160"
+          y2="22"
+          stroke="var(--cyan)"
+          strokeWidth="1.4"
+          opacity={paymentVisible ? 0.9 : 0.3}
+        />
+        {/* branches */}
+        <path
+          d="M160 22 Q 160 46, 70 56"
+          stroke="var(--healthy)"
+          strokeWidth="1.4"
+          fill="none"
+          opacity={committed ? 0.9 : flowing ? 0.6 : 0.3}
+        />
+        <path
+          d="M160 22 Q 160 46, 250 56"
+          stroke="var(--violet)"
+          strokeWidth="1.4"
+          fill="none"
+          opacity={committed ? 0.9 : flowing ? 0.6 : 0.3}
+        />
+        <circle cx="160" cy="22" r="2.4" fill="var(--cyan)" />
+        <circle
+          cx="70"
+          cy="56"
+          r="3"
+          fill="var(--healthy)"
+          style={{ filter: committed ? "drop-shadow(0 0 6px rgba(142,232,135,0.7))" : undefined }}
+        />
+        <circle
+          cx="250"
+          cy="56"
+          r="3"
+          fill="var(--violet)"
+          style={{ filter: committed ? "drop-shadow(0 0 6px rgba(197,156,255,0.7))" : undefined }}
+        />
+        {/* moving dot during flow */}
+        {flowing && (
+          <circle r="3" fill="var(--cyan)">
+            <animateMotion dur="1.4s" repeatCount="indefinite">
+              <mpath xlinkHref="#fork-path-left" />
+            </animateMotion>
+          </circle>
+        )}
+        <path
+          id="fork-path-left"
+          d="M160 22 Q 160 46, 70 56"
+          fill="none"
+          stroke="none"
+        />
+      </svg>
+
+      {/* Bottom: two destination tiles */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 10,
+        }}
+      >
+        <SplitTile
+          label="OWNER · 80%"
+          amount={committed ? 0.08 : 0}
+          tone="healthy"
+          highlight={flowing || committed}
+        />
+        <SplitTile
+          label="TREASURY · 20%"
+          amount={committed ? 0.02 : 0}
+          tone="violet"
+          highlight={flowing || committed}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface SplitTileProps {
+  label: string;
+  amount: number;
+  tone: "healthy" | "violet";
+  highlight: boolean;
+}
+
+function SplitTile({ label, amount, tone, highlight }: SplitTileProps) {
+  return (
+    <div
+      style={{
+        padding: "10px 14px",
+        borderRadius: 8,
+        border: `1px solid var(--${tone})`,
+        background:
+          tone === "violet"
+            ? "rgba(197,156,255,0.08)"
+            : "rgba(142,232,135,0.08)",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        gap: 4,
-        padding: "10px 12px",
-        borderRadius: 10,
-        border: `1px solid var(--${tone})`,
-        background: `rgba(${tone === "violet" ? "197,156,255" : "142,232,135"}, 0.08)`,
-        boxShadow: flowing
-          ? `0 0 18px var(--${tone}-glow)`
-          : "0 0 0 transparent",
+        gap: 2,
+        boxShadow: highlight ? `0 0 14px var(--${tone}-glow)` : undefined,
         transition: "box-shadow 240ms",
-        minWidth: 0,
       }}
     >
       <Mono
         style={{
           fontSize: 9,
-          letterSpacing: "0.18em",
+          letterSpacing: "0.16em",
           color: `var(--${tone})`,
           textTransform: "uppercase",
         }}
@@ -590,61 +803,14 @@ function SplitNode({ label, amount, tone, flowing }: SplitNodeProps) {
       <span
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: 26,
+          fontSize: 22,
           fontWeight: 500,
           color: "var(--text)",
           letterSpacing: "-0.02em",
         }}
       >
-        <CountUp value={amount} decimals={2} suffix=" OG" durationMs={400} />
+        <CountUp value={amount} decimals={2} suffix=" OG" durationMs={500} />
       </span>
-    </div>
-  );
-}
-
-function SplitArrow() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 4,
-        position: "relative",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          color: "var(--cyan)",
-          letterSpacing: "0.16em",
-          textTransform: "uppercase",
-          fontWeight: 600,
-        }}
-      >
-        SPLIT
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          color: "var(--text-secondary)",
-          letterSpacing: "0.06em",
-        }}
-      >
-        80 / 20
-      </span>
-      <span
-        aria-hidden
-        style={{
-          width: 36,
-          height: 1,
-          background: "var(--cyan)",
-          marginTop: 2,
-          opacity: 0.7,
-        }}
-      />
     </div>
   );
 }
