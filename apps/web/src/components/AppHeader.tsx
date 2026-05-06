@@ -196,21 +196,28 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  // Close-on-out logic via document mouseover. mouseover bubbles and
-  // fires every time the cursor enters a new element — so we can
-  // check `e.target` against both the button and the menu refs and
-  // get an authoritative "is the cursor over the dropdown right now?"
-  // signal. This sidesteps the fragility of chained
-  // mouseenter/mouseleave + relatedTarget across multiple boundaries
-  // (item-to-item gap, paddingTop strip, etc.).
+  // Close-on-out logic by GEOMETRY, not by DOM events. On every
+  // pointer move we read the live bounding rects of the button and
+  // the menu and check whether (clientX, clientY) falls inside
+  // either. This bypasses every event-chain fragility (relatedTarget
+  // null, mouseleave on the wrong ancestor, item-to-item flex gap,
+  // padding strips, sub-pixel rounding around borders). A small
+  // buffer absorbs fractional-pixel cases.
   useEffect(() => {
     if (!open) return;
-    const onMouseOver = (e: MouseEvent) => {
-      const target = e.target as Node | null;
-      if (!target) return;
-      const overButton = !!buttonRef.current?.contains(target);
-      const overMenu = !!menuRef.current?.contains(target);
-      if (!overButton && !overMenu) setOpen(false);
+    const PAD = 4;
+    const onMove = (e: PointerEvent) => {
+      const x = e.clientX;
+      const y = e.clientY;
+      const bRect = buttonRef.current?.getBoundingClientRect();
+      const mRect = menuRef.current?.getBoundingClientRect();
+      const inButton = !!bRect &&
+        x >= bRect.left - PAD && x <= bRect.right + PAD &&
+        y >= bRect.top - PAD && y <= bRect.bottom + PAD;
+      const inMenu = !!mRect &&
+        x >= mRect.left - PAD && x <= mRect.right + PAD &&
+        y >= mRect.top - PAD && y <= mRect.bottom + PAD;
+      if (!inButton && !inMenu) setOpen(false);
     };
     const onDocClick = (e: MouseEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
@@ -218,11 +225,11 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener("mouseover", onMouseOver);
+    window.addEventListener("pointermove", onMove);
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mouseover", onMouseOver);
+      window.removeEventListener("pointermove", onMove);
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onKey);
     };
