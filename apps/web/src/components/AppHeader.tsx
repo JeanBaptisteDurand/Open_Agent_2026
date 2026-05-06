@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Logo } from "./Logo.js";
 import { Chip } from "../design/atoms.js";
 import { ConnectButton } from "./ConnectButton.js";
@@ -192,60 +192,42 @@ interface FinaleDropdownProps {
 
 function FinaleDropdown({ active }: FinaleDropdownProps) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
+  const closeTimer = useRef<number | null>(null);
 
-  // Close-on-out logic by GEOMETRY, not by DOM events. On every
-  // pointer move we read the live bounding rects of the button and
-  // the menu and check whether (clientX, clientY) falls inside
-  // either. This bypasses every event-chain fragility (relatedTarget
-  // null, mouseleave on the wrong ancestor, item-to-item flex gap,
-  // padding strips, sub-pixel rounding around borders). A small
-  // buffer absorbs fractional-pixel cases.
+  const cancelClose = () => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpen(false), 120);
+  };
+
+  useEffect(() => () => cancelClose(), []);
+
   useEffect(() => {
     if (!open) return;
-    const PAD = 4;
-    const onMove = (e: PointerEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
-      const bRect = buttonRef.current?.getBoundingClientRect();
-      const mRect = menuRef.current?.getBoundingClientRect();
-      const inButton = !!bRect &&
-        x >= bRect.left - PAD && x <= bRect.right + PAD &&
-        y >= bRect.top - PAD && y <= bRect.bottom + PAD;
-      const inMenu = !!mRect &&
-        x >= mRect.left - PAD && x <= mRect.right + PAD &&
-        y >= mRect.top - PAD && y <= mRect.bottom + PAD;
-      if (!inButton && !inMenu) setOpen(false);
-    };
-    const onDocClick = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-    window.addEventListener("pointermove", onMove);
-    document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   return (
     <div
-      ref={wrapRef}
+      onMouseEnter={() => {
+        cancelClose();
+        setOpen(true);
+      }}
+      onMouseLeave={scheduleClose}
       style={{ position: "relative", display: "inline-flex" }}
     >
       <button
-        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        onMouseEnter={() => setOpen(true)}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
@@ -277,14 +259,9 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
       </button>
       {open && (
         <div
-          ref={menuRef}
           role="menu"
           style={{
             position: "absolute",
-            // Menu flush against the button (top: 100%). The 8 px
-            // internal top padding bridges the visual gap so the
-            // cursor stays continuously over either the button or
-            // the menu while transiting.
             top: "100%",
             right: 0,
             zIndex: 30,
@@ -304,59 +281,56 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
               gap: 2,
             }}
           >
-          {FINALE_VARIANTS.map((v) => (
-            <button
-              key={v.to}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                navigate(v.to);
-              }}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "stretch",
-                textAlign: "left",
-                gap: 2,
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "none",
-                color: "var(--text)",
-                background: "transparent",
-                cursor: "pointer",
-                font: "inherit",
-                transition: "background 120ms",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "var(--base-deeper)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "transparent")
-              }
-            >
-              <span
+            {FINALE_VARIANTS.map((v) => (
+              <Link
+                key={v.to}
+                to={v.to}
+                role="menuitem"
+                onClick={() => setOpen(false)}
                 style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  letterSpacing: "-0.005em",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  textAlign: "left",
+                  gap: 2,
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  color: "var(--text)",
+                  background: "transparent",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  font: "inherit",
+                  transition: "background 120ms",
                 }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "var(--base-deeper)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
               >
-                {v.label}
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  color: "var(--text-tertiary)",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {v.hint}
-              </span>
-            </button>
-          ))}
+                <span
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    letterSpacing: "-0.005em",
+                  }}
+                >
+                  {v.label}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    color: "var(--text-tertiary)",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {v.hint}
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       )}
