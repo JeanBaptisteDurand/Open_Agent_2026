@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Logo } from "./Logo.js";
 import { Chip } from "../design/atoms.js";
 import { ConnectButton } from "./ConnectButton.js";
@@ -191,149 +192,115 @@ interface FinaleDropdownProps {
 }
 
 function FinaleDropdown({ active }: FinaleDropdownProps) {
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef<number | null>(null);
-
-  const cancelClose = () => {
-    if (closeTimer.current !== null) {
-      window.clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  };
-  const scheduleClose = () => {
-    cancelClose();
-    closeTimer.current = window.setTimeout(() => setOpen(false), 120);
-  };
-
-  useEffect(() => () => cancelClose(), []);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  const navigate = useNavigate();
 
   return (
-    <div
-      onMouseEnter={() => {
-        cancelClose();
-        setOpen(true);
-      }}
-      onMouseLeave={scheduleClose}
-      style={{ position: "relative", display: "inline-flex" }}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        style={{
-          color: active ? "var(--text)" : "var(--text-secondary)",
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          font: "inherit",
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          transition: "color 160ms",
-        }}
-      >
-        Finale
-        <span
-          aria-hidden
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
           style={{
-            display: "inline-block",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 160ms",
-            fontSize: 9,
-            color: "var(--text-tertiary)",
+            color: active ? "var(--text)" : "var(--text-secondary)",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            font: "inherit",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            transition: "color 160ms",
           }}
         >
-          ▾
-        </span>
-      </button>
-      {open && (
-        <div
-          role="menu"
-          style={{
-            position: "absolute",
-            top: "100%",
-            right: 0,
-            zIndex: 30,
-            minWidth: 280,
-            paddingTop: 8,
-          }}
-        >
-          <div
+          Finale
+          <span
+            aria-hidden
             style={{
-              padding: 6,
-              background: "var(--surface)",
-              border: "1px solid var(--border-strong)",
-              borderRadius: 10,
-              boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
+              display: "inline-block",
+              fontSize: 9,
+              color: "var(--text-tertiary)",
             }}
           >
-            {FINALE_VARIANTS.map((v) => (
-              <Link
-                key={v.to}
-                to={v.to}
-                role="menuitem"
-                onClick={() => setOpen(false)}
+            ▾
+          </span>
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={8}
+          style={{
+            zIndex: 50,
+            minWidth: 280,
+            padding: 6,
+            background: "var(--surface)",
+            border: "1px solid var(--border-strong)",
+            borderRadius: 10,
+            boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          {FINALE_VARIANTS.map((v) => (
+            <DropdownMenu.Item
+              key={v.to}
+              onSelect={(e) => {
+                e.preventDefault();
+                navigate(v.to);
+              }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                textAlign: "left",
+                gap: 2,
+                padding: "10px 12px",
+                borderRadius: 8,
+                color: "var(--text)",
+                background: "transparent",
+                cursor: "pointer",
+                font: "inherit",
+                outline: "none",
+                transition: "background 120ms",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "var(--base-deeper)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+              onFocus={(e) =>
+                (e.currentTarget.style.background = "var(--base-deeper)")
+              }
+              onBlur={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+            >
+              <span
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "stretch",
-                  textAlign: "left",
-                  gap: 2,
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  color: "var(--text)",
-                  background: "transparent",
-                  textDecoration: "none",
-                  cursor: "pointer",
-                  font: "inherit",
-                  transition: "background 120ms",
+                  fontFamily: "var(--font-display)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  letterSpacing: "-0.005em",
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "var(--base-deeper)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
               >
-                <span
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    letterSpacing: "-0.005em",
-                  }}
-                >
-                  {v.label}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                    color: "var(--text-tertiary)",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  {v.hint}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+                {v.label}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  color: "var(--text-tertiary)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {v.hint}
+              </span>
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
