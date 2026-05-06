@@ -24,7 +24,7 @@ function fmtTimestamp(unix: number): string {
 }
 
 function explorerAddress(addr: string): string {
-  return `https://chainscan-newton.0g.ai/address/${addr}`;
+  return `https://chainscan-galileo.0g.ai/address/${addr}`;
 }
 
 export function Agent() {

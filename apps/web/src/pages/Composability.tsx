@@ -19,7 +19,7 @@ import { ProofBadge } from "../finale/ProofBadge.js";
 
 // Real mintLicense tx — referenced in the demo so the audience can
 // click through. Sourced from the prior on-chain submission run.
-const REAL_TX = "0xe8e55c75de9a32a9f410cbafa7be7d2eecd8e0fa6b1d20fef00d7f6e9f3a5c00";
+const REAL_TX = "0xe8e55c7537f1df457cf5ea407707393c75d027983c612c47e5a9884e7cf9e340";
 const SCRIPT_DURATION_MS = 16000;
 
 interface Step {
@@ -225,7 +225,7 @@ export function Composability() {
             <button className="btn btn-ghost">↗ Try via MCP (docs)</button>
           </Link>
           <a
-            href={`https://chainscan-newton.0g.ai/tx/${REAL_TX}`}
+            href={`https://chainscan-galileo.0g.ai/tx/${REAL_TX}`}
             target="_blank"
             rel="noreferrer"
             style={{ textDecoration: "none" }}
@@ -340,7 +340,7 @@ function ExternalAgentColumn({ t }: ColumnProps) {
           <span style={{ color: "var(--cyan)" }}>0.1 OG → 0xLPLensAgent</span>
         </Line>
         <Line on={t >= 5500} prefix="↗" tone="cyan">
-          tx 0xe8e55c75…f3a5c00 broadcast → 0G Newton
+          tx 0xe8e55c75…cf9e340 broadcast → 0G Newton
         </Line>
         <Line on={t >= 7500} prefix="✓" tone="healthy">
           tx confirmed · block 4,128,902 · gas 0.00018 OG
@@ -581,7 +581,7 @@ function ContractColumn({ t, licensesMinted }: ContractColumnProps) {
           label="0G Chain · mintLicense tx"
           hash={`${REAL_TX.slice(0, 14)}…${REAL_TX.slice(-6)}`}
           state={txConfirmed ? "verified" : t >= 5500 ? "verifying" : "pending"}
-          href={`https://chainscan-newton.0g.ai/tx/${REAL_TX}`}
+          href={`https://chainscan-galileo.0g.ai/tx/${REAL_TX}`}
           size="sm"
         />
       </div>

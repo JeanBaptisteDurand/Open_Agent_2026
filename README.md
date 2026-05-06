@@ -118,12 +118,12 @@ Captured against tokenId 685602 (USDC/WETH 0.05 %, mainnet). Full report at [`/r
 | Output | Value |
 | --- | --- |
 | 0G Storage rootHash | [`0xd0da9250…87b11`](https://lplens.xyz/report/0xd0da92507e2e16e11315d587c64c60547beaa3c5f9bceb7f67356952deb87b11) |
-| 0G Chain anchor tx | [`0xd7392aa9…0ecbd8e`](https://chainscan-newton.0g.ai/tx/0xd7392aa9dfd4fb1dbae1447bbf901943d7f3816c2639c64a46f45ad140ecbd8e) on `LPLensReports` |
+| 0G Chain anchor tx | [`0xd7392aa9…0ecbd8e`](https://chainscan-galileo.0g.ai/tx/0xd7392aa9dfd4fb1dbae1447bbf901943d7f3816c2639c64a46f45ad140ecbd8e) on `LPLensReports` |
 | 0G Compute verdict | model `qwen/qwen-2.5-7b-instruct`, provider `0xa48f0128…2E67836`, broker-signed |
 | AT-4 guard | fired live, masks LLM-fabricated numbers with `[unsupported]` |
-| iNFT memoryRoot | [`LPLensAgent` tokenId 1](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C), `memoryRoot` updated, `reputation` incremented. Two on-chain txs per diagnose: `updateMemoryRoot` + `recordDiagnose` |
+| iNFT memoryRoot | [`LPLensAgent` tokenId 1](https://chainscan-galileo.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C), `memoryRoot` updated, `reputation` incremented. Two on-chain txs per diagnose: `updateMemoryRoot` + `recordDiagnose` |
 | ENS records | 5 text records under [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth) keyed `lplens.605311.{rootHash, storageUrl, anchorTx, chainId, verdict}` |
-| iNFT licence mint | 0.1 OG paid → 80/20 split landed on owner + treasury → `isLicensed(1, 0x70997970…79c8)` returns `true`. Tx [`0xe8e55c75…f9e340`](https://chainscan-newton.0g.ai/tx/0xe8e55c7537f1df457cf5ea407707393c75d027983c612c47e5a9884e7cf9e340) |
+| iNFT licence mint | 0.1 OG paid → 80/20 split landed on owner + treasury → `isLicensed(1, 0x70997970…79c8)` returns `true`. Tx [`0xe8e55c75…f9e340`](https://chainscan-galileo.0g.ai/tx/0xe8e55c7537f1df457cf5ea407707393c75d027983c612c47e5a9884e7cf9e340) |
 
 Independent verification path, anyone with the rootHash can run :
 
@@ -142,8 +142,8 @@ Or via the MCP tool `lplens.lookupReportOnChain` / `lplens.resolveEnsRecord`, no
 
 | Network | Contract | Address |
 | --- | --- | --- |
-| 0G Newton (chainId 16602) | `LPLensReports` | [`0x3b733eC4…E00d3`](https://chainscan-newton.0g.ai/address/0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3) |
-| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | [`0x938f3B78…82c6C`](https://chainscan-newton.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C), agent `tokenId 1`, codeImageHash `0x3c89cd0b…39a7c` |
+| 0G Newton (chainId 16602) | `LPLensReports` | [`0x3b733eC4…E00d3`](https://chainscan-galileo.0g.ai/address/0x3b733eC427eeA5C379Bbd0CF50Dc0b931C5E00d3) |
+| 0G Newton (chainId 16602) | `LPLensAgent` (iNFT) | [`0x938f3B78…82c6C`](https://chainscan-galileo.0g.ai/address/0x938f3B7841b3faCbBE967F90B548d991e9882c6C), agent `tokenId 1`, codeImageHash `0x3c89cd0b…39a7c` |
 | Sepolia (chainId 11155111) | ENS parent name | [`lplensagent.eth`](https://sepolia.app.ens.domains/lplensagent.eth), resolver `0x8FADE66B…5B7dD` |
 
 See [contracts/DEPLOY.md](contracts/DEPLOY.md) for the one-line deploy command.
