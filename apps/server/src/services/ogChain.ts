@@ -34,7 +34,7 @@ export interface AnchorReceipt {
   stub: boolean;
 }
 
-const EXPLORER_BASE = "https://chainscan-newton.0g.ai/tx";
+const EXPLORER_BASE = "https://chainscan-galileo.0g.ai/tx";
 
 const LPLENS_REPORTS_ABI = [
   {
@@ -117,6 +117,28 @@ export interface MigrationRecordReceipt {
   explorerUrl?: string;
   stub: boolean;
   warnings: string[];
+}
+
+export interface MigrationBroadcast {
+  tokenId: number;
+  contract: string;
+  permit2Digest: string;
+  txHash: string;
+  explorerUrl: string;
+  stub: boolean;
+  warnings: string[];
+}
+
+export interface MigrationTxStatus {
+  status: "pending" | "confirmed" | "stub";
+  txHash: string;
+  explorerUrl: string;
+  blockNumber?: number;
+  migrationsTriggered?: number;
+  reputation?: number;
+  memoryRoot?: string;
+  contract?: string;
+  tokenId?: number;
 }
 
 export class OgChainClient {
@@ -454,6 +476,128 @@ export class OgChainClient {
         stub: true,
         warnings,
       };
+    }
+  }
+
+  // Two-phase migration recording for the on-stage demo. `start` broadcasts
+  // the recordMigration tx and returns the txHash immediately so the modal
+  // can show "broadcasted ↗" before confirmation. `status` reads the
+  // receipt + iNFT counter so the modal can flip to "confirmed in block N".
+  async recordMigrationStart(
+    permit2Digest: string,
+  ): Promise<MigrationBroadcast> {
+    const tokenId = config.LPLENS_AGENT_TOKEN_ID ?? 0;
+    const contract = config.LPLENS_AGENT_CONTRACT ?? "";
+    const warnings: string[] = [];
+
+    if (!tokenId || !contract || !config.OG_ANCHOR_PRIVATE_KEY) {
+      const stubTx = stubTxHash(permit2Digest);
+      warnings.push(
+        "recordMigration broadcast skipped — LPLENS_AGENT_TOKEN_ID / LPLENS_AGENT_CONTRACT / OG_ANCHOR_PRIVATE_KEY missing",
+      );
+      return {
+        tokenId,
+        contract,
+        permit2Digest,
+        txHash: stubTx,
+        explorerUrl: `${EXPLORER_BASE}/${stubTx}`,
+        stub: true,
+        warnings,
+      };
+    }
+
+    try {
+      const account = privateKeyToAccount(
+        normalizeHex(config.OG_ANCHOR_PRIVATE_KEY),
+      );
+      const wallet = createWalletClient({
+        account,
+        chain: zeroGNewton,
+        transport: http(),
+      });
+      const txHash = await wallet.writeContract({
+        address: contract as Hex,
+        abi: LPLENS_AGENT_ABI,
+        functionName: "recordMigration",
+        args: [BigInt(tokenId), normalizeHex(permit2Digest)],
+      });
+      logger.info(
+        `0g-chain recordMigration broadcast tokenId=${tokenId} digest=${permit2Digest} tx=${txHash}`,
+      );
+      return {
+        tokenId,
+        contract,
+        permit2Digest,
+        txHash,
+        explorerUrl: `${EXPLORER_BASE}/${txHash}`,
+        stub: false,
+        warnings,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`0g-chain recordMigrationStart failed: ${msg}`);
+      const stubTx = stubTxHash(permit2Digest);
+      warnings.push(`recordMigration broadcast failed: ${msg}`);
+      return {
+        tokenId,
+        contract,
+        permit2Digest,
+        txHash: stubTx,
+        explorerUrl: `${EXPLORER_BASE}/${stubTx}`,
+        stub: true,
+        warnings,
+      };
+    }
+  }
+
+  async recordMigrationStatus(txHash: string): Promise<MigrationTxStatus> {
+    const tokenId = config.LPLENS_AGENT_TOKEN_ID ?? 0;
+    const contract = config.LPLENS_AGENT_CONTRACT ?? "";
+    const explorerUrl = `${EXPLORER_BASE}/${txHash}`;
+
+    if (txHash.startsWith("0xstub") || !tokenId || !contract) {
+      return { status: "stub", txHash, explorerUrl, tokenId, contract };
+    }
+
+    const publicClient = createPublicClient({
+      chain: zeroGNewton,
+      transport: http(),
+    });
+
+    try {
+      const receipt = await publicClient.getTransactionReceipt({
+        hash: normalizeHex(txHash),
+      });
+      const agent = (await publicClient.readContract({
+        address: contract as Hex,
+        abi: LPLENS_AGENT_ABI,
+        functionName: "agents",
+        args: [BigInt(tokenId)],
+      })) as readonly [
+        Hex,
+        Hex,
+        Hex,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        string,
+      ];
+      return {
+        status: "confirmed",
+        txHash,
+        explorerUrl,
+        blockNumber: Number(receipt.blockNumber),
+        migrationsTriggered: Number(agent[6]),
+        reputation: Number(agent[5]),
+        memoryRoot: agent[1],
+        contract,
+        tokenId,
+      };
+    } catch {
+      // viem throws TransactionReceiptNotFoundError when the tx isn't
+      // mined yet — treat as still pending.
+      return { status: "pending", txHash, explorerUrl, contract, tokenId };
     }
   }
 }

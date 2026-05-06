@@ -3,7 +3,10 @@ import express, { type Request, type Response } from "express";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
 import { diagnoseHandler } from "./routes/diagnose.js";
-import { migrateRecordedHandler } from "./routes/migrate.js";
+import {
+  migrateRecordedHandler,
+  migrateTxStatusHandler,
+} from "./routes/migrate.js";
 import { reportCache } from "./services/reportCache.js";
 import { subgraph } from "./services/subgraph.js";
 import { deriveV4Positions } from "./services/v4Aggregator.js";
@@ -89,6 +92,11 @@ app.get<{ tokenId: string }>("/api/diagnose/:tokenId", diagnoseHandler);
 app.post<{ tokenId: string }>(
   "/api/migrate/:tokenId/recorded",
   migrateRecordedHandler,
+);
+
+app.get<{ txHash: string }>(
+  "/api/migrate/tx/:txHash",
+  migrateTxStatusHandler,
 );
 
 app.get<{ rootHash: string }>("/api/report/:rootHash", (req, res) => {

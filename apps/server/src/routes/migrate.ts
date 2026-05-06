@@ -71,16 +71,41 @@ export async function migrateRecordedHandler(
       `migrate recorded lpTokenId=${lpTokenId} signer=${recovered} digest=${digest}`,
     );
 
-    const receipt = await ogChain.recordMigration(digest);
+    const broadcast = await ogChain.recordMigrationStart(digest);
     res.json({
       lpTokenId,
       signer: recovered,
       digest,
-      receipt,
+      broadcast,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error(`migrate recorded failed: ${msg}`);
+    res.status(500).json({ error: msg });
+  }
+}
+
+// GET /api/migrate/tx/:txHash
+//
+// Polled by the migration modal after `migrateRecordedHandler` returns the
+// initial txHash. Reports back-pending vs confirmed with the up-to-date
+// iNFT counter + memoryRoot. Stub txs (0xstub…) short-circuit so the modal
+// doesn't loop forever when no anchor key is configured.
+export async function migrateTxStatusHandler(
+  req: Request<{ txHash: string }>,
+  res: Response,
+): Promise<void> {
+  const { txHash } = req.params;
+  if (!txHash) {
+    res.status(400).json({ error: "missing txHash" });
+    return;
+  }
+  try {
+    const status = await ogChain.recordMigrationStatus(txHash);
+    res.json(status);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`migrate tx status failed for ${txHash}: ${msg}`);
     res.status(500).json({ error: msg });
   }
 }

@@ -71,20 +71,31 @@ export interface MigrationSignResult {
   signedAt: string;
 }
 
-export interface MigrationRecordReceipt {
+export interface MigrationBroadcast {
   lpTokenId: string;
   signer: `0x${string}`;
   digest: `0x${string}`;
-  receipt: {
+  broadcast: {
     tokenId: number;
     contract: string;
     permit2Digest: string;
-    migrationsTriggered: number;
-    txHash?: string;
-    explorerUrl?: string;
+    txHash: string;
+    explorerUrl: string;
     stub: boolean;
     warnings: string[];
   };
+}
+
+export interface MigrationTxStatus {
+  status: "pending" | "confirmed" | "stub";
+  txHash: string;
+  explorerUrl: string;
+  blockNumber?: number;
+  migrationsTriggered?: number;
+  reputation?: number;
+  memoryRoot?: string;
+  contract?: string;
+  tokenId?: number;
 }
 
 export function usePermit2Migration() {
@@ -187,7 +198,7 @@ export function usePermit2Migration() {
   const recordMigration = async (
     lpTokenId: string,
     signed: MigrationSignResult,
-  ): Promise<MigrationRecordReceipt | null> => {
+  ): Promise<MigrationBroadcast | null> => {
     setError(null);
     try {
       const res = await fetch(
@@ -210,12 +221,32 @@ export function usePermit2Migration() {
         setError(`migrate-recorded HTTP ${res.status}`);
         return null;
       }
-      return (await res.json()) as MigrationRecordReceipt;
+      return (await res.json()) as MigrationBroadcast;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       return null;
     }
   };
 
-  return { sign, recordMigration, isPending, error, result };
+  /**
+   * Polls the backend until the recordMigration tx is mined or the stub
+   * short-circuit fires. Used by the modal to flip from "broadcasted ↗"
+   * to "confirmed in block N · iNFT counter +1" without blocking the
+   * initial response.
+   */
+  const getMigrationStatus = async (
+    txHash: string,
+  ): Promise<MigrationTxStatus | null> => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/migrate/tx/${txHash}`,
+      );
+      if (!res.ok) return null;
+      return (await res.json()) as MigrationTxStatus;
+    } catch {
+      return null;
+    }
+  };
+
+  return { sign, recordMigration, getMigrationStatus, isPending, error, result };
 }

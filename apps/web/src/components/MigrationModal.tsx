@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "./ConnectButton.js";
-import { usePermit2Migration } from "../hooks/usePermit2Migration.js";
+import {
+  usePermit2Migration,
+  type MigrationTxStatus,
+} from "../hooks/usePermit2Migration.js";
 
 interface MigrationStep {
   kind: "close" | "swap" | "mint";
@@ -53,18 +56,22 @@ export function MigrationModal({ preview, lpTokenId, onClose }: Props) {
   const {
     sign,
     recordMigration,
+    getMigrationStatus,
     isPending,
     error,
     result,
   } = usePermit2Migration();
   const [submitted, setSubmitted] = useState(false);
-  const [recordReceipt, setRecordReceipt] = useState<{
-    migrationsTriggered: number;
-    txHash?: string;
-    explorerUrl?: string;
+  const [broadcast, setBroadcast] = useState<{
+    txHash: string;
+    explorerUrl: string;
     stub: boolean;
+    contract: string;
+    agentTokenId: number;
   } | null>(null);
-  const [recording, setRecording] = useState(false);
+  const [txStatus, setTxStatus] = useState<MigrationTxStatus | null>(null);
+  const [polling, setPolling] = useState(false);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -73,6 +80,29 @@ export function MigrationModal({ preview, lpTokenId, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Stop polling on unmount.
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    };
+  }, []);
+
+  const pollUntilConfirmed = (txHash: string): void => {
+    const tick = async () => {
+      const status = await getMigrationStatus(txHash);
+      if (status) {
+        setTxStatus(status);
+        if (status.status === "confirmed" || status.status === "stub") {
+          setPolling(false);
+          return;
+        }
+      }
+      pollTimerRef.current = setTimeout(tick, 2500);
+    };
+    setPolling(true);
+    pollTimerRef.current = setTimeout(tick, 1500);
+  };
 
   const handleSign = async () => {
     setSubmitted(true);
@@ -91,16 +121,27 @@ export function MigrationModal({ preview, lpTokenId, onClose }: Props) {
       sigDeadline: now + 30 * 60,
     });
     if (signed && lpTokenId) {
-      setRecording(true);
-      const receipt = await recordMigration(lpTokenId, signed);
-      setRecording(false);
-      if (receipt) {
-        setRecordReceipt({
-          migrationsTriggered: receipt.receipt.migrationsTriggered,
-          txHash: receipt.receipt.txHash,
-          explorerUrl: receipt.receipt.explorerUrl,
-          stub: receipt.receipt.stub,
+      const broadcasted = await recordMigration(lpTokenId, signed);
+      if (broadcasted) {
+        const b = broadcasted.broadcast;
+        setBroadcast({
+          txHash: b.txHash,
+          explorerUrl: b.explorerUrl,
+          stub: b.stub,
+          contract: b.contract,
+          agentTokenId: b.tokenId,
         });
+        if (b.stub) {
+          setTxStatus({
+            status: "stub",
+            txHash: b.txHash,
+            explorerUrl: b.explorerUrl,
+            tokenId: b.tokenId,
+            contract: b.contract,
+          });
+        } else {
+          pollUntilConfirmed(b.txHash);
+        }
       }
     }
   };
@@ -125,6 +166,9 @@ export function MigrationModal({ preview, lpTokenId, onClose }: Props) {
         style={{
           width: 640,
           maxWidth: "92vw",
+          maxHeight: "calc(100vh - 140px)",
+          display: "flex",
+          flexDirection: "column",
           background: "var(--surface)",
           border: "1px solid var(--border)",
           borderRadius: "var(--radius-lg)",
@@ -171,7 +215,14 @@ export function MigrationModal({ preview, lpTokenId, onClose }: Props) {
           </button>
         </header>
 
-        <div style={{ padding: 20 }}>
+        <div
+          style={{
+            padding: 20,
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+          }}
+        >
           <ol
             style={{
               margin: 0,
@@ -281,37 +332,125 @@ export function MigrationModal({ preview, lpTokenId, onClose }: Props) {
               <div style={{ marginTop: 4, color: "var(--text-tertiary)", fontSize: 10 }}>
                 digest {shortHash(result.digest)}
               </div>
-              {recording && (
-                <div style={{ marginTop: 8, color: "var(--cyan)" }}>
-                  recording on iNFT…
-                </div>
-              )}
-              {recordReceipt && (
+
+              {broadcast && (
                 <div
                   style={{
-                    marginTop: 8,
-                    paddingTop: 8,
+                    marginTop: 10,
+                    paddingTop: 10,
                     borderTop: "1px dashed var(--border)",
-                    color: recordReceipt.stub
+                    color: broadcast.stub
                       ? "var(--text-tertiary)"
                       : "var(--cyan)",
                   }}
                 >
-                  iNFT migrationsTriggered → {recordReceipt.migrationsTriggered}
-                  {recordReceipt.explorerUrl && !recordReceipt.stub && (
-                    <>
-                      {" · "}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 999,
+                        background:
+                          broadcast.stub
+                            ? "var(--text-tertiary)"
+                            : txStatus?.status === "confirmed"
+                              ? "var(--healthy)"
+                              : "var(--cyan)",
+                        boxShadow:
+                          broadcast.stub
+                            ? "none"
+                            : txStatus?.status === "confirmed"
+                              ? "0 0 8px var(--healthy-glow)"
+                              : "0 0 8px var(--cyan-glow)",
+                        animation:
+                          polling && !broadcast.stub
+                            ? "pulse-dot 1.4s infinite"
+                            : undefined,
+                      }}
+                    />
+                    <span>
+                      {broadcast.stub
+                        ? "stub broadcast — no anchor key configured"
+                        : txStatus?.status === "confirmed"
+                          ? `confirmed in block ${txStatus.blockNumber}`
+                          : "broadcasted, waiting for confirmation…"}
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 10, color: "var(--text-tertiary)" }}>
+                    tx{" "}
+                    {broadcast.stub ? (
+                      <span>{shortHash(broadcast.txHash)}</span>
+                    ) : (
                       <a
-                        href={recordReceipt.explorerUrl}
+                        href={broadcast.explorerUrl}
                         target="_blank"
                         rel="noreferrer"
                         style={{ color: "var(--cyan)" }}
                       >
-                        tx ↗
+                        {shortHash(broadcast.txHash)} ↗
                       </a>
-                    </>
-                  )}
-                  {recordReceipt.stub && " (stub — no anchor key)"}
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {txStatus?.status === "confirmed" && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: 10,
+                    borderRadius: 6,
+                    background: "rgba(8, 168, 255, 0.06)",
+                    border: "1px solid rgba(8, 168, 255, 0.3)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.16em",
+                      color: "var(--cyan)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    LPLENS iNFT · 0G NEWTON · STATE AFTER TX
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 4, columnGap: 12, fontSize: 11 }}>
+                    <span style={{ color: "var(--text-tertiary)" }}>tokenId</span>
+                    <span>{txStatus.tokenId ?? "—"}</span>
+                    <span style={{ color: "var(--text-tertiary)" }}>contract</span>
+                    <span>
+                      {txStatus.contract ? (
+                        <a
+                          href={`https://chainscan-galileo.0g.ai/address/${txStatus.contract}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ color: "var(--cyan)" }}
+                        >
+                          {shortHash(txStatus.contract)} ↗
+                        </a>
+                      ) : "—"}
+                    </span>
+                    <span style={{ color: "var(--text-tertiary)" }}>migrationsTriggered</span>
+                    <span style={{ color: "var(--healthy)" }}>
+                      {txStatus.migrationsTriggered ?? "—"}
+                    </span>
+                    <span style={{ color: "var(--text-tertiary)" }}>reputation</span>
+                    <span>{txStatus.reputation ?? "—"}</span>
+                    <span style={{ color: "var(--text-tertiary)" }}>memoryRoot</span>
+                    <span title={txStatus.memoryRoot ?? ""}>
+                      {txStatus.memoryRoot
+                        ? shortHash(txStatus.memoryRoot)
+                        : "—"}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
