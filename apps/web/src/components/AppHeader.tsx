@@ -193,6 +193,23 @@ interface FinaleDropdownProps {
 function FinaleDropdown({ active }: FinaleDropdownProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hover-out grace period: the menu floats out of the trigger's
+  // bounding box (position: absolute), so onMouseLeave on the wrap
+  // fires the moment the cursor crosses from button to menu. Schedule
+  // the close on a ~150 ms delay; any onMouseEnter on the menu cancels
+  // it. Stays open as long as the cursor is over either element.
+  const cancelClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimerRef.current = setTimeout(() => setOpen(false), 160);
+  };
 
   // Close on outside click + Escape so the menu doesn't trap the page.
   useEffect(() => {
@@ -211,16 +228,22 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
     };
   }, [open]);
 
+  // Clear any pending timer on unmount.
+  useEffect(() => () => cancelClose(), []);
+
   return (
     <div
       ref={wrapRef}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
       style={{ position: "relative", display: "inline-flex" }}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => {
+          cancelClose();
+          setOpen(true);
+        }}
+        onMouseLeave={scheduleClose}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
@@ -253,12 +276,15 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
       {open && (
         <div
           role="menu"
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
           style={{
             position: "absolute",
-            // Menu sits flush against the button so the hover zone is
-            // continuous — no gap to fall through. The visual breathing
-            // room is created by an internal transparent top spacer
-            // below, which keeps the hit area unbroken.
+            // Menu sits flush against the button (top: 100%) and the
+            // wrapper has 8 px of internal top padding so the cursor
+            // can transit without falling through any gap. The
+            // close-timer above forgives the millisecond between
+            // mouseleave-button and mouseenter-menu.
             top: "100%",
             right: 0,
             zIndex: 30,
