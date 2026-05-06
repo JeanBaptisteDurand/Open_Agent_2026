@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "./Logo.js";
 import { Chip } from "../design/atoms.js";
 import { ConnectButton } from "./ConnectButton.js";
@@ -195,6 +195,7 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
 
   // Close-on-out logic by GEOMETRY, not by DOM events. On every
   // pointer move we read the live bounding rects of the button and
@@ -304,20 +305,27 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
             }}
           >
           {FINALE_VARIANTS.map((v) => (
-            <Link
+            <button
               key={v.to}
-              to={v.to}
+              type="button"
               role="menuitem"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                navigate(v.to);
+              }}
               style={{
                 display: "flex",
                 flexDirection: "column",
+                alignItems: "stretch",
+                textAlign: "left",
                 gap: 2,
                 padding: "10px 12px",
                 borderRadius: 8,
-                textDecoration: "none",
+                border: "none",
                 color: "var(--text)",
                 background: "transparent",
+                cursor: "pointer",
+                font: "inherit",
                 transition: "background 120ms",
               }}
               onMouseEnter={(e) =>
@@ -347,7 +355,7 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
               >
                 {v.hint}
               </span>
-            </Link>
+            </button>
           ))}
           </div>
         </div>
