@@ -18,12 +18,18 @@ interface SnapScrollProps {
 }
 
 const containerStyle: CSSProperties = {
-  height: "100vh",
-  width: "100%",
+  // Lock the snap-scroller to the viewport so the page-level scrollbar
+  // sits flush against the right edge, no matter what the surrounding
+  // layout (body min-height, root padding, browser dev tools) is doing.
+  position: "fixed",
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
   overflowY: "scroll",
+  overflowX: "hidden",
   scrollSnapType: "y mandatory",
   scrollBehavior: "smooth",
-  position: "relative",
 };
 
 export function SnapScroll({

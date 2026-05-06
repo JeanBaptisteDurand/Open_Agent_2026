@@ -6,9 +6,9 @@
 
 import type { DiagnosticEvent } from "@lplens/core";
 import { Mono } from "../design/atoms.js";
-import { EASE, PHASE_SHORT_NAME, PHASE_TOOLTIP } from "./tokens.js";
+import { EASE, PHASE_ORDER, PHASE_SHORT_NAME, PHASE_TOOLTIP } from "./tokens.js";
 
-const PHASES: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const PHASES: number[] = [...PHASE_ORDER];
 
 interface Props {
   events: DiagnosticEvent[];
@@ -30,6 +30,19 @@ function buildStatus(events: DiagnosticEvent[]): Map<number, Status> {
     } else if (ev.type === "phase.end") {
       m.set(ev.phase, { state: "done" });
     }
+  }
+  // Backfill: pipeline is sequential, so reaching phase N implies
+  // every earlier phase in PHASE_ORDER is settled — even when a phase
+  // skips silently (e.g. trading API unconfigured) without emitting
+  // start/end. The narrative log still reflects the skip.
+  let highestSettledIdx = -1;
+  for (let i = 0; i < PHASES.length; i++) {
+    const s = m.get(PHASES[i]!)?.state;
+    if (s === "running" || s === "done") highestSettledIdx = i;
+  }
+  for (let i = 0; i < highestSettledIdx; i++) {
+    const p = PHASES[i]!;
+    if (!m.has(p)) m.set(p, { state: "done" });
   }
   return m;
 }
