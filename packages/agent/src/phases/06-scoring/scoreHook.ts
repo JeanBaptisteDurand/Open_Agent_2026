@@ -89,36 +89,37 @@ function multipliersFor(
   }
 }
 
-// Computes baseline 30-day fee APR from hourly volume + tier — same
-// formula used by Uniswap Info: fee_apr = (sum_volume × fee_tier) /
-// avg_tvl × (365 / period_days). For the demo we approximate avg_tvl
-// from the most recent point's liquidity pre-multiplied by sqrtPrice
-// when available — the absolute number is less important than the
-// delta vs baseline that the panel surfaces.
+// Computes baseline fee APR from hourly volume + tier, using the
+// pool's real `tvlUSD` from the subgraph as the denominator. Same
+// formula Uniswap Info displays:
+//   fee_apr = (sum_volume_usd × fee_fraction) / avg_tvl_usd × (365 / period_days)
+// Falls back to 0 when tvlUSD is unavailable (older recordings) — the
+// previous heuristic used liquidity/1e15 as a "TVL proxy" which is
+// dimensionally wrong (liquidity is V3's L unit, not USD), and on
+// dense mainnet pools yielded 5-figure APR % numbers that were
+// physically meaningless.
 function estimateBaselineApr(
   points: PoolHourPoint[],
   feeTierPpm: number,
 ): number {
   if (points.length === 0) return 0;
-  const totalVolumeUsd = points.reduce((acc, p) => acc + p.volumeUSD, 0);
   const periodDays = points.length / 24;
   if (periodDays === 0) return 0;
 
-  // Coarse TVL proxy — the largest hourly liquidity in the window.
-  const avgLiquidity = points.reduce(
-    (acc, p) => Math.max(acc, parseFloat(p.liquidity || "0")),
-    0,
-  );
-  if (avgLiquidity === 0) return 0;
+  const totalVolumeUsd = points.reduce((acc, p) => acc + p.volumeUSD, 0);
+  const tvlPoints = points
+    .map((p) => p.tvlUSD ?? 0)
+    .filter((v) => v > 0);
+  const avgTvlUsd = tvlPoints.length
+    ? tvlPoints.reduce((a, b) => a + b, 0) / tvlPoints.length
+    : 0;
+  if (avgTvlUsd <= 0) return 0;
 
-  // feeTierPpm is parts-per-million (e.g. 3000 = 0.30%).
+  // feeTierPpm is parts-per-million (e.g. 500 = 0.05 %, 3000 = 0.30 %).
   const feeFraction = feeTierPpm / 1_000_000;
   const periodFees = totalVolumeUsd * feeFraction;
-  // Use a normalized notional so the APR has demo-friendly magnitude.
-  const tvlProxy = avgLiquidity / 1e15;
-  if (tvlProxy <= 0) return 0;
   const annualizationFactor = 365 / Math.max(1, periodDays);
-  return (periodFees / Math.max(1, tvlProxy)) * annualizationFactor * 100;
+  return (periodFees / avgTvlUsd) * annualizationFactor * 100;
 }
 
 export function scoreHook(args: {

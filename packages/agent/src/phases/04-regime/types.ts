@@ -12,6 +12,11 @@ export interface PoolHourPoint {
   low: number;
   close: number;
   volumeUSD: number;
+  /** Pool's total value locked in USD at the end of this hour. Comes
+   *  straight from the V3 subgraph and is the right denominator for a
+   *  fee-APR computation. Optional only because older recordings may
+   *  not have it. */
+  tvlUSD?: number;
   tick: number;
   liquidity: string;
 }

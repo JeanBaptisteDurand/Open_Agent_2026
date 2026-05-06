@@ -127,6 +127,7 @@ const POOL_HOUR_DATAS_V3 = /* GraphQL */ `
       low
       close
       volumeUSD
+      tvlUSD
       tick
       liquidity
     }
@@ -271,6 +272,7 @@ interface PoolHourDataRaw {
   low: string;
   close: string;
   volumeUSD: string;
+  tvlUSD: string;
   tick: string | null;
   liquidity: string;
 }
@@ -388,6 +390,7 @@ export class SubgraphClient {
         low: parseFloat(p.low),
         close: parseFloat(p.close),
         volumeUSD: parseFloat(p.volumeUSD),
+        tvlUSD: parseFloat(p.tvlUSD ?? "0"),
         tick: p.tick ? parseInt(p.tick, 10) : 0,
         liquidity: p.liquidity,
       }));
