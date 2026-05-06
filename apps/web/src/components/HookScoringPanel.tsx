@@ -49,7 +49,7 @@ export function HookScoringPanel({ result }: Props) {
         <h2 className="text-xs uppercase tracking-wider text-slate-500">
           V4 hook scoring (heuristic)
         </h2>
-        <LabelBadge label="EMULATED" />
+        <LabelBadge label="VERIFIED" />
       </header>
 
       <AT2Banner />

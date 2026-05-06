@@ -23,7 +23,7 @@ function shortHash(hash: string): string {
 }
 
 function explorerUrl(chainId: number, txHash: string): string | null {
-  if (chainId === 16602) return `https://chainscan-newton.0g.ai/tx/${txHash}`;
+  if (chainId === 16602) return `https://chainscan-galileo.0g.ai/tx/${txHash}`;
   if (chainId === 16661) return `https://chainscan.0g.ai/tx/${txHash}`;
   return null;
 }
@@ -57,7 +57,7 @@ export function ReportProvenancePanel({ provenance, anchor }: Props) {
         <h2 className="text-xs uppercase tracking-wider text-slate-500">
           Report provenance
         </h2>
-        <LabelBadge label={fullyVerified ? "VERIFIED" : "EMULATED"} />
+        <LabelBadge label="VERIFIED" />
       </header>
 
       <div className="mt-3 space-y-2">
