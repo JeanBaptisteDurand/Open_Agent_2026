@@ -193,22 +193,23 @@ interface FinaleDropdownProps {
 function FinaleDropdown({ active }: FinaleDropdownProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
-  // Hover-out grace period: the menu floats out of the trigger's
-  // bounding box (position: absolute), so onMouseLeave on the wrap
-  // fires the moment the cursor crosses from button to menu. Schedule
-  // the close on a ~150 ms delay; any onMouseEnter on the menu cancels
-  // it. Stays open as long as the cursor is over either element.
-  const cancelClose = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
+  // Close instantly when the cursor leaves the dropdown — but only
+  // if it's not transiting between the button and the menu (or the
+  // reverse). `mouseleave.relatedTarget` is the element the cursor
+  // is moving INTO; if that element is contained by either the
+  // trigger button or the menu panel, we stay open. No timers.
+  const handleLeave = (e: React.MouseEvent): void => {
+    const next = e.relatedTarget;
+    if (
+      next instanceof Node &&
+      (buttonRef.current?.contains(next) || menuRef.current?.contains(next))
+    ) {
+      return;
     }
-  };
-  const scheduleClose = () => {
-    cancelClose();
-    closeTimerRef.current = setTimeout(() => setOpen(false), 160);
+    setOpen(false);
   };
 
   // Close on outside click + Escape so the menu doesn't trap the page.
@@ -228,22 +229,17 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
     };
   }, [open]);
 
-  // Clear any pending timer on unmount.
-  useEffect(() => () => cancelClose(), []);
-
   return (
     <div
       ref={wrapRef}
       style={{ position: "relative", display: "inline-flex" }}
     >
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
-        onMouseEnter={() => {
-          cancelClose();
-          setOpen(true);
-        }}
-        onMouseLeave={scheduleClose}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={handleLeave}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
@@ -275,16 +271,16 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
       </button>
       {open && (
         <div
+          ref={menuRef}
           role="menu"
-          onMouseEnter={cancelClose}
-          onMouseLeave={scheduleClose}
+          onMouseLeave={handleLeave}
           style={{
             position: "absolute",
-            // Menu sits flush against the button (top: 100%) and the
-            // wrapper has 8 px of internal top padding so the cursor
-            // can transit without falling through any gap. The
-            // close-timer above forgives the millisecond between
-            // mouseleave-button and mouseenter-menu.
+            // Menu flush against the button (top: 100%) with a small
+            // internal top padding so the cursor can cross from button
+            // to menu without leaving the dropdown's combined hover
+            // area. handleLeave above keeps the menu open whenever
+            // the cursor is moving between button and menu.
             top: "100%",
             right: 0,
             zIndex: 30,
