@@ -55,7 +55,11 @@ export function useReport(rootHash: string | null) {
       .then(async (res) => {
         if (res.status === 404) {
           setStatus("error");
-          setError("Report not found in cache.");
+          setError(
+            "Report not found in cache — the server's local cache only " +
+              "holds reports anchored since its last restart. Run a fresh " +
+              "diagnose from the Atlas to anchor a new report.",
+          );
           return;
         }
         if (!res.ok) {

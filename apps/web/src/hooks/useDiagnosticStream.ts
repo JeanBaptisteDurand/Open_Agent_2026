@@ -13,7 +13,11 @@ interface State {
 // diagnose page (notably via the finale slide 4 iframe) doesn't replay
 // the 11-phase stream. The cache lives for the tab's lifetime; closing
 // the tab clears it. Keyed per tokenId.
-const CACHE_PREFIX = "lplens.diagnoseStream.v1.";
+// Bump the version suffix whenever the event payload schema changes
+// OR when the server-side report cache is wiped (container rebuild),
+// so stale browser sessionStorage entries don't surface dead rootHashes
+// that the server no longer has cached.
+const CACHE_PREFIX = "lplens.diagnoseStream.v2.";
 
 function cacheKey(tokenId: string): string {
   return `${CACHE_PREFIX}${tokenId}`;
