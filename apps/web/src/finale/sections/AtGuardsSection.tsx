@@ -40,72 +40,72 @@ interface GuardCard {
 const GUARDS: ReadonlyArray<GuardCard> = [
   {
     tag: "AT-1",
-    title: "IL math calibrated",
-    body: "Closed-form IL reconstruction matches Revert.Finance to ±1 % on 3 mainnet positions. No black-box estimator.",
+    title: "IL calibrated",
+    body: "±1 % vs Revert.Finance · closed-form, no estimator.",
     phaseRef: "Phase 3",
     tone: "amber",
   },
   {
     tag: "AT-2",
-    title: "0 bps replay drift",
-    body: "1 000 mainnet swaps replayed swap-by-swap through SwapMath. Final sqrtPrice matches the chain to under 10 bps.",
+    title: "0 bps replay",
+    body: "1 000 mainnet swaps · final sqrtPrice matches chain.",
     phaseRef: "Phase 6",
     tone: "cyan",
   },
   {
     tag: "AT-3",
-    title: "Hook direction sane",
-    body: "Each V4 hook family must push the simulated APR in the right direction vs no-hook baseline before it can ship.",
+    title: "Hook direction",
+    body: "Each family must move APR the right way vs baseline.",
     phaseRef: "Phase 5 → 6",
     tone: "violet",
   },
   {
     tag: "AT-4",
-    title: "LLM cannot lie",
-    body: "Every number in the verdict markdown is regex-extracted and matched to the input JSON. Unsupported claims get masked with [unsupported].",
+    title: "No hallucination",
+    body: "Every verdict number traces to JSON · else [unsupported].",
     phaseRef: "Phase 10",
     tone: "cyan",
   },
   {
     tag: "AT-5",
-    title: "Signature round-trips",
-    body: "Anyone can re-download the report from 0G Storage, re-hash, and recover the TEE signer offline — same value as the on-chain anchor.",
+    title: "TEE round-trip",
+    body: "Re-download · re-hash · recover signer offline.",
     phaseRef: "Phase 9",
     tone: "healthy",
   },
   {
     tag: "AT-6",
-    title: "Sandwich FPR ≤ 15 %",
-    body: "Heuristic flagger benchmarked vs EigenPhi / MEV-Inspect labels. ≥ 70 % true-positive, ≤ 15 % false-positive over a week of mainnet swaps.",
+    title: "Sandwich FPR",
+    body: "≤ 15 % FPR · ≥ 70 % TPR vs EigenPhi labels.",
     phaseRef: "Phase 4",
     tone: "violet",
   },
   {
     tag: "AT-7",
-    title: "Regime classifier sane",
-    body: "Five known pools (USDC/USDT, ETH/USDC, DEGEN, PEPE, WBTC/WETH) must hit their expected regime label or the report is tagged regime_confidence: low.",
+    title: "Regime sanity",
+    body: "5 known pools must land their expected label.",
     phaseRef: "Phase 4",
     tone: "amber",
   },
   {
     tag: "AT-8",
-    title: "V4 decode byte-exact",
-    body: "Our TypeScript decodePositionInfo must return byte-exact tickLower / tickUpper vs the Solidity getPoolAndPositionInfo on 5 real V4 positions.",
+    title: "V4 decode",
+    body: "Byte-exact ticks vs Solidity getPoolAndPositionInfo.",
     phaseRef: "Phase 1 (V4)",
     tone: "cyan",
   },
   {
     tag: "AT-9",
-    title: "Hook flag bits match",
-    body: "Our getFlags(hookAddress) decode must match the PoolManager's on-chain bitmask check on 5 real hook addresses scraped from mainnet.",
+    title: "Flag bits",
+    body: "getFlags(addr) matches PoolManager bitmask.",
     phaseRef: "Phase 5",
     tone: "violet",
   },
   {
     tag: "AT-10",
-    title: "Pipeline ≤ 60 s",
-    body: "Demo gate: every full diagnose, all 11 phases, finishes inside the 60-second on-stage window.",
-    phaseRef: "End-to-end",
+    title: "End-to-end ≤ 60 s",
+    body: "All 11 phases finish inside the demo window.",
+    phaseRef: "All phases",
     tone: "amber",
   },
 ];
@@ -272,48 +272,60 @@ function GuardCardEl({ tag, title, body, phaseRef, tone }: GuardCard) {
   return (
     <div
       style={{
-        padding: "14px 16px",
-        borderRadius: 10,
+        padding: "10px 12px",
+        borderRadius: 8,
         border: "1px solid var(--border)",
         borderLeft: `3px solid var(--${tone})`,
         background: "var(--surface)",
         display: "flex",
         flexDirection: "column",
-        gap: 6,
+        gap: 3,
       }}
     >
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+          <Mono
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.16em",
+              color: `var(--${tone})`,
+              textTransform: "uppercase",
+              fontWeight: 600,
+            }}
+          >
+            {tag}
+          </Mono>
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 13,
+              fontWeight: 500,
+              letterSpacing: "-0.01em",
+              color: "var(--text)",
+              lineHeight: 1.2,
+            }}
+          >
+            {title}
+          </span>
+        </span>
         <Mono
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.18em",
-            color: `var(--${tone})`,
-            textTransform: "uppercase",
-            fontWeight: 600,
-          }}
+          color="text-tertiary"
+          style={{ fontSize: 9, letterSpacing: "0.12em", whiteSpace: "nowrap" }}
         >
-          {tag} · ACCEPTANCE TEST
-        </Mono>
-        <Mono color="text-tertiary" style={{ fontSize: 9, letterSpacing: "0.14em" }}>
           {phaseRef}
         </Mono>
       </div>
       <span
         style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 16,
-          fontWeight: 500,
-          letterSpacing: "-0.01em",
-          color: "var(--text)",
-          lineHeight: 1.2,
-        }}
-      >
-        {title}
-      </span>
-      <span
-        style={{
-          fontSize: 12,
-          lineHeight: 1.5,
+          fontSize: 11,
+          lineHeight: 1.4,
           color: "var(--text-secondary)",
         }}
       >
