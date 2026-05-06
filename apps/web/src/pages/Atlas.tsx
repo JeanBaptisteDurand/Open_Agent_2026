@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { AppHeader } from "../components/AppHeader.js";
 import { AggStat } from "../components/AggStat.js";
@@ -99,17 +100,32 @@ function aggregate(positions: V3PositionRaw[]) {
 
 export function Atlas() {
   const { address: connectedAddress } = useAccount();
+  const [searchParams] = useSearchParams();
+  // `?wallet=bleeding` (or `?demo=1` / `?pin=bleeding`) forces the
+  // curated bleeding wallet to be pinned even when the visitor has a
+  // wallet connected — used by the finale slide 3 iframe so the demo
+  // always opens on the same 10 out-of-range positions.
+  const forceBleeding =
+    searchParams.get("wallet") === "bleeding" ||
+    searchParams.get("pin") === "bleeding" ||
+    searchParams.get("demo") === "1" ||
+    searchParams.get("demo") === "true";
   // Auto-pin the bleeding wallet on first load when no wallet is
   // connected. The demo's narrative ("LP bleeding · diagnose this")
   // always opens with this wallet, so saving the click matters when
   // the live judge clicks through during the 5-min stream.
   const bleeding = CURATED_DEMO_WALLETS.find((w) => w.slot === "bleeding");
-  const initial = connectedAddress ?? bleeding?.address ?? null;
-  const initialSlot: DemoWallet["slot"] | null = connectedAddress
-    ? null
-    : bleeding
+  const initial = forceBleeding
+    ? bleeding?.address ?? null
+    : connectedAddress ?? bleeding?.address ?? null;
+  const initialSlot: DemoWallet["slot"] | null =
+    forceBleeding && bleeding
       ? "bleeding"
-      : null;
+      : connectedAddress
+        ? null
+        : bleeding
+          ? "bleeding"
+          : null;
   const [address, setAddress] = useState(initial ?? "");
   const [submitted, setSubmitted] = useState<string | null>(initial);
   const [activeSlot, setActiveSlot] = useState<DemoWallet["slot"] | null>(
