@@ -196,34 +196,33 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  // Close instantly when the cursor leaves the dropdown — but only
-  // if it's not transiting between the button and the menu (or the
-  // reverse). `mouseleave.relatedTarget` is the element the cursor
-  // is moving INTO; if that element is contained by either the
-  // trigger button or the menu panel, we stay open. No timers.
-  const handleLeave = (e: React.MouseEvent): void => {
-    const next = e.relatedTarget;
-    if (
-      next instanceof Node &&
-      (buttonRef.current?.contains(next) || menuRef.current?.contains(next))
-    ) {
-      return;
-    }
-    setOpen(false);
-  };
-
-  // Close on outside click + Escape so the menu doesn't trap the page.
+  // Close-on-out logic via document mouseover. mouseover bubbles and
+  // fires every time the cursor enters a new element — so we can
+  // check `e.target` against both the button and the menu refs and
+  // get an authoritative "is the cursor over the dropdown right now?"
+  // signal. This sidesteps the fragility of chained
+  // mouseenter/mouseleave + relatedTarget across multiple boundaries
+  // (item-to-item gap, paddingTop strip, etc.).
   useEffect(() => {
     if (!open) return;
+    const onMouseOver = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      const overButton = !!buttonRef.current?.contains(target);
+      const overMenu = !!menuRef.current?.contains(target);
+      if (!overButton && !overMenu) setOpen(false);
+    };
     const onDocClick = (e: MouseEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    document.addEventListener("mouseover", onMouseOver);
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
     return () => {
+      document.removeEventListener("mouseover", onMouseOver);
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onKey);
     };
@@ -239,7 +238,6 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         onMouseEnter={() => setOpen(true)}
-        onMouseLeave={handleLeave}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
@@ -273,14 +271,12 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
         <div
           ref={menuRef}
           role="menu"
-          onMouseLeave={handleLeave}
           style={{
             position: "absolute",
-            // Menu flush against the button (top: 100%) with a small
-            // internal top padding so the cursor can cross from button
-            // to menu without leaving the dropdown's combined hover
-            // area. handleLeave above keeps the menu open whenever
-            // the cursor is moving between button and menu.
+            // Menu flush against the button (top: 100%). The 8 px
+            // internal top padding bridges the visual gap so the
+            // cursor stays continuously over either the button or
+            // the menu while transiting.
             top: "100%",
             right: 0,
             zIndex: 30,
