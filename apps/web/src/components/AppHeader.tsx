@@ -39,6 +39,14 @@ const NAV: NavItem[] = [
   },
   { to: "/deck", label: "Deck", matches: (p) => p.startsWith("/deck") },
   {
+    // Default the kiosk URL with presenter + demo flags so the slide
+    // manager (top-left) and recording chrono (top-right) overlays
+    // show automatically when navigating from the header.
+    to: "/finale?presenter=true&demo=1",
+    label: "Finale",
+    matches: (p) => p.startsWith("/finale"),
+  },
+  {
     to: "https://github.com/JeanBaptisteDurand/Open_Agent_2026/blob/main/FEEDBACK.md",
     label: "Feedback",
   },
