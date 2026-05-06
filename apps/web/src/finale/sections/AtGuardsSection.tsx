@@ -194,13 +194,14 @@ export function AtGuardsSection() {
           </div>
         </div>
 
-        {/* Right: AT guard cards */}
+        {/* Right: AT guard cards — stretch to fill the column so the
+            10 cards consume the slide's available real estate. */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-            alignContent: "start",
+            gridAutoRows: "1fr",
+            gap: 14,
             minHeight: 0,
             overflowY: "auto",
           }}
@@ -272,14 +273,16 @@ function GuardCardEl({ tag, title, body, phaseRef, tone }: GuardCard) {
   return (
     <div
       style={{
-        padding: "10px 12px",
-        borderRadius: 8,
+        padding: "16px 20px",
+        borderRadius: 10,
         border: "1px solid var(--border)",
-        borderLeft: `3px solid var(--${tone})`,
+        borderLeft: `4px solid var(--${tone})`,
         background: "var(--surface)",
         display: "flex",
         flexDirection: "column",
-        gap: 3,
+        justifyContent: "center",
+        gap: 6,
+        minHeight: 0,
       }}
     >
       <div
@@ -287,13 +290,14 @@ function GuardCardEl({ tag, title, body, phaseRef, tone }: GuardCard) {
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
-          gap: 8,
+          gap: 10,
+          flexWrap: "wrap",
         }}
       >
-        <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <span style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
           <Mono
             style={{
-              fontSize: 10,
+              fontSize: 12,
               letterSpacing: "0.16em",
               color: `var(--${tone})`,
               textTransform: "uppercase",
@@ -305,11 +309,11 @@ function GuardCardEl({ tag, title, body, phaseRef, tone }: GuardCard) {
           <span
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 13,
+              fontSize: 18,
               fontWeight: 500,
               letterSpacing: "-0.01em",
               color: "var(--text)",
-              lineHeight: 1.2,
+              lineHeight: 1.15,
             }}
           >
             {title}
@@ -317,15 +321,19 @@ function GuardCardEl({ tag, title, body, phaseRef, tone }: GuardCard) {
         </span>
         <Mono
           color="text-tertiary"
-          style={{ fontSize: 9, letterSpacing: "0.12em", whiteSpace: "nowrap" }}
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.14em",
+            whiteSpace: "nowrap",
+          }}
         >
           {phaseRef}
         </Mono>
       </div>
       <span
         style={{
-          fontSize: 11,
-          lineHeight: 1.4,
+          fontSize: 13,
+          lineHeight: 1.45,
           color: "var(--text-secondary)",
         }}
       >
