@@ -28,6 +28,10 @@ import { ogChain } from "../services/ogChain.js";
 import { ogCompute } from "../services/ogCompute.js";
 import { ensWriter } from "../services/ensWriter.js";
 import { reportCache } from "../services/reportCache.js";
+import {
+  hasRecording,
+  replayDiagnose,
+} from "../services/demoCache/index.js";
 
 export async function diagnoseHandler(
   req: Request<{ tokenId: string }>,
@@ -36,9 +40,34 @@ export async function diagnoseHandler(
   const { tokenId } = req.params;
   const sse = new SSEStream(res);
 
+  const ac = new AbortController();
   req.on("close", () => {
+    ac.abort();
     logger.info(`diagnose stream closed by client (tokenId=${tokenId})`);
   });
+
+  // Demo replay path. Activated by ?demo=1 (or ?demo=true). When a
+  // pre-recorded JSONL exists for this tokenId, we replay events at
+  // the original cadence (scaled by DEMO_REPLAY_SCALE). The recording
+  // was produced by `pnpm demo:warm`, see apps/server/scripts/demo-warm.ts.
+  // No external services are touched, no funds spent, no MEV risk.
+  const demoFlag = req.query.demo;
+  const demoOn = demoFlag === "1" || demoFlag === "true";
+  if (demoOn && hasRecording(tokenId)) {
+    try {
+      logger.info(`diagnose replay started for ${tokenId} (demo=1)`);
+      await replayDiagnose(tokenId, sse, ac.signal);
+    } catch (err) {
+      logger.error(
+        `diagnose replay failed for ${tokenId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    } finally {
+      sse.close();
+    }
+    return;
+  }
 
   // Preflight phase 0 — subgraph readiness banner.
   sse.emit({

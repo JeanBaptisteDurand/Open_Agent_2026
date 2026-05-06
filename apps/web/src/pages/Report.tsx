@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { LabelBadge } from "../components/LabelBadge.js";
 import {
   useReport,
@@ -18,7 +18,7 @@ function formatNumber(n: number, digits = 4): string {
 }
 
 function chainExplorerUrl(chainId: number, txHash: string): string | null {
-  if (chainId === 16602) return `https://chainscan-newton.0g.ai/tx/${txHash}`;
+  if (chainId === 16602) return `https://chainscan-galileo.0g.ai/tx/${txHash}`;
   if (chainId === 16661) return `https://chainscan.0g.ai/tx/${txHash}`;
   return null;
 }
@@ -210,6 +210,17 @@ function PayloadSections({ payload, token1Symbol }: PayloadSectionsProps) {
 export function Report() {
   const { rootHash } = useParams<{ rootHash: string }>();
   const { status, report, error } = useReport(rootHash ?? null);
+  const navigate = useNavigate();
+  const tokenId = report?.payload.position.tokenId;
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (tokenId) {
+      navigate(`/diagnose/${tokenId}`);
+    } else {
+      navigate("/atlas");
+    }
+  };
 
   if (!rootHash) {
     return (
@@ -224,12 +235,13 @@ export function Report() {
   return (
     <div className="min-h-screen p-8">
       <header className="max-w-4xl mx-auto">
-        <Link
-          to="/"
-          className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        <button
+          type="button"
+          onClick={goBack}
+          className="text-xs text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-0 p-0 cursor-pointer"
         >
-          ← back to atlas
-        </Link>
+          ← back to position
+        </button>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Report</h1>
         <p className="mt-1 text-slate-400 font-mono text-xs break-all">
           rootHash {rootHash}

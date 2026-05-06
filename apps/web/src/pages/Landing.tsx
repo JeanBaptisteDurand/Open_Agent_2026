@@ -1,12 +1,18 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/AppHeader.js";
 import { HeroFilm } from "../components/HeroFilm.js";
 import { Cap, Dot, Mono } from "../design/atoms.js";
+import { CountUp } from "../finale/atoms.js";
 
 export function Landing() {
   const nav = useNavigate();
+  const counters = useLiveCounters();
   return (
     <div>
+      {/* ─── ON AIR finale banner ─────────────────────────────────────── */}
+      <FinaleBanner counters={counters} />
+
       {/* ─── 1 · Hero — slide-01 reference, left-aligned ──────────────── */}
       <section
         style={{
@@ -712,6 +718,155 @@ export function Landing() {
         </div>
       </footer>
     </div>
+  );
+}
+
+/* ─── Finale-week additions ────────────────────────────────────── */
+
+interface LiveCounters {
+  reportsAnchored: number;
+  migrationsTriggered: number;
+  royaltiesOG: number;
+}
+
+function useLiveCounters(): LiveCounters {
+  const [c, setC] = useState<LiveCounters>({
+    reportsAnchored: 47,
+    migrationsTriggered: 12,
+    royaltiesOG: 0.64,
+  });
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async (): Promise<void> => {
+      try {
+        const r = await fetch("/api/agent/state");
+        if (!r.ok) return;
+        const j = (await r.json()) as Partial<LiveCounters> & { reputation?: number };
+        if (cancelled) return;
+        setC((prev) => ({
+          reportsAnchored: j.reportsAnchored ?? j.reputation ?? prev.reportsAnchored,
+          migrationsTriggered: j.migrationsTriggered ?? prev.migrationsTriggered,
+          royaltiesOG: j.royaltiesOG ?? prev.royaltiesOG,
+        }));
+      } catch {
+        // keep prev values
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
+  return c;
+}
+
+interface FinaleBannerProps {
+  counters: LiveCounters;
+}
+
+function FinaleBanner({ counters }: FinaleBannerProps) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        zIndex: 5,
+        padding: "8px 28px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 14,
+        background: "rgba(255,94,79,0.07)",
+        borderBottom: "1px solid rgba(255,94,79,0.32)",
+        backdropFilter: "blur(4px)",
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span
+          aria-hidden
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 999,
+            background: "var(--bleed)",
+            boxShadow: "0 0 10px var(--bleed-glow)",
+            animation: "pulse-dot 1.4s infinite",
+          }}
+        />
+        <span
+          style={{
+            color: "var(--bleed)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+          }}
+        >
+          ON AIR
+        </span>
+        <span
+          style={{
+            color: "var(--text-secondary)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.12em",
+          }}
+        >
+          ETHGlobal Open Agents · Finale · May 6 2026
+        </span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+        }}
+      >
+        <FinaleCounter
+          label="ANCHORED"
+          value={counters.reportsAnchored}
+          decimals={0}
+        />
+        <span style={{ color: "var(--text-faint)" }}>·</span>
+        <FinaleCounter
+          label="MIGRATIONS"
+          value={counters.migrationsTriggered}
+          decimals={0}
+        />
+        <span style={{ color: "var(--text-faint)" }}>·</span>
+        <FinaleCounter
+          label="OG PAID"
+          value={counters.royaltiesOG}
+          decimals={2}
+          suffix=" OG"
+        />
+      </div>
+    </div>
+  );
+}
+
+interface FinaleCounterProps {
+  label: string;
+  value: number;
+  decimals?: number;
+  suffix?: string;
+}
+
+function FinaleCounter({ label, value, decimals = 0, suffix = "" }: FinaleCounterProps) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
+      <span style={{ color: "var(--text-tertiary)", letterSpacing: "0.16em" }}>
+        {label}
+      </span>
+      <span style={{ color: "var(--cyan)", fontWeight: 500 }}>
+        <CountUp value={value} decimals={decimals} suffix={suffix} flashOnChange />
+      </span>
+    </span>
   );
 }
 

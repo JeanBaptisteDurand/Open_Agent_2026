@@ -1,5 +1,6 @@
 import { AppHeader } from "../components/AppHeader.js";
 import { useAgentLiveState } from "../hooks/useAgentLiveState.js";
+import { CountUp } from "../finale/atoms.js";
 
 // /agent — live profile page for the LPLens iNFT.
 // Pulls agents(tokenId) + protocolTreasury + protocolFeeBps from
@@ -23,7 +24,7 @@ function fmtTimestamp(unix: number): string {
 }
 
 function explorerAddress(addr: string): string {
-  return `https://chainscan-newton.0g.ai/address/${addr}`;
+  return `https://chainscan-galileo.0g.ai/address/${addr}`;
 }
 
 export function Agent() {
@@ -264,6 +265,11 @@ const TONE_VAR: Record<StatProps["tone"], string> = {
 };
 
 function Stat({ label, value, sub, tone }: StatProps) {
+  // Best-effort numeric extraction so we can animate the count-up. If
+  // the value isn't a clean number (e.g., a date string), render it
+  // as-is and skip the animation.
+  const numeric = parseFloat(value);
+  const isNumber = !Number.isNaN(numeric) && /^[\d,.\s]+$/.test(value.trim());
   return (
     <div
       style={{
@@ -272,8 +278,24 @@ function Stat({ label, value, sub, tone }: StatProps) {
         border: "1px solid var(--border)",
         background: "var(--surface)",
         borderLeft: `3px solid ${TONE_VAR[tone]}`,
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 10,
+          width: 6,
+          height: 6,
+          borderRadius: 999,
+          background: TONE_VAR[tone],
+          opacity: 0.6,
+          animation: "pulse-dot 1.6s infinite",
+        }}
+      />
       <div style={{ fontSize: 10, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
         {label}
       </div>
@@ -281,14 +303,15 @@ function Stat({ label, value, sub, tone }: StatProps) {
         style={{
           marginTop: 8,
           fontFamily: "var(--font-display)",
-          fontSize: 26,
+          fontSize: 32,
           fontWeight: 500,
           letterSpacing: "-0.02em",
           color: TONE_VAR[tone],
           wordBreak: "break-all",
+          minHeight: 36,
         }}
       >
-        {value}
+        {isNumber ? <CountUp value={numeric} flashOnChange /> : value}
       </div>
       <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>
         {sub}

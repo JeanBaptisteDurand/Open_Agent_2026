@@ -10,7 +10,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "demo:warm": "sh -c 'if [ -f ../../.env ]; then ENV_FILE=../../.env; elif [ -f .env ]; then ENV_FILE=.env; else ENV_FILE=../../.env.example; fi; tsx --env-file=$ENV_FILE scripts/demo-warm.ts'"
   },
   "dependencies": {
     "@0gfoundation/0g-ts-sdk": "^1.2.6",

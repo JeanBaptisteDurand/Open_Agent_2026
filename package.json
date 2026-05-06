@@ -16,7 +16,8 @@
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v && docker compose up -d",
     "test": "pnpm -r run test",
-    "test:server": "pnpm --filter @lplens/server run test"
+    "test:server": "pnpm --filter @lplens/server run test",
+    "demo:warm": "pnpm --filter @lplens/server run demo:warm"
   },
   "engines": {
     "node": ">=20.0.0",
