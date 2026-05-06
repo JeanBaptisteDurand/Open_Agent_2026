@@ -53,21 +53,31 @@ export function EnsPanel({ publication }: Props) {
           <span className="ml-auto text-[10px] text-slate-500">{network}</span>
         </div>
 
-        <div className="pt-2 border-t border-slate-800 space-y-1">
+        <div className="pt-2 border-t border-slate-800 space-y-2">
           {records.map((r) => (
-            <div key={r.key} className="flex items-start gap-2">
-              <span className="text-slate-500 w-44 shrink-0 truncate" title={r.key}>
-                {r.key.replace(/^lplens\.\d+\./, "")}
+            <a
+              key={r.key}
+              href={resolverUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-start gap-2 px-2 py-1 -mx-2 rounded hover:bg-slate-800/60 transition-colors group"
+              title={`open ${parentName} on ENS app to verify text record "${r.key}"`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-violet-300 group-hover:text-violet-200 truncate">
+                  {r.key}.{parentName}
+                </div>
+                <div className="text-slate-200 truncate text-[11px]" title={r.value}>
+                  {shortValue(r.value)}
+                </div>
+              </div>
+              <span
+                className="ml-auto text-[10px] text-slate-500 group-hover:text-slate-300 shrink-0"
+                title={r.txHash ?? "click to verify on ENS app"}
+              >
+                {r.txHash ? "✓ ↗" : "↗"}
               </span>
-              <span className="text-slate-200 truncate" title={r.value}>
-                {shortValue(r.value)}
-              </span>
-              {r.txHash && (
-                <span className="ml-auto text-[10px] text-slate-500" title={r.txHash}>
-                  ✓
-                </span>
-              )}
-            </div>
+            </a>
           ))}
         </div>
       </div>

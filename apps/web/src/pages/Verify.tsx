@@ -65,7 +65,7 @@ const SURFACES: SurfaceSpec[] = [
       `keccak256(blob)\n  == ${shortHash(e.rootHash)}`,
     cast: (e) =>
       `curl -sL ${shortStorageUrl(e.storageUrl)} \\\n  | shasum -a 256`,
-    href: (e) => e.storageUrl,
+    href: (e) => browserStorageUrl(e.storageUrl, e.rootHash),
   },
   {
     id: "chain",
@@ -78,7 +78,7 @@ const SURFACES: SurfaceSpec[] = [
       `cast call ${p.registryAddr} \\\n  "reports(bytes32)(...)" \\\n  ${shortHash(e.rootHash)}`,
     href: (e) =>
       e.anchorChainId === 16602 && e.anchorTxHash
-        ? `https://chainscan-newton.0g.ai/tx/${e.anchorTxHash}`
+        ? `https://chainscan-galileo.0g.ai/tx/${e.anchorTxHash}`
         : undefined,
   },
   {
@@ -103,7 +103,7 @@ const SURFACES: SurfaceSpec[] = [
       `agents(${p.agentTokenId})\n  .memoryRoot == ${shortHash(e.rootHash)}`,
     cast: (e, p) =>
       `cast call ${p.agentAddr} \\\n  "agents(uint256)(...)" \\\n  ${p.agentTokenId}`,
-    href: (_e, p) => `https://chainscan-newton.0g.ai/address/${p.agentAddr}`,
+    href: (_e, p) => `https://chainscan-galileo.0g.ai/address/${p.agentAddr}`,
   },
   {
     id: "ens",
@@ -132,6 +132,18 @@ function shortStorageUrl(u: string): string {
   if (!u) return "stub://";
   if (u.length <= 32) return u;
   return u.slice(0, 28) + "…";
+}
+
+// Browsers can't open the canonical `og://{rootHash}` scheme that the
+// indexer returns, so the storage row's "open ↗" link rewrites it to
+// the public 0G indexer http endpoint that serves the same blob.
+function browserStorageUrl(u: string | undefined, rootHash: string): string | undefined {
+  if (!u) return undefined;
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  if (u.startsWith("og://")) {
+    return `https://indexer-storage-testnet-turbo.0g.ai/file/${rootHash}`;
+  }
+  return undefined;
 }
 
 export function Verify() {
@@ -296,7 +308,13 @@ export function Verify() {
         </header>
 
         {/* Hero hash banner — the protagonist of the page */}
-        <RootHashHero hash={fullHash} verifiedCount={verifiedCount} total={SURFACES.length} />
+        <RootHashHero
+          hash={fullHash}
+          verifiedCount={verifiedCount}
+          total={SURFACES.length}
+          ensName={DEFAULT_PARAMS.ensName}
+          tokenId={envelope?.payload?.position?.tokenId ?? params.get("tokenId") ?? "605311"}
+        />
 
         {/* 5-column horizontal cascade strip */}
         <section
@@ -673,9 +691,13 @@ interface RootHashHeroProps {
   hash: string;
   verifiedCount: number;
   total: number;
+  ensName?: string;
+  tokenId?: string;
 }
 
-function RootHashHero({ hash, verifiedCount, total }: RootHashHeroProps) {
+function RootHashHero({ hash, verifiedCount, total, ensName, tokenId }: RootHashHeroProps) {
+  const ensRecordKey = tokenId ? `lplens.${tokenId}.rootHash` : null;
+  const ensUrl = ensName ? `https://sepolia.app.ens.domains/${ensName}` : null;
   return (
     <div
       style={{
@@ -704,19 +726,53 @@ function RootHashHero({ hash, verifiedCount, total }: RootHashHeroProps) {
             textTransform: "uppercase",
           }}
         >
-          ROOTHASH · VERIFYING ACROSS 5 SURFACES
+          ENS · SEPOLIA · TEXT RECORD · VERIFYING ACROSS 5 SURFACES
         </span>
+        {ensName && ensRecordKey ? (
+          ensUrl ? (
+            <a
+              href={ensUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "clamp(18px, 2.6vw, 32px)",
+                color: "var(--violet, #b48cff)",
+                textDecoration: "none",
+                letterSpacing: "-0.01em",
+                wordBreak: "break-all",
+                lineHeight: 1.15,
+                textShadow: "0 0 20px rgba(180,140,255,0.18)",
+              }}
+              title={`Resolve ${ensRecordKey} on ${ensName} (Sepolia)`}
+            >
+              {ensRecordKey}.{ensName} ↗
+            </a>
+          ) : (
+            <Mono
+              style={{
+                fontSize: "clamp(18px, 2.6vw, 32px)",
+                color: "var(--violet, #b48cff)",
+                letterSpacing: "-0.01em",
+                wordBreak: "break-all",
+                lineHeight: 1.15,
+              }}
+            >
+              {ensRecordKey}.{ensName}
+            </Mono>
+          )
+        ) : null}
         <Mono
           style={{
-            fontSize: "clamp(18px, 2.6vw, 32px)",
-            color: "var(--cyan)",
-            letterSpacing: "-0.01em",
+            fontSize: 11,
+            color: "var(--text-secondary)",
+            letterSpacing: "0.02em",
             wordBreak: "break-all",
-            lineHeight: 1.15,
-            textShadow: "0 0 20px rgba(255,176,32,0.18)",
+            lineHeight: 1.4,
+            marginTop: 2,
           }}
         >
-          {hash}
+          rootHash {hash}
         </Mono>
       </div>
       <div
