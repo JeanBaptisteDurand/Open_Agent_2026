@@ -255,20 +255,29 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
           role="menu"
           style={{
             position: "absolute",
-            top: "calc(100% + 8px)",
+            // Menu sits flush against the button so the hover zone is
+            // continuous — no gap to fall through. The visual breathing
+            // room is created by an internal transparent top spacer
+            // below, which keeps the hit area unbroken.
+            top: "100%",
             right: 0,
             zIndex: 30,
             minWidth: 280,
-            padding: 6,
-            background: "var(--surface)",
-            border: "1px solid var(--border-strong)",
-            borderRadius: 10,
-            boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
+            paddingTop: 8,
           }}
         >
+          <div
+            style={{
+              padding: 6,
+              background: "var(--surface)",
+              border: "1px solid var(--border-strong)",
+              borderRadius: 10,
+              boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
           {FINALE_VARIANTS.map((v) => (
             <Link
               key={v.to}
@@ -315,6 +324,7 @@ function FinaleDropdown({ active }: FinaleDropdownProps) {
               </span>
             </Link>
           ))}
+          </div>
         </div>
       )}
     </div>
